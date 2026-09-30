@@ -29,6 +29,7 @@ app.get('/api/meta', (req, res) => {
 app.use('/api/projects',  require('./routes/projects'));
 app.use('/api/printers',  require('./routes/printers'));
 app.use('/api/filaments', require('./routes/filaments'));
+app.use('/api/settings',  require('./routes/settings'));
 app.use('/api',           require('./routes/parts').router);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Route API inconnue : ' + req.originalUrl }));

@@ -1,6 +1,7 @@
 /* ══════════════════════════════════════════════════════════════
    PrepFlow — même famille visuelle que FilaFlow (« Atelier »)
-   Graphite par défaut, variante claire selon le réglage du système.
+   Graphite par défaut, variante claire via data-color-scheme="light"
+   (posé par js/theme.js selon le réglage Paramètres › Apparence).
    Accent bleu « plan » pour distinguer PrepFlow de FilaFlow (orange).
    ══════════════════════════════════════════════════════════════ */
 @font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-display: swap; src: url('../fonts/barlow-condensed-latin-600-normal.woff2') format('woff2'); }
@@ -29,8 +30,7 @@
   line-height: 1.5;
   color-scheme: dark;
 }
-@media (prefers-color-scheme: light) {
-  :root {
+:root[data-color-scheme="light"] {
     --bg: #ECEAE5;  --bg2: #F7F6F2;  --bg3: #E2DFD8;  --bg-deep: #DEDBD3;
     --border: #D3CFC6;  --border2: #BDB8AD;
     --text: #1A1B1D;  --text2: #55534E;  --text3: #6E6B65;
@@ -39,7 +39,6 @@
     --warning: #8A5A00; --warning-bg: #F6EACC;
     --danger: #B3261E;  --danger-bg: #F9DEDC;
     color-scheme: light;
-  }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -75,6 +74,7 @@ a { color: var(--accent); }
 .nav-link:hover { background: var(--bg3); color: var(--text); }
 .nav-link.active { background: var(--accent-bg); color: var(--accent); }
 .topbar-end { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.theme-toggle { color: var(--text2); }
 .version { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
 .ff-status { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text3); cursor: default; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); }
@@ -285,6 +285,15 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .spool.is-short .gauge-need { background: var(--danger); }
 .spool.is-short .gauge-stock { background: color-mix(in srgb, var(--danger) 30%, var(--bg-deep)); z-index: 1; opacity: 0.9; }
 .spool-foot { display: flex; justify-content: space-between; font-size: 12px; color: var(--text3); margin-top: 5px; font-variant-numeric: tabular-nums; }
+
+/* ── Paramètres ────────────────────────────────────────────────── */
+.settings-section { max-width: 720px; padding-bottom: 24px; }
+.settings-row { display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap; margin-top: 4px; }
+.settings-row .select { min-width: 260px; height: 36px; }
+.hours-field[hidden] { display: none; }
+.hours-inputs { display: flex; gap: 12px; }
+.hours-inputs label { display: flex; align-items: center; gap: 6px; color: var(--text2); }
+.hours-inputs .select { min-width: 0; width: 84px; }
 
 /* ── Fenêtres de dialogue ──────────────────────────────────────── */
 .dialog {

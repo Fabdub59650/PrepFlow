@@ -10,6 +10,8 @@ export function toast(message, kind = 'info') {
     box.setAttribute('aria-live', 'polite');
     document.body.appendChild(box);
   }
+  // Même message déjà affiché : le remplacer plutôt que les empiler
+  [...box.children].forEach(t => { if (t.textContent === message) t.remove(); });
   const el = document.createElement('div');
   el.className = `toast toast-${kind}`;
   el.textContent = message;

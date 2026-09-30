@@ -3,13 +3,16 @@ import { toast } from './ui.js';
 import { renderProjects } from './views/projects.js';
 import { renderProject } from './views/project.js';
 import { renderPrinters } from './views/printers.js';
+import { renderSettings } from './views/settings.js';
 import { store } from './store.js';
+import { initTheme } from './theme.js';
 
 // Routes : #/  #/projet/12  #/imprimantes
 const routes = [
   { re: /^#?\/?$/,               view: renderProjects, nav: 'projects' },
   { re: /^#\/projet\/(\d+)$/,    view: renderProject,  nav: 'projects' },
   { re: /^#\/imprimantes$/,      view: renderPrinters, nav: 'printers' },
+  { re: /^#\/parametres$/,       view: renderSettings, nav: 'settings' },
 ];
 
 let currentCleanup = null;
@@ -38,6 +41,7 @@ async function route() {
 }
 
 async function init() {
+  initTheme();
   try {
     const meta = await api.get('meta');
     document.getElementById('app-version').textContent = 'v' + meta.version;

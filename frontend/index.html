@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#141517">
 <title>PrepFlow</title>
+<script>
+  // Dernier mode affiché, appliqué avant le rendu pour éviter un flash de thème
+  try { if (localStorage.getItem('prepflow_scheme') === 'light') document.documentElement.setAttribute('data-color-scheme', 'light'); } catch (e) {}
+</script>
 <!-- Chemins relatifs : l'application est servie sous /prepflow/ -->
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="vendor/tabulator/tabulator.min.css">
@@ -21,9 +25,11 @@
   <nav class="nav" aria-label="Navigation principale">
     <a href="#/" class="nav-link" data-nav="projects">Projets</a>
     <a href="#/imprimantes" class="nav-link" data-nav="printers">Imprimantes</a>
+    <a href="#/parametres" class="nav-link" data-nav="settings">Paramètres</a>
   </nav>
   <div class="topbar-end">
     <span id="filaflow-status" class="ff-status"><span class="status-dot" aria-hidden="true"></span><span class="status-label">Stock FilaFlow…</span></span>
+    <button type="button" class="icon-btn theme-toggle" id="theme-toggle" title="Passer en mode clair" aria-label="Passer en mode clair"></button>
     <a href="/" class="btn btn-sm">Ouvrir FilaFlow</a>
     <span id="app-version" class="version"></span>
   </div>

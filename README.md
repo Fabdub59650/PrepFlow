@@ -21,6 +21,7 @@ Accès : **https://filaflow.local/prepflow/**
   besoin par bobine comparé au poids restant pesé dans FilaFlow, avec alerte si une bobine ne suffit pas
 - Les pièces marquées « Imprimé » ne comptent plus dans le besoin (la balance les a déjà décomptées)
 - Copie locale du stock : PrepFlow reste utilisable si FilaFlow est arrêté
+- Mode clair / sombre : bouton dans la barre du haut, modes automatiques dans Paramètres › Apparence
 
 ## Architecture
 
@@ -55,7 +56,7 @@ sudo bash scripts/install.sh
 Le script : crée la base et l'utilisateur, applique le schéma, copie les fichiers dans
 `/opt/prepflow`, installe le service systemd, puis ajoute l'include dans
 `/etc/nginx/sites-available/filaflow` (copie de sauvegarde, `nginx -t`, retour arrière si erreur).
-Si l'utilisateur Adminer `pi@172.%.%.%` existe, il reçoit les droits sur la base `prepflow`.
+Si un utilisateur MariaDB `pi` existe (Adminer), il reçoit les droits sur la base `prepflow`, quel que soit son hôte.
 
 ## Mise à jour
 

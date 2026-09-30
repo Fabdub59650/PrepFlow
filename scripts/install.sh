@@ -52,10 +52,15 @@ mariadb -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLA
 mariadb -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';"
 mariadb -e "ALTER USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';"
 mariadb -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
-# Accès depuis Adminer (utilisateur pi du conteneur Docker), s'il existe
-if [ "$(mariadb -N -e "SELECT COUNT(*) FROM mysql.user WHERE User='pi' AND Host='172.%.%.%'")" = "1" ]; then
-  mariadb -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'pi'@'172.%.%.%';"
-  echo "  ✓ Base visible dans Adminer (utilisateur pi)"
+# Accès depuis Adminer : droits pour l'utilisateur pi, quel que soit son hôte
+PI_HOSTS=$(mariadb -N -e "SELECT Host FROM mysql.user WHERE User='pi'")
+if [ -n "$PI_HOSTS" ]; then
+  for h in $PI_HOSTS; do
+    mariadb -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO 'pi'@'${h}';"
+  done
+  echo "  ✓ Base visible dans Adminer (utilisateur pi@$(echo $PI_HOSTS | tr ' ' ','))"
+else
+  echo "  (pas d'utilisateur MariaDB 'pi' : droits Adminer non accordés)"
 fi
 mariadb -e "FLUSH PRIVILEGES;"
 mariadb --default-character-set=utf8mb4 ${DB_NAME} < "${PROJECT_DIR}/sql/schema.sql"
