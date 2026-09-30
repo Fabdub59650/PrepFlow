@@ -1,0 +1,20 @@
+[Unit]
+Description=PrepFlow - Préparation des impressions 3D
+After=network.target mariadb.service
+Wants=mariadb.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=/opt/prepflow/backend
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

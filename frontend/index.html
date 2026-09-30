@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#141517">
+<title>PrepFlow</title>
+<!-- Chemins relatifs : l'application est servie sous /prepflow/ -->
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="vendor/tabulator/tabulator.min.css">
+<link rel="stylesheet" href="css/app.css">
+<script src="vendor/tabulator/tabulator.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <a href="#/" class="brand" aria-label="PrepFlow, accueil">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">PrepFlow</span>
+  </a>
+  <nav class="nav" aria-label="Navigation principale">
+    <a href="#/" class="nav-link" data-nav="projects">Projets</a>
+    <a href="#/imprimantes" class="nav-link" data-nav="printers">Imprimantes</a>
+  </nav>
+  <div class="topbar-end">
+    <span id="filaflow-status" class="ff-status"><span class="status-dot" aria-hidden="true"></span><span class="status-label">Stock FilaFlow…</span></span>
+    <a href="/" class="btn btn-sm">Ouvrir FilaFlow</a>
+    <span id="app-version" class="version"></span>
+  </div>
+</header>
+<main id="content" class="content"></main>
+</body>
+</html>
