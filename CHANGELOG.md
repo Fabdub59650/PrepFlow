@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.4.0 — 01/10/2026
+
+- Paramètres › Version : version installée comparée au dernier tag publié sur GitHub,
+  notes de version tirées du CHANGELOG, mise à jour en un clic avec redémarrage automatique
+- Pastille sur « Paramètres » quand une nouvelle version est disponible
+  (vérification automatique au plus toutes les 6 h)
+- Signale si une version modifie aussi le service systemd ou le bloc Nginx (patch.sh nécessaire)
+
 ## v1.3.1 — 01/10/2026
 
 - Le n° de bobine (champ « N° de bobine » de FilaFlow) s'affiche entre parenthèses après le nom

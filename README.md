@@ -69,6 +69,12 @@ sudo bash scripts/patch.sh
 
 ## Version
 
+PrepFlow compare sa version au **tag le plus récent** du dépôt GitHub (`vX.Y.Z`) :
+pousser le tag suffit, aucune « Release » GitHub n'est nécessaire. Les notes affichées
+viennent du `CHANGELOG.md` du tag, d'où le format des titres : `## vX.Y.Z — date`.
+Paramètres › Version permet de mettre à jour sans SSH ; `patch.sh` reste nécessaire
+quand une version modifie le service systemd ou le bloc Nginx.
+
 Seul `backend/package.json` est à bumper : le serveur lit la version au démarrage,
 l'affiche dans l'interface et la persiste en base (`settings._version`).
 

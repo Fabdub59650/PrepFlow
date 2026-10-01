@@ -6,6 +6,7 @@ import { renderPrinters } from './views/printers.js';
 import { renderSettings } from './views/settings.js';
 import { store } from './store.js';
 import { initTheme } from './theme.js';
+import { initUpdateBadge } from './updates.js';
 
 // Routes : #/  #/projet/12  #/imprimantes
 const routes = [
@@ -42,6 +43,7 @@ async function route() {
 
 async function init() {
   initTheme();
+  initUpdateBadge();
   try {
     const meta = await api.get('meta');
     document.getElementById('app-version').textContent = 'v' + meta.version;
