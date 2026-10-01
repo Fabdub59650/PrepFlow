@@ -309,7 +309,7 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
   border: 0.5px solid var(--border2); border-radius: var(--radius-lg);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
 }
-.dialog-wide { width: min(620px, calc(100vw - 32px)); }
+.dialog-wide { width: min(820px, calc(100vw - 32px)); }
 .dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
 .dialog-form { padding: 20px; display: grid; gap: 16px; }
 .dialog-title { font-family: var(--font-display); font-weight: 600; font-size: 22px; }
@@ -317,7 +317,9 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .dialog-help { margin-bottom: 4px; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .fil-lines { display: grid; gap: 8px; margin-top: 10px; }
-.fil-line { display: grid; grid-template-columns: auto 1fr 110px auto; align-items: center; gap: 8px; }
+.fil-head, .fil-line { display: grid; grid-template-columns: 14px 110px 130px minmax(0, 1fr) 96px 28px; align-items: center; gap: 8px; }
+.fil-head { margin-top: 10px; font-size: 11px; color: var(--text3); }
+.fil-line .select { width: 100%; min-width: 0; }
 .fil-line .swatch { margin-right: 0; }
 .weight-input { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text3); }
 .weight-input input { width: 100%; height: 32px; padding: 0 8px; text-align: right; font: inherit; font-size: 13px; color: var(--text); background: var(--bg); border: 0.5px solid var(--border2); border-radius: var(--radius); }

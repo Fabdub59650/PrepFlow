@@ -148,7 +148,7 @@ function formatFilamentCell(cell) {
   const fils = row.filaments || [];
   if (!fils.length) return '<span class="muted">Choisir…</span>';
   if (fils.length > 1) {
-    return `<span class="multi">${fils.map(f => swatch(store.filamentsById.get(f.filament_id)?.color_hex)).join('')}`
+    return `<span class="multi">${fils.map(f => swatch(store.filamentsById.get(f.filament_id)?.color_hex || colorHex(f.color_name))).join('')}`
       + `<span>${fils.length} filaments</span></span>`;
   }
   const f = store.filamentsById.get(fils[0].filament_id);
@@ -287,7 +287,9 @@ export async function renderProject(el, id) {
         formatter: c => {
           const fils = c.getRow().getData().filaments || [];
           if (fils.length > 1) {
-            const mats = distinctValues('material', fils.map(f => store.filamentsById.get(f.filament_id)).filter(Boolean));
+            const mats = distinctValues('material', fils.map(f => ({
+              material: store.filamentsById.get(f.filament_id)?.material || f.material,
+            })));
             return mats.length ? escapeHtml(mats.map(m => m.label).join(', ')) : '<span class="muted">—</span>';
           }
           if (c.getValue()) return escapeHtml(c.getValue());
@@ -312,7 +314,7 @@ export async function renderProject(el, id) {
           const r = c.getRow().getData();
           const fils = r.filaments || [];
           if (fils.length > 1) {
-            return `<span class="multi">${fils.map(f => swatch(store.filamentsById.get(f.filament_id)?.color_hex)).join('')}</span>`;
+            return `<span class="multi">${fils.map(f => swatch(store.filamentsById.get(f.filament_id)?.color_hex || colorHex(f.color_name))).join('')}</span>`;
           }
           const f = fils[0] && store.filamentsById.get(fils[0].filament_id);
           // Pièces saisies avant la v1.2.0 : afficher la couleur de la bobine choisie
@@ -482,54 +484,98 @@ export async function renderProject(el, id) {
   /* Fenêtre « plusieurs filaments » */
   function openFilamentsDialog(row) {
     const data = row.getData();
-    let lines = data.filaments.length ? data.filaments.map(f => ({ ...f })) : [{ filament_id: null, weight_g: null }];
+    const blank = () => ({ filament_id: null, material: null, color_name: null, weight_g: null });
+    // Matière et couleur de chaque ligne : celles enregistrées, sinon celles de la bobine,
+    // sinon (pièce à une seule ligne) celles de la pièce
+    let lines = data.filaments.length
+      ? data.filaments.map(f => {
+          const fil = store.filamentsById.get(f.filament_id);
+          return {
+            filament_id: f.filament_id,
+            weight_g: f.weight_g,
+            material: f.material || fil?.material?.trim() || (data.filaments.length === 1 ? data.material : null) || null,
+            color_name: f.color_name || fil?.color_name?.trim() || (data.filaments.length === 1 ? data.color_name : null) || null,
+          };
+        })
+      : [{ ...blank(), material: data.material || null, color_name: data.color_name || null }];
+
+    const optionTags = (opts, selected, firstLabel) =>
+      `<option value="">${firstLabel}</option>` + opts.filter(o => o.value).map(o =>
+        `<option value="${escapeHtml(o.value)}" ${normColor(o.value) === normColor(selected) ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('');
 
     openDialog({
       title: `Filaments de « ${data.name || 'Sans nom'} »`,
       wide: true,
       build(body) {
         const draw = () => {
-          const used = lines.map(l => l.filament_id).filter(Boolean);
-          const opts = filamentOptions(used);
           const total = lines.reduce((s, l) => s + (Number(l.weight_g) || 0), 0);
           body.innerHTML = `
-            <p class="dialog-help">Poids pour une pièce, par filament, tel qu'indiqué par Elegoo Slicer.</p>
+            <p class="dialog-help">Poids pour une pièce, par filament, tel qu'indiqué par Elegoo Slicer.
+              La matière et la couleur filtrent les bobines proposées sur la même ligne.</p>
+            <div class="fil-head" aria-hidden="true"><span></span><span>Matière</span><span>Couleur</span><span>Bobine</span><span>Poids</span><span></span></div>
             <div class="fil-lines">
-              ${lines.map((l, i) => `
+              ${lines.map((l, i) => {
+                const fil = store.filamentsById.get(l.filament_id);
+                const fils = filamentOptions(l.filament_id ? [l.filament_id] : [], l.color_name, l.material);
+                return `
                 <div class="fil-line" data-i="${i}">
-                  ${swatch(store.filamentsById.get(l.filament_id)?.color_hex)}
-                  <select class="select" data-k="filament_id" aria-label="Filament ${i + 1}">
-                    <option value="">Choisir une bobine…</option>
-                    ${opts.map(o => `<option value="${o.value}" ${o.value === l.filament_id ? 'selected' : ''}>${escapeHtml(o.label)}${o.f.archived ? ' (archivée)' : ''}</option>`).join('')}
+                  ${swatch(fil ? fil.color_hex : colorHex(l.color_name))}
+                  <select class="select" data-k="material" aria-label="Matière ${i + 1}">
+                    ${optionTags(materialOptions(l.material), l.material, 'Toutes')}
+                  </select>
+                  <select class="select" data-k="color_name" aria-label="Couleur ${i + 1}">
+                    ${optionTags(colorOptions(l.color_name, l.material), l.color_name, 'Toutes')}
+                  </select>
+                  <select class="select" data-k="filament_id" aria-label="Bobine ${i + 1}">
+                    <option value="">${fils.length ? 'Choisir une bobine…' : 'Aucune bobine'}</option>
+                    ${fils.map(o => `<option value="${o.value}" ${o.value === l.filament_id ? 'selected' : ''}>${escapeHtml(o.label)}${o.f.archived ? ' (archivée)' : ''}</option>`).join('')}
                   </select>
                   <label class="weight-input"><input type="text" inputmode="decimal" data-k="weight_g"
                     value="${escapeHtml(weightToInput(l.weight_g))}" aria-label="Poids ${i + 1} en grammes"><span>g</span></label>
                   <button type="button" class="icon-btn icon-btn-danger" data-remove="${i}" aria-label="Retirer ce filament">
                     <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
-                </div>`).join('')}
+                </div>`;
+              }).join('')}
             </div>
             <div class="fil-foot">
               <button type="button" class="btn" data-add>Ajouter un filament</button>
               <span class="fil-total">Total par pièce : <strong>${formatWeight(total, { empty: '0 g' }) || '0 g'}</strong></span>
             </div>`;
+
           body.querySelectorAll('.fil-line').forEach(line => {
             const i = +line.dataset.i;
+            const l = lines[i];
+            // Même règle que dans le tableau : une bobine incompatible est retirée, le poids reste
+            const dropIfMismatch = () => {
+              const fil = store.filamentsById.get(l.filament_id);
+              if (fil && !matches(fil, l.material, l.color_name)) l.filament_id = null;
+            };
+            line.querySelector('[data-k=material]').addEventListener('change', e => {
+              l.material = e.target.value || null; dropIfMismatch(); draw();
+            });
+            line.querySelector('[data-k=color_name]').addEventListener('change', e => {
+              l.color_name = e.target.value || null; dropIfMismatch(); draw();
+            });
             line.querySelector('[data-k=filament_id]').addEventListener('change', e => {
-              lines[i].filament_id = e.target.value ? +e.target.value : null; draw();
+              l.filament_id = e.target.value ? +e.target.value : null;
+              const fil = store.filamentsById.get(l.filament_id);
+              if (fil && normColor(fil.material)) l.material = fil.material.trim();
+              if (fil && normColor(fil.color_name)) l.color_name = fil.color_name.trim();
+              draw();
             });
             line.querySelector('[data-k=weight_g]').addEventListener('change', e => {
               const v = parseWeight(e.target.value);
-              if (Number.isNaN(v)) { toast('Poids non reconnu', 'error'); e.target.value = weightToInput(lines[i].weight_g); return; }
-              lines[i].weight_g = v; draw();
+              if (Number.isNaN(v)) { toast('Poids non reconnu', 'error'); e.target.value = weightToInput(l.weight_g); return; }
+              l.weight_g = v; draw();
             });
           });
           body.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', () => {
             lines.splice(+b.dataset.remove, 1);
-            if (!lines.length) lines.push({ filament_id: null, weight_g: null });
+            if (!lines.length) lines.push(blank());
             draw();
           }));
           body.querySelector('[data-add]').addEventListener('click', () => {
-            lines.push({ filament_id: null, weight_g: null }); draw();
+            lines.push(blank()); draw();
             body.querySelector('.fil-line:last-child select').focus();
           });
         };
@@ -541,8 +587,15 @@ export async function renderProject(el, id) {
           const v = parseWeight(line.querySelector('[data-k=weight_g]').value);
           if (!Number.isNaN(v)) lines[+line.dataset.i].weight_g = v;
         });
-        const clean = lines.filter(l => l.filament_id !== null || l.weight_g !== null);
-        const saved = await api.put(`parts/${data.id}`, { filaments: clean });
+        const clean = lines.filter(l =>
+          l.filament_id !== null || l.weight_g !== null || l.material !== null || l.color_name !== null);
+        const payload = { filaments: clean };
+        // Une seule ligne : la pièce redevient « simple », ses colonnes Matière / Couleur suivent la ligne
+        if (clean.length === 1) {
+          payload.material = clean[0].material;
+          payload.color_name = clean[0].color_name;
+        }
+        const saved = await api.put(`parts/${data.id}`, payload);
         await row.update(toRow(saved));
         row.reformat();
         refreshSummary();

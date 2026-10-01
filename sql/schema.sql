@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS `part_filaments` (
   `id`          int(11)      NOT NULL AUTO_INCREMENT,
   `part_id`     int(11)      NOT NULL,
   `filament_id` int(11)      DEFAULT NULL,
+  `material`    varchar(50)  DEFAULT NULL,
+  `color_name`  varchar(100) DEFAULT NULL,
   `weight_g`    decimal(8,2) DEFAULT NULL,
   `sort_order`  int(11)      NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
@@ -75,6 +77,10 @@ CREATE TABLE IF NOT EXISTS `part_filaments` (
   KEY `idx_pf_filament` (`filament_id`),
   CONSTRAINT `fk_pf_part` FOREIGN KEY (`part_id`) REFERENCES `parts` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.3.0 : matière et couleur souhaitées par ligne de filament (fenêtre multicolore)
+ALTER TABLE `part_filaments` ADD COLUMN IF NOT EXISTS `material`   varchar(50)  DEFAULT NULL AFTER `filament_id`;
+ALTER TABLE `part_filaments` ADD COLUMN IF NOT EXISTS `color_name` varchar(100) DEFAULT NULL AFTER `material`;
 
 -- Copie locale des filaments de FilaFlow (lecture seule côté PrepFlow)
 -- Rafraîchie à chaque consultation ; sert de secours si FilaFlow est arrêté.

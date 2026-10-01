@@ -19,13 +19,13 @@ async function loadParts({ projectId = null, partId = null }) {
   if (!parts.length) return [];
   const ids = parts.map(p => p.id);
   const [fils] = await db.query(
-    `SELECT part_id, filament_id, weight_g FROM part_filaments
+    `SELECT part_id, filament_id, material, color_name, weight_g FROM part_filaments
      WHERE part_id IN (?) ORDER BY sort_order, id`, [ids]
   );
   for (const p of parts) {
     p.filaments = fils
       .filter(f => f.part_id === p.id)
-      .map(f => ({ filament_id: f.filament_id, weight_g: f.weight_g }));
+      .map(f => ({ filament_id: f.filament_id, material: f.material, color_name: f.color_name, weight_g: f.weight_g }));
   }
   return parts;
 }
@@ -64,10 +64,12 @@ function cleanFilaments(list) {
     .map(f => ({
       filament_id: f.filament_id === null || f.filament_id === '' || f.filament_id === undefined
         ? null : parseInt(f.filament_id, 10),
+      material: cleanField('material', f.material),
+      color_name: cleanField('color_name', f.color_name),
       weight_g: f.weight_g === null || f.weight_g === '' || f.weight_g === undefined
         ? null : Math.round(Number(f.weight_g) * 100) / 100,
     }))
-    .filter(f => f.filament_id !== null || f.weight_g !== null)
+    .filter(f => f.filament_id !== null || f.weight_g !== null || f.material !== null || f.color_name !== null)
     .map(f => {
       if (f.weight_g !== null && (!Number.isFinite(f.weight_g) || f.weight_g < 0)) {
         throw new Error('Poids invalide');
@@ -80,8 +82,8 @@ async function replaceFilaments(conn, partId, list) {
   await conn.query('DELETE FROM part_filaments WHERE part_id=?', [partId]);
   if (list.length) {
     await conn.query(
-      'INSERT INTO part_filaments (part_id, filament_id, weight_g, sort_order) VALUES ?',
-      [list.map((f, i) => [partId, f.filament_id, f.weight_g, i])]
+      'INSERT INTO part_filaments (part_id, filament_id, material, color_name, weight_g, sort_order) VALUES ?',
+      [list.map((f, i) => [partId, f.filament_id, f.material, f.color_name, f.weight_g, i])]
     );
   }
 }

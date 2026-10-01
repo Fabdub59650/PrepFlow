@@ -7,8 +7,11 @@
 - Filtres en cascade : la matière limite les couleurs proposées, matière + couleur limitent les bobines
 - Choisir une bobine remplit la matière et la couleur ; une matière incompatible retire la bobine
   (poids conservé), la couleur est gardée
+- Fenêtre « Plusieurs filaments » : matière et couleur par ligne, qui filtrent la bobine de la ligne ;
+  mêmes règles que le tableau ; une couleur ou une matière sans bobine est conservée comme intention
 - Colonne « Pièce » figée à gauche lors du défilement horizontal ; colonnes resserrées (tient en 1440 px)
-- Base : colonne parts.material (ajoutée automatiquement à la mise à jour)
+- Base : colonnes parts.material, part_filaments.material et part_filaments.color_name
+  (ajoutées automatiquement à la mise à jour)
 
 ## v1.2.0 — 01/10/2026
 
