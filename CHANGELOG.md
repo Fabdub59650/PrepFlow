@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.3.1 — 01/10/2026
+
+- Le n° de bobine (champ « N° de bobine » de FilaFlow) s'affiche entre parenthèses après le nom
+  du filament : tableau, listes, fenêtre multicolore, synthèse des bobines, alertes
+- L'étiquette libre des bobines partielles (« Bobine A »…) suit, précédée d'un point médian
+- Base : colonne filament_cache.spool_number (remplie à la prochaine lecture du stock)
+
 ## v1.3.0 — 01/10/2026
 
 - Nouvelle colonne « Matière » avant « Couleur » : matières des bobines actives de FilaFlow

@@ -49,20 +49,20 @@ async function doSync() {
   if (rows.length) {
     const values = rows.map(f => [
       f.id, f.name ?? null, f.brand ?? null, f.material ?? null,
-      f.color_name ?? null, f.color_hex ?? null, f.spool_label ?? null,
+      f.color_name ?? null, f.color_hex ?? null, f.spool_number ?? null, f.spool_label ?? null,
       num(f.weight_total), num(f.weight_remaining), num(f.price), f.archived,
     ]);
     // Les filaments supprimés dans FilaFlow restent en cache : les pièces
     // qui les utilisent gardent un nom lisible.
     await db.query(
       `INSERT INTO filament_cache
-         (id,name,brand,material,color_name,color_hex,spool_label,
+         (id,name,brand,material,color_name,color_hex,spool_number,spool_label,
           weight_total,weight_remaining,price,archived)
        VALUES ?
        ON DUPLICATE KEY UPDATE
          name=VALUES(name), brand=VALUES(brand), material=VALUES(material),
          color_name=VALUES(color_name), color_hex=VALUES(color_hex),
-         spool_label=VALUES(spool_label), weight_total=VALUES(weight_total),
+         spool_number=VALUES(spool_number), spool_label=VALUES(spool_label), weight_total=VALUES(weight_total),
          weight_remaining=VALUES(weight_remaining), price=VALUES(price),
          archived=VALUES(archived), synced_at=CURRENT_TIMESTAMP`,
       [values]

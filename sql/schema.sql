@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS `filament_cache` (
   `material`         varchar(50)  DEFAULT NULL,
   `color_name`       varchar(100) DEFAULT NULL,
   `color_hex`        varchar(9)   DEFAULT NULL,
+  `spool_number`     varchar(50)  DEFAULT NULL,
   `spool_label`      varchar(100) DEFAULT NULL,
   `weight_total`     decimal(8,2) DEFAULT NULL,
   `weight_remaining` decimal(8,2) DEFAULT NULL,
@@ -99,6 +100,9 @@ CREATE TABLE IF NOT EXISTS `filament_cache` (
   `synced_at`        timestamp    NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- v1.3.1 : n° de bobine (champ « N° de bobine » de FilaFlow)
+ALTER TABLE `filament_cache` ADD COLUMN IF NOT EXISTS `spool_number` varchar(50) DEFAULT NULL AFTER `color_hex`;
 
 -- Valeurs par défaut
 INSERT IGNORE INTO `settings` (key_name, value) VALUES ('filaflow_url', 'http://127.0.0.1:3000');

@@ -100,11 +100,12 @@ export function escapeHtml(s) {
   }[c]));
 }
 
-/** Nom lisible d'un filament du cache FilaFlow */
+/** Nom lisible d'un filament du cache FilaFlow : « Nom (n° de bobine) · étiquette » */
 export function filamentLabel(f) {
   if (!f) return 'Filament inconnu';
   let label = f.name || [f.material, f.color_name].filter(Boolean).join(' ') || `Filament ${f.id}`;
-  if (f.spool_label) label += ` ${f.spool_label}`;
+  if (f.spool_number && String(f.spool_number).trim()) label += ` (${String(f.spool_number).trim()})`;
+  if (f.spool_label && String(f.spool_label).trim()) label += ` · ${String(f.spool_label).trim()}`;
   return label;
 }
 
