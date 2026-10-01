@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `parts` (
   `file_name`    varchar(255) DEFAULT NULL,
   `quantity`     int(11)      NOT NULL DEFAULT 1,
   `printer_id`   int(11)      DEFAULT NULL,
+  `material`     varchar(50)  DEFAULT NULL,
   `color_name`   varchar(100) DEFAULT NULL,
   `print_time_s` int(11)      DEFAULT NULL,
   `status`       enum('a_trancher','pret','en_cours','imprime') NOT NULL DEFAULT 'a_trancher',
@@ -57,6 +58,8 @@ CREATE TABLE IF NOT EXISTS `parts` (
 
 -- v1.2.0 : couleur souhaitée (sert à préfiltrer les bobines, remplie aussi par la bobine choisie)
 ALTER TABLE `parts` ADD COLUMN IF NOT EXISTS `color_name` varchar(100) DEFAULT NULL AFTER `printer_id`;
+-- v1.3.0 : matière souhaitée (préfiltre les couleurs et les bobines)
+ALTER TABLE `parts` ADD COLUMN IF NOT EXISTS `material` varchar(50) DEFAULT NULL AFTER `printer_id`;
 
 -- Filaments utilisés par une pièce (plusieurs en multicolore)
 -- filament_id : identifiant du filament dans FilaFlow (pas de clé étrangère : autre base)

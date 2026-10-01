@@ -35,6 +35,7 @@ function cleanField(key, value) {
   switch (key) {
     case 'name':      return String(value ?? '').trim().slice(0, 150);
     case 'file_name': return value ? String(value).trim().slice(0, 255) : null;
+    case 'material':   return value && String(value).trim() ? String(value).trim().replace(/\s+/g, ' ').slice(0, 50) : null;
     case 'color_name': return value && String(value).trim() ? String(value).trim().replace(/\s+/g, ' ').slice(0, 100) : null;
     case 'notes':     return value ? String(value) : null;
     case 'quantity': {
@@ -55,7 +56,7 @@ function cleanField(key, value) {
       return value;
   }
 }
-const FIELDS = ['name', 'file_name', 'notes', 'quantity', 'printer_id', 'color_name', 'print_time_s', 'status'];
+const FIELDS = ['name', 'file_name', 'notes', 'quantity', 'printer_id', 'material', 'color_name', 'print_time_s', 'status'];
 
 function cleanFilaments(list) {
   if (!Array.isArray(list)) throw new Error('filaments doit être une liste');

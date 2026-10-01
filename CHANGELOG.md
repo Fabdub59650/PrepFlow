@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.3.0 — 01/10/2026
+
+- Nouvelle colonne « Matière » avant « Couleur » : matières des bobines actives de FilaFlow
+  (champ « matière »), avec le nombre de bobines ; saisie libre possible
+- Filtres en cascade : la matière limite les couleurs proposées, matière + couleur limitent les bobines
+- Choisir une bobine remplit la matière et la couleur ; une matière incompatible retire la bobine
+  (poids conservé), la couleur est gardée
+- Colonne « Pièce » figée à gauche lors du défilement horizontal ; colonnes resserrées (tient en 1440 px)
+- Base : colonne parts.material (ajoutée automatiquement à la mise à jour)
+
 ## v1.2.0 — 01/10/2026
 
 - Nouvelle colonne « Couleur » avant « Filament » : liste des noms de couleur des bobines actives

@@ -227,6 +227,11 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .tabulator-row .tabulator-cell.col-calc { color: var(--text2); background: color-mix(in srgb, var(--bg-deep) 35%, transparent); font-variant-numeric: tabular-nums; }
 .tabulator-row .tabulator-cell.tabulator-row-handle { cursor: grab; }
 .tabulator-row .tabulator-cell.col-actions { padding: 4px 4px; overflow: visible; }
+/* Colonnes figées : fond opaque pour masquer les cellules qui défilent dessous */
+.tabulator-row .tabulator-cell.tabulator-frozen { background: inherit; }
+.tabulator-row:not(:hover) .tabulator-cell.tabulator-frozen { background: var(--bg2); }
+.tabulator .tabulator-footer .tabulator-calcs-holder .tabulator-row .tabulator-cell.tabulator-frozen { background: var(--bg3); }
+.tabulator-row .tabulator-cell.tabulator-frozen.tabulator-frozen-left { border-right: 0.5px solid var(--border2); }
 .tabulator-row .tabulator-cell .tabulator-row-handle-box .tabulator-row-handle-bar { background: var(--text3); }
 .tabulator-row.tabulator-moving { background: var(--bg3); border: 1px solid var(--accent); }
 .tabulator-row.is-saving { opacity: 0.6; }
