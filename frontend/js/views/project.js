@@ -63,11 +63,49 @@ const parseWeight = s => {
 };
 const weightToInput = v => (v === null || v === undefined ? '' : String(v).replace('.', ','));
 
-function filamentOptions(currentIds = []) {
-  // Bobines actives + celles déjà utilisées (même archivées) pour ne pas les perdre
+// Comparaison des noms de couleur : sans tenir compte des majuscules ni des espaces en trop
+const normColor = s => String(s ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr');
+
+function filamentOptions(currentIds = [], color = null) {
+  // Bobines actives (de la couleur choisie, s'il y en a une)
+  // + celles déjà utilisées (même archivées) pour ne pas les perdre
+  const c = normColor(color);
   return store.filaments
-    .filter(f => !f.archived || currentIds.includes(f.id))
+    .filter(f => currentIds.includes(f.id) || (!f.archived && (!c || normColor(f.color_name) === c)))
     .map(f => ({ label: filamentLabel(f), value: f.id, f }));
+}
+
+// Couleurs distinctes des bobines actives (champ « nom couleur » de FilaFlow)
+function colorOptions(current) {
+  const byKey = new Map();
+  for (const f of store.filaments) {
+    if (f.archived || !normColor(f.color_name)) continue;
+    const k = normColor(f.color_name);
+    const label = f.color_name.trim().replace(/\s+/g, ' ');
+    if (!byKey.has(k)) byKey.set(k, { label, hex: f.color_hex, count: 0 });
+    const entry = byKey.get(k);
+    // Écritures différentes d'une même couleur : préférer celle qui commence par une majuscule
+    if (entry.label[0] === entry.label[0].toLocaleLowerCase('fr') && label[0] !== label[0].toLocaleLowerCase('fr')) entry.label = label;
+    entry.count++;
+  }
+  if (current && !byKey.has(normColor(current))) byKey.set(normColor(current), { label: current, hex: null, count: 0 });
+  const list = [...byKey.values()].sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+  return [{ label: 'Aucune (toutes les bobines)', value: '' },
+    ...list.map(x => ({ label: x.label, value: x.label, hex: x.hex, count: x.count }))];
+}
+
+function colorItemFormatter(label, value, item) {
+  if (!value) return `<span class="muted">${escapeHtml(label)}</span>`;
+  const n = item.count;
+  return `<span class="opt-color">${swatch(item.hex)}<span>${escapeHtml(label)}</span>`
+    + `<span class="opt-stock">${n ? `${n} bobine${n > 1 ? 's' : ''}` : 'aucune bobine'}</span></span>`;
+}
+
+// Pastille d'une couleur : celle d'une bobine portant ce nom de couleur
+function colorHex(name) {
+  const k = normColor(name);
+  const f = k && store.filaments.find(x => normColor(x.color_name) === k);
+  return f ? f.color_hex : null;
 }
 
 function filamentItemFormatter(label, value, item) {
@@ -200,23 +238,53 @@ export async function renderProject(el, id) {
     editTriggerEvent: 'click',
     columns: [
       { rowHandle: true, formatter: 'handle', width: 28, minWidth: 28, resizable: false, frozen: true },
-      { title: 'Pièce', field: 'name', editor: 'input', minWidth: 120, widthGrow: 2,
+      { title: 'Pièce', field: 'name', editor: 'input', minWidth: 110, widthGrow: 2,
         formatter: c => c.getValue() ? escapeHtml(c.getValue()) : '<span class="muted">Sans nom</span>' },
-      { title: 'Fichier', field: 'file_name', editor: 'input', minWidth: 90, widthGrow: 1.4,
+      { title: 'Fichier', field: 'file_name', editor: 'input', minWidth: 80, widthGrow: 1.4,
         formatter: c => c.getValue() ? `<span class="cell-file">${escapeHtml(c.getValue())}</span>` : '' },
       { title: 'Qté', field: 'quantity', editor: 'number', editorParams: { min: 1, step: 1 },
-        hozAlign: 'right', width: 64, bottomCalc: 'sum' },
-      { title: 'Imprimante', field: 'printer_id', editor: 'list', minWidth: 130, widthGrow: 1.2,
+        hozAlign: 'right', width: 56, bottomCalc: 'sum' },
+      { title: 'Imprimante', field: 'printer_id', editor: 'list', minWidth: 118, widthGrow: 1.2,
         editorParams: { valuesLookup: printerOptions },
         formatter: c => {
           const p = store.printers.find(x => x.id === c.getValue());
           return p ? escapeHtml(p.name) : '<span class="muted">Aucune</span>';
         } },
-      { title: 'Filament', field: 'filament_id', minWidth: 170, widthGrow: 2.2,
+      { title: 'Couleur', field: 'color_name', minWidth: 96, widthGrow: 1,
         editor: 'list',
         editable: c => (c.getRow().getData().filaments || []).length <= 1,
         editorParams: {
-          valuesLookup: c => filamentOptions((c.getRow().getData().filaments || []).map(f => f.filament_id)),
+          valuesLookup: c => colorOptions(c.getValue()),
+          autocomplete: true, listOnEmpty: true, allowEmpty: true, clearable: true, freetext: true,
+          itemFormatter: colorItemFormatter,
+          elementAttributes: { placeholder: 'Rechercher une couleur…' },
+          maxWidth: 300,
+        },
+        formatter: c => {
+          const r = c.getRow().getData();
+          const fils = r.filaments || [];
+          if (fils.length > 1) {
+            return `<span class="multi">${fils.map(f => swatch(store.filamentsById.get(f.filament_id)?.color_hex)).join('')}</span>`;
+          }
+          const f = fils[0] && store.filamentsById.get(fils[0].filament_id);
+          // Pièces saisies avant la v1.2.0 : afficher la couleur de la bobine choisie
+          if (!c.getValue()) {
+            return f && normColor(f.color_name)
+              ? `${swatch(f.color_hex)}${escapeHtml(f.color_name.trim())}`
+              : '<span class="muted">—</span>';
+          }
+          return `${swatch(f ? f.color_hex : colorHex(c.getValue()))}${escapeHtml(c.getValue())}`;
+        },
+        cellClick: (e, c) => {
+          if ((c.getRow().getData().filaments || []).length > 1) openFilamentsDialog(c.getRow());
+        } },
+      { title: 'Filament', field: 'filament_id', minWidth: 150, widthGrow: 2.2,
+        editor: 'list',
+        editable: c => (c.getRow().getData().filaments || []).length <= 1,
+        editorParams: {
+          valuesLookup: c => filamentOptions(
+            (c.getRow().getData().filaments || []).map(f => f.filament_id).filter(Boolean),
+            c.getRow().getData().color_name),
           autocomplete: true, listOnEmpty: true, allowEmpty: true, clearable: true,
           itemFormatter: filamentItemFormatter,
           placeholderEmpty: 'Aucune bobine trouvée',
@@ -237,10 +305,10 @@ export async function renderProject(el, id) {
       { title: 'Temps unit.', field: 'print_time_s', hozAlign: 'right', width: 100,
         editor: parsedEditor(parseDuration, durationToInput),
         formatter: c => c.getValue() === null ? '<span class="muted">—</span>' : formatDuration(c.getValue()) },
-      { title: 'Poids total', field: 'total_weight', hozAlign: 'right', width: 100, cssClass: 'col-calc',
+      { title: 'Poids total', field: 'total_weight', hozAlign: 'right', width: 92, cssClass: 'col-calc',
         formatter: c => formatWeight(c.getValue(), { empty: '' }),
         bottomCalc: 'sum', bottomCalcFormatter: c => formatWeight(c.getValue()) },
-      { title: 'Temps total', field: 'total_time', hozAlign: 'right', width: 104, cssClass: 'col-calc',
+      { title: 'Temps total', field: 'total_time', hozAlign: 'right', width: 96, cssClass: 'col-calc',
         formatter: c => formatDuration(c.getValue()),
         bottomCalc: 'sum', bottomCalcFormatter: c => formatDuration(c.getValue()) },
       { title: 'Coût', field: 'cost', hozAlign: 'right', width: 88, cssClass: 'col-calc',
@@ -254,7 +322,7 @@ export async function renderProject(el, id) {
       { title: 'Statut', field: 'status', editor: 'list', width: 118,
         editorParams: { values: Object.entries(PART_STATUS).map(([value, label]) => ({ label, value })) },
         formatter: fmtStatus },
-      { title: 'Notes', field: 'notes', editor: 'textarea', minWidth: 70, widthGrow: 1,
+      { title: 'Notes', field: 'notes', editor: 'textarea', minWidth: 60, widthGrow: 1,
         formatter: c => c.getValue() ? `<span class="cell-notes" title="${escapeHtml(c.getValue())}">${escapeHtml(c.getValue())}</span>` : '' },
       { title: '', field: '_actions', width: 70, minWidth: 70, resizable: false, hozAlign: 'right', cssClass: 'col-actions', frozen: true,
         formatter: () => `
@@ -290,6 +358,21 @@ export async function renderProject(el, id) {
         const w = data.filaments[0] ? data.filaments[0].weight_g : null;
         value = value === '' || value === undefined ? null : value;
         body = { filaments: value === null && w === null ? [] : [{ filament_id: value, weight_g: w }] };
+        // La couleur suit la bobine choisie
+        const f = value !== null ? store.filamentsById.get(value) : null;
+        if (f && normColor(f.color_name)) body.color_name = f.color_name;
+        break;
+      }
+      case 'color_name': {
+        value = value === '' || value === undefined || value === null ? null : String(value).trim() || null;
+        body = { color_name: value };
+        // Bobine d'une autre couleur : on la retire, le poids est conservé
+        const cur = data.filaments[0];
+        const f = cur && cur.filament_id ? store.filamentsById.get(cur.filament_id) : null;
+        if (value !== null && f && normColor(f.color_name) !== normColor(value)) {
+          body.filaments = cur.weight_g === null ? [] : [{ filament_id: null, weight_g: cur.weight_g }];
+          toast(`Bobine retirée : « ${filamentLabel(f)} » n'est pas de couleur ${value}`);
+        }
         break;
       }
       case 'unit_weight': {

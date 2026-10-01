@@ -16,6 +16,7 @@ Accès : **https://filaflow.local/prepflow/**
 - Tableau éditable façon tableur (Tabulator) : pièce, fichier, quantité, imprimante,
   filament, poids et temps unitaires, totaux calculés, coût, statut, notes
 - Plusieurs filaments par pièce (multicolore)
+- Colonne Couleur qui préfiltre les bobines proposées (noms de couleur de FilaFlow)
 - Saisie des temps souple : `1h25`, `1 h 25`, `45m`, `1:25`, `1:25:30`, ou `85` (minutes)
 - Synthèse : temps et poids restants, coût matière, temps par imprimante,
   besoin par bobine comparé au poids restant pesé dans FilaFlow, avec alerte si une bobine ne suffit pas
