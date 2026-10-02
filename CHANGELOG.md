@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.7.0 — 02/10/2026
+
+- Liste des projets : colonne « Créé le » (date, heure au survol), triable
+- Page d'un projet : date de création et de dernière modification sous le titre
+
 ## v1.6.0 — 02/10/2026
 
 - Tableau des pièces triable par les en-têtes : croissant, décroissant, puis retour à l'ordre manuel

@@ -1,6 +1,6 @@
 {
   "name": "prepflow",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "PrepFlow — Préparation des impressions 3D (pièces, filament, temps, poids)",
   "main": "server.js",
   "private": true,

@@ -3,7 +3,7 @@ import { store } from '../store.js';
 import { toast, confirmDialog, openDialog } from '../ui.js';
 import {
   PART_STATUS, PROJECT_STATUS, parseDuration, formatDuration, durationToInput,
-  formatWeight, formatMoney, escapeHtml, filamentLabel, swatch,
+  formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch,
 } from '../format.js';
 import { derivePart, summarize } from '../summary.js';
 
@@ -226,6 +226,8 @@ export async function renderProject(el, id) {
           <button class="btn btn-ghost-danger" id="delete-project">Supprimer le projet</button>
         </div>
       </div>
+      <p class="project-dates">Créé le ${formatDate(project.created_at, { withTime: true })}
+        ${project.updated_at && project.updated_at !== project.created_at ? ` · modifié le ${formatDate(project.updated_at, { withTime: true })}` : ''}</p>
       <details class="project-notes" ${project.notes ? 'open' : ''}>
         <summary>Notes du projet</summary>
         <textarea id="project-notes" rows="3" placeholder="Contexte, contraintes, idées…">${escapeHtml(project.notes || '')}</textarea>

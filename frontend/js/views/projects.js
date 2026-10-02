@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { toast, promptDialog } from '../ui.js';
-import { PROJECT_STATUS, formatDuration, formatWeight, escapeHtml } from '../format.js';
+import { PROJECT_STATUS, formatDuration, formatWeight, formatDate, escapeHtml } from '../format.js';
 
 let showArchived = false;
 
@@ -13,6 +13,7 @@ const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true })
 const COLUMNS = [
   { key: 'name',     label: 'Projet',      value: p => p.name, text: true },
   { key: 'status',   label: 'Statut',      value: p => STATUS_ORDER[p.status] },
+  { key: 'created',  label: 'Créé le',     value: p => (p.created_at ? new Date(String(p.created_at).replace(' ', 'T')).getTime() : null), num: true },
   { key: 'pieces',   label: 'Pièces',      value: p => p.pieces_count, num: true },
   { key: 'spools',   label: 'Bobines',     value: p => p.spools_count, num: true },
   { key: 'time',     label: 'Temps total', value: p => p.total_time_s, num: true },
@@ -82,6 +83,7 @@ export async function renderProjects(el) {
           return `<tr data-id="${p.id}">
             <td><a href="#/projet/${p.id}" class="row-link">${escapeHtml(p.name)}</a></td>
             <td><span class="pill pill-${p.status}">${PROJECT_STATUS[p.status]}</span></td>
+            <td class="num" title="${escapeHtml(formatDate(p.created_at, { withTime: true }))}">${formatDate(p.created_at) || '—'}</td>
             <td class="num">${p.pieces_count}</td>
             <td class="num">${p.spools_count
               ? `<span class="has-tip" title="${escapeHtml(p.spools_names || '')}">${p.spools_count}</span>` : '—'}</td>

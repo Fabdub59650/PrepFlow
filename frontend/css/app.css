@@ -187,6 +187,7 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
   padding: 2px 6px; margin-left: -7px; min-width: 200px; flex: 1 1 320px; max-width: 640px;
 }
 .project-name:hover, .project-name:focus { border-color: var(--border2); background: var(--bg2); outline: none; }
+.project-dates { font-size: 12px; color: var(--text3); margin: -4px 0 8px; font-variant-numeric: tabular-nums; }
 .project-notes summary { font-size: 12px; color: var(--text3); cursor: pointer; width: max-content; }
 .project-notes summary:hover { color: var(--text); }
 .project-notes textarea { margin-top: 8px; max-width: 80ch; background: var(--bg2); }

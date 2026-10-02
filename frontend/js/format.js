@@ -113,3 +113,13 @@ export function swatch(hex) {
   const c = /^#[0-9a-f]{3,8}$/i.test(hex || '') ? hex : 'transparent';
   return `<span class="swatch" style="--swatch:${c}"></span>`;
 }
+
+/** « 2026-10-01 19:21:00 » → « 01.10.2026 » (avec l'heure si withTime) */
+export function formatDate(str, { withTime = false } = {}) {
+  if (!str) return '';
+  const d = new Date(String(str).replace(' ', 'T'));
+  if (isNaN(d)) return '';
+  const p = n => String(n).padStart(2, '0');
+  const date = `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
+  return withTime ? `${date} ${p(d.getHours())}:${p(d.getMinutes())}` : date;
+}
