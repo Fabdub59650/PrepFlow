@@ -269,6 +269,10 @@ export async function renderProject(el, id) {
     columns: [
       { rowHandle: true, formatter: 'handle', width: 28, minWidth: 28, resizable: false, frozen: true },
       { title: 'Pièce', field: 'name', editor: 'input', minWidth: 110, widthGrow: 2, frozen: true,
+        // Total : nombre de lignes (la colonne Qté donne le nombre de pièces à imprimer)
+        // (calcul maison : le « count » de Tabulator ignore les pièces sans nom)
+        bottomCalc: values => values.length,
+        bottomCalcFormatter: c => { const n = c.getValue() || 0; return `${n} élément${n > 1 ? 's' : ''}`; },
         formatter: c => c.getValue() ? escapeHtml(c.getValue()) : '<span class="muted">Sans nom</span>' },
       { title: 'Fichier', field: 'file_name', editor: 'input', minWidth: 70, widthGrow: 1.4,
         formatter: c => c.getValue() ? `<span class="cell-file">${escapeHtml(c.getValue())}</span>` : '' },
@@ -394,7 +398,7 @@ export async function renderProject(el, id) {
           if (btn.dataset.action === 'delete') {
             const name = row.getData().name || 'Sans nom';
             if (!await confirmDialog('Supprimer la pièce', `La pièce « ${name} » sera supprimée du projet.`)) return;
-            try { await api.del(`parts/${row.getData().id}`); row.delete(); refreshSummary(); }
+            try { await api.del(`parts/${row.getData().id}`); await row.delete(); table.recalc(); refreshSummary(); }
             catch (err) { toast(err.message, 'error'); }
           }
         } },
@@ -482,6 +486,7 @@ export async function renderProject(el, id) {
       const last = rows[rows.length - 1];
       const part = await api.post(`projects/${id}/parts`, last?.printer_id ? { printer_id: last.printer_id } : {});
       const row = await table.addRow(toRow(part));
+      table.recalc();          // totaux du pied (nombre d'éléments, quantités)
       refreshSummary();
       await table.scrollToRow(row, 'bottom', false).catch(() => {});
       row.getCell('name').edit(true);

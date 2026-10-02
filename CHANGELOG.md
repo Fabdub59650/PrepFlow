@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.5.1 — 02/10/2026
+
+- Tableau des pièces : total en bas de la colonne « Pièce » avec le nombre d'éléments (lignes),
+  à côté du total de la colonne « Qté » (nombre de pièces à imprimer)
+
 ## v1.5.0 — 02/10/2026
 
 - Liste des projets triable par les en-têtes (Projet, Statut, Pièces, Bobines, Temps, Poids,
