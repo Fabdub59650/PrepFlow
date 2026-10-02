@@ -14,11 +14,25 @@ router.get('/', async (req, res) => {
          COALESCE(SUM(pt.quantity), 0)                        AS pieces_count,
          COALESCE(SUM(CASE WHEN pt.status='imprime' THEN pt.quantity ELSE 0 END), 0) AS pieces_done,
          COALESCE(SUM(pt.quantity * COALESCE(pt.print_time_s, 0)), 0) AS total_time_s,
-         COALESCE(SUM(pt.quantity * COALESCE(w.unit_weight, 0)), 0)   AS total_weight_g
+         COALESCE(SUM(pt.quantity * COALESCE(w.unit_weight, 0)), 0)   AS total_weight_g,
+         COALESCE(MAX(sp.spools_count), 0)                    AS spools_count,
+         MAX(sp.spools_names)                                 AS spools_names
        FROM projects p
        LEFT JOIN parts pt ON pt.project_id = p.id
        LEFT JOIN (SELECT part_id, SUM(weight_g) AS unit_weight
                   FROM part_filaments GROUP BY part_id) w ON w.part_id = pt.id
+       -- Bobines différentes réellement choisies dans le projet (les intentions sans bobine ne comptent pas)
+       LEFT JOIN (SELECT p2.project_id,
+                         COUNT(DISTINCT pf.filament_id) AS spools_count,
+                         GROUP_CONCAT(DISTINCT CONCAT(
+                           COALESCE(fc.name, CONCAT('Filament ', pf.filament_id)),
+                           IF(fc.spool_number IS NULL OR TRIM(fc.spool_number) = '', '', CONCAT(' (', TRIM(fc.spool_number), ')'))
+                         ) ORDER BY fc.name SEPARATOR ', ') AS spools_names
+                  FROM part_filaments pf
+                  JOIN parts p2 ON p2.id = pf.part_id
+                  LEFT JOIN filament_cache fc ON fc.id = pf.filament_id
+                  WHERE pf.filament_id IS NOT NULL
+                  GROUP BY p2.project_id) sp ON sp.project_id = p.id
        ${withArchived ? '' : "WHERE p.status <> 'archive'"}
        GROUP BY p.id
        ORDER BY FIELD(p.status,'en_cours','preparation','termine','archive'), p.updated_at DESC`

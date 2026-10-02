@@ -162,6 +162,10 @@ const fmtStatus = cell =>
 
 /* ── Vue ───────────────────────────────────────────────────────── */
 
+// Hauteur maximale du tableau : en-tête + 10 lignes + ligne de totaux
+const GRID_ROW_H = 39, GRID_HEADER_H = 36, GRID_FOOTER_H = 40;
+const GRID_MAX_HEIGHT = (GRID_HEADER_H + 10 * GRID_ROW_H + GRID_FOOTER_H + 2) + 'px';
+
 export async function renderProject(el, id) {
   const project = await api.get(`projects/${id}`);
   document.title = `${project.name} — PrepFlow`;
@@ -256,6 +260,8 @@ export async function renderProject(el, id) {
     data: project.parts.map(toRow),
     index: 'id',
     layout: 'fitColumns',
+    // Au-delà de 10 pièces, le tableau défile à l'intérieur (en-tête et totaux restent visibles)
+    maxHeight: GRID_MAX_HEIGHT,
     movableRows: true,
     placeholder: 'Aucune pièce. Ajoutez la première avec le bouton ci-dessus.',
     columnDefaults: { headerSort: false, resizable: true, vertAlign: 'middle' },
@@ -477,6 +483,7 @@ export async function renderProject(el, id) {
       const part = await api.post(`projects/${id}/parts`, last?.printer_id ? { printer_id: last.printer_id } : {});
       const row = await table.addRow(toRow(part));
       refreshSummary();
+      await table.scrollToRow(row, 'bottom', false).catch(() => {});
       row.getCell('name').edit(true);
     } catch (e) { toast(e.message, 'error'); }
   });

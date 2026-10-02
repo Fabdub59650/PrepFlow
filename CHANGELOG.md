@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.5.0 — 02/10/2026
+
+- Liste des projets triable par les en-têtes (Projet, Statut, Pièces, Bobines, Temps, Poids,
+  Avancement) ; statut trié selon le cycle de vie ; tri mémorisé dans le navigateur
+- Nouvelle colonne « Bobines » : nombre de bobines différentes choisies dans le projet,
+  liste des bobines (avec n°) au survol
+- Tableau des pièces : au-delà de 10 pièces, défilement à l'intérieur du tableau ; en-tête, totaux
+  et bouton « Ajouter une pièce » restent visibles ; une pièce ajoutée est amenée à l'écran
+
 ## v1.4.0 — 01/10/2026
 
 - Paramètres › Version : version installée comparée au dernier tag publié sur GitHub,
