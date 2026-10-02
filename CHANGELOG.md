@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.6.0 — 02/10/2026
+
+- Tableau des pièces triable par les en-têtes : croissant, décroissant, puis retour à l'ordre manuel
+- Tri d'affichage uniquement : l'ordre manuel (glisser-déposer) est conservé ; poignée masquée
+  pendant un tri ; « Garder cet ordre » enregistre l'ordre trié comme nouvel ordre manuel
+- Statut trié selon le cycle (À trancher → Imprimé), textes sans tenir compte des accents,
+  cellules vides toujours en fin de liste ; tri mémorisé par projet dans le navigateur
+
 ## v1.5.1 — 02/10/2026
 
 - Tableau des pièces : total en bas de la colonne « Pièce » avec le nombre d'éléments (lignes),

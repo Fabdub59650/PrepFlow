@@ -160,6 +160,48 @@ function formatFilamentCell(cell) {
 const fmtStatus = cell =>
   `<span class="pill pill-${cell.getValue()}">${PART_STATUS[cell.getValue()] || ''}</span>`;
 
+/* ── Tri d'affichage par les en-têtes ──────────────────────────── */
+// L'ordre manuel (sort_order, glisser-déposer) n'est pas modifié par le tri :
+// trier ne fait que réordonner l'affichage. « Garder cet ordre » l'enregistre.
+
+const sortCollator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
+const PART_STATUS_ORDER = { a_trancher: 0, pret: 1, en_cours: 2, imprime: 3 };
+const firstFil = r => (r.filaments && r.filaments[0]) ? store.filamentsById.get(r.filaments[0].filament_id) : null;
+
+const PART_SORTS = {
+  name:         { label: 'Pièce',       text: true, get: r => r.name },
+  file_name:    { label: 'Fichier',     text: true, get: r => r.file_name },
+  quantity:     { label: 'Qté',                     get: r => r.quantity },
+  printer_id:   { label: 'Imprimante',  text: true, get: r => store.printers.find(p => p.id === r.printer_id)?.name },
+  material:     { label: 'Matière',     text: true, get: r => r.material || firstFil(r)?.material || (r.filaments || []).find(f => f.material)?.material },
+  color_name:   { label: 'Couleur',     text: true, get: r => r.color_name || firstFil(r)?.color_name || (r.filaments || []).find(f => f.color_name)?.color_name },
+  filament_id:  { label: 'Filament',    text: true, get: r => { const f = firstFil(r); return f ? filamentLabel(f) : null; } },
+  unit_weight:  { label: 'Poids unit.',             get: r => r.unit_weight },
+  print_time_s: { label: 'Temps unit.',             get: r => r.print_time_s },
+  total_weight: { label: 'Poids total',             get: r => r.total_weight },
+  total_time:   { label: 'Temps total',             get: r => r.total_time },
+  cost:         { label: 'Coût',                    get: r => r.cost },
+  status:       { label: 'Statut',                  get: r => PART_STATUS_ORDER[r.status] },
+  notes:        { label: 'Notes',       text: true, get: r => r.notes },
+};
+
+const isEmptySortValue = v => v === null || v === undefined || (typeof v === 'string' && !v.trim());
+
+function sortParts(rows, sort) {
+  if (!sort || !PART_SORTS[sort.field]) {
+    return [...rows].sort((a, b) => (a.sort_order - b.sort_order) || (a.id - b.id));
+  }
+  const def = PART_SORTS[sort.field];
+  const dir = sort.dir === 'desc' ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    const va = def.get(a), vb = def.get(b);
+    const ea = isEmptySortValue(va), eb = isEmptySortValue(vb);
+    if (ea || eb) return ea && eb ? (a.sort_order - b.sort_order) : (ea ? 1 : -1);   // vides toujours en fin
+    const cmp = def.text ? sortCollator.compare(String(va), String(vb)) : (va - vb);
+    return (cmp * dir) || (a.sort_order - b.sort_order);
+  });
+}
+
 /* ── Vue ───────────────────────────────────────────────────────── */
 
 // Hauteur maximale du tableau : en-tête + 10 lignes + ligne de totaux
@@ -195,7 +237,8 @@ export async function renderProject(el, id) {
 
     <div class="grid-toolbar">
       <button class="btn btn-primary" id="add-part">Ajouter une pièce</button>
-      <span class="hint">Cliquez une cellule pour la modifier. Temps : « 1h25 », « 45m » ou « 1:25 ». Glissez la poignée pour réordonner.</span>
+      <span class="hint" id="grid-hint">Cliquez une cellule pour la modifier, un en-tête pour trier. Temps : « 1h25 », « 45m » ou « 1:25 ». Glissez la poignée pour réordonner.</span>
+      <span class="sort-bar" id="sort-bar" hidden></span>
     </div>
     <div id="parts-grid" class="parts-grid"></div>
 
@@ -247,6 +290,14 @@ export async function renderProject(el, id) {
     finally { e.target.disabled = false; }
   });
 
+  /* Tri mémorisé pour ce projet */
+  const sortKey = `prepflow_parts_sort_${id}`;
+  let partsSort = null;
+  try {
+    const s = JSON.parse(localStorage.getItem(sortKey) || 'null');
+    if (s && PART_SORTS[s.field] && (s.dir === 'asc' || s.dir === 'desc')) partsSort = s;
+  } catch (_) {}
+
   /* Tableau des pièces */
   const printerOptions = cell => {
     const current = cell.getValue();
@@ -257,7 +308,7 @@ export async function renderProject(el, id) {
   };
 
   const table = new Tabulator(el.querySelector('#parts-grid'), {
-    data: project.parts.map(toRow),
+    data: sortParts(project.parts.map(toRow), partsSort),
     index: 'id',
     layout: 'fitColumns',
     // Au-delà de 10 pièces, le tableau défile à l'intérieur (en-tête et totaux restent visibles)
@@ -267,7 +318,7 @@ export async function renderProject(el, id) {
     columnDefaults: { headerSort: false, resizable: true, vertAlign: 'middle' },
     editTriggerEvent: 'click',
     columns: [
-      { rowHandle: true, formatter: 'handle', width: 28, minWidth: 28, resizable: false, frozen: true },
+      { rowHandle: true, field: '_handle', formatter: 'handle', width: 28, minWidth: 28, resizable: false, frozen: true },
       { title: 'Pièce', field: 'name', editor: 'input', minWidth: 110, widthGrow: 2, frozen: true,
         // Total : nombre de lignes (la colonne Qté donne le nombre de pièces à imprimer)
         // (calcul maison : le « count » de Tabulator ignore les pièces sans nom)
@@ -475,6 +526,7 @@ export async function renderProject(el, id) {
 
   table.on('rowMoved', async () => {
     const ids = table.getRows().map(r => r.getData().id);
+    table.getRows().forEach((r, i) => { r.getData().sort_order = i + 1; });
     try { await api.post(`projects/${id}/parts/reorder`, { ids }); }
     catch (e) { toast(e.message, 'error'); }
   });
@@ -695,6 +747,64 @@ export async function renderProject(el, id) {
         </tbody></table>` : '<p class="muted">Aucune pièce pour l\'instant.</p>';
   }
 
+  /* Tri par les en-têtes : croissant → décroissant → ordre manuel */
+  function applySort({ keepScroll = true } = {}) {
+    const holder = el.querySelector('#parts-grid .tabulator-tableholder');
+    const top = holder ? holder.scrollTop : 0;
+    table.replaceData(sortParts(table.getData(), partsSort)).then(() => {
+      if (keepScroll && holder) holder.scrollTop = top;
+      table.recalc();
+    });
+    if (partsSort) table.hideColumn('_handle'); else table.showColumn('_handle');
+    table.getColumns().forEach(c => {
+      const f = c.getField();
+      const elc = c.getElement();
+      elc.classList.toggle('pf-sort-asc', !!partsSort && partsSort.field === f && partsSort.dir === 'asc');
+      elc.classList.toggle('pf-sort-desc', !!partsSort && partsSort.field === f && partsSort.dir === 'desc');
+      elc.setAttribute('aria-sort', partsSort && partsSort.field === f ? (partsSort.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+    });
+    const bar = el.querySelector('#sort-bar');
+    const hint = el.querySelector('#grid-hint');
+    if (partsSort) {
+      bar.hidden = false; hint.hidden = true;
+      bar.innerHTML = `Trié par <strong>${PART_SORTS[partsSort.field].label}</strong> ${partsSort.dir === 'asc' ? '▲' : '▼'}
+        <button type="button" class="link-btn" data-sort-reset>Revenir à l'ordre manuel</button>
+        <button type="button" class="link-btn" data-sort-keep title="Enregistrer cet ordre comme nouvel ordre manuel">Garder cet ordre</button>`;
+      bar.querySelector('[data-sort-reset]').addEventListener('click', () => setPartsSort(null));
+      bar.querySelector('[data-sort-keep]').addEventListener('click', keepSortedOrder);
+    } else {
+      bar.hidden = true; hint.hidden = false; bar.innerHTML = '';
+    }
+  }
+
+  function setPartsSort(s) {
+    partsSort = s;
+    try { s ? localStorage.setItem(sortKey, JSON.stringify(s)) : localStorage.removeItem(sortKey); } catch (_) {}
+    applySort();
+  }
+
+  async function keepSortedOrder() {
+    const rows = table.getData();
+    try {
+      await api.post(`projects/${id}/parts/reorder`, { ids: rows.map(r => r.id) });
+      rows.forEach((r, i) => { r.sort_order = i + 1; });
+      toast('Ordre enregistré comme ordre manuel');
+      setPartsSort(null);
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  table.on('headerClick', (e, column) => {
+    const field = column.getField();
+    if (!PART_SORTS[field] || e.target.closest('.tabulator-col-resize-handle')) return;
+    if (!partsSort || partsSort.field !== field) setPartsSort({ field, dir: 'asc' });
+    else if (partsSort.dir === 'asc') setPartsSort({ field, dir: 'desc' });
+    else setPartsSort(null);
+  });
+
+  table.on('tableBuilt', () => {
+    table.getColumns().forEach(c => { if (PART_SORTS[c.getField()]) c.getElement().classList.add('pf-sortable'); });
+    applySort({ keepScroll: false });
+  });
   table.on('tableBuilt', refreshSummary);
 
   return () => table.destroy();

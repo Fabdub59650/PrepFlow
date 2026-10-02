@@ -254,6 +254,16 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .tabulator .tabulator-footer .tabulator-calcs-holder .tabulator-row { background: var(--bg3) !important; color: var(--text); font-weight: 600; border-bottom: 0; }
 .tabulator .tabulator-footer .tabulator-calcs-holder .tabulator-row .tabulator-cell { border-right-color: transparent; background: transparent; color: var(--text); font-variant-numeric: tabular-nums; }
 .tabulator-col-resize-handle:hover { background: var(--accent); }
+/* Tri par les en-têtes du tableau des pièces */
+.tabulator .tabulator-header .tabulator-col.pf-sortable { cursor: pointer; }
+.tabulator .tabulator-header .tabulator-col.pf-sortable:hover .tabulator-col-title { color: var(--text); }
+.tabulator .tabulator-header .tabulator-col.pf-sort-asc .tabulator-col-title,
+.tabulator .tabulator-header .tabulator-col.pf-sort-desc .tabulator-col-title { color: var(--text); }
+.tabulator .tabulator-header .tabulator-col.pf-sort-asc .tabulator-col-title::after { content: ' ▲'; font-size: 9px; color: var(--accent); }
+.tabulator .tabulator-header .tabulator-col.pf-sort-desc .tabulator-col-title::after { content: ' ▼'; font-size: 9px; color: var(--accent); }
+.sort-bar { font-size: 12px; color: var(--text2); display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sort-bar .link-btn { margin-top: 0; }
+.sort-bar[hidden], .hint[hidden] { display: none; }
 
 /* Liste déroulante des éditeurs (ajoutée au <body> par Tabulator) */
 .tabulator-edit-list {
