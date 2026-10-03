@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.8.0 — 03/10/2026
+
+- Code projet unique attribué à la création : P + année + mois + numéro du mois sur 2 chiffres
+  (P261001 = 1er projet d'octobre 2026) ; numéro remis à 01 chaque mois, jamais réutilisé même après
+  suppression ; non modifiable, même si le projet est renommé
+- Projets existants : code attribué selon leur mois de création, dans l'ordre chronologique
+- Liste des projets : colonne « Code » triable ; page du projet : code à côté du titre avec bouton Copier
+  (pour nommer le dossier des STL) ; code repris dans le titre de l'onglet
+- Base : colonne projects.code (unique) et table project_code_counters
+
 ## v1.7.0 — 02/10/2026
 
 - Liste des projets : colonne « Créé le » (date, heure au survol), triable

@@ -49,4 +49,6 @@ app.listen(PORT, HOST, () => {
     [VERSION, VERSION]
   ).catch(e => console.warn('[Version] Impossible de persister la version :', e.message));
   filaflow.sync({ force: true });
+  require('./codes').backfillCodes()
+    .catch(e => console.warn('[Codes] Attribution des codes impossible :', e.message));
 });

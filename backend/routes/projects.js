@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const db = require('../db');
 const { loadParts } = require('./parts');
+const { assignCode, withRetry } = require('../codes');
 
 const STATUSES = ['preparation', 'en_cours', 'termine', 'archive'];
 
@@ -45,9 +46,22 @@ router.post('/', async (req, res) => {
   try {
     const name = String(req.body.name || '').trim();
     if (!name) return res.status(400).json({ error: 'Le nom du projet est obligatoire' });
-    const [r] = await db.query('INSERT INTO projects (name, notes) VALUES (?, ?)',
-      [name, req.body.notes || null]);
-    const [[row]] = await db.query('SELECT * FROM projects WHERE id=?', [r.insertId]);
+    // Création et attribution du code dans la même transaction
+    // (rejouée en cas d'interblocage entre deux créations simultanées)
+    const id = await withRetry(async () => {
+      const conn = await db.getConnection();
+      try {
+        await conn.beginTransaction();
+        const [r] = await conn.query('INSERT INTO projects (name, notes) VALUES (?, ?)', [name, req.body.notes || null]);
+        await assignCode(r.insertId, conn);
+        await conn.commit();
+        return r.insertId;
+      } catch (e) {
+        await conn.rollback().catch(() => {});
+        throw e;
+      } finally { conn.release(); }
+    });
+    const [[row]] = await db.query('SELECT * FROM projects WHERE id=?', [id]);
     res.status(201).json(row);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

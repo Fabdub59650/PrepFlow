@@ -104,6 +104,16 @@ CREATE TABLE IF NOT EXISTS `filament_cache` (
 -- v1.3.1 : n° de bobine (champ « N° de bobine » de FilaFlow)
 ALTER TABLE `filament_cache` ADD COLUMN IF NOT EXISTS `spool_number` varchar(50) DEFAULT NULL AFTER `color_hex`;
 
+-- v1.8.0 : code projet unique PAAMMNN (ex. P261001 = 1er projet d'octobre 2026), jamais réutilisé
+ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `code` varchar(12) DEFAULT NULL AFTER `id`;
+CREATE UNIQUE INDEX IF NOT EXISTS `uq_project_code` ON `projects` (`code`);
+-- Dernier numéro attribué par mois (AAMM) : un code supprimé n'est jamais redonné
+CREATE TABLE IF NOT EXISTS `project_code_counters` (
+  `period`   char(4) NOT NULL,
+  `last_seq` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`period`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Valeurs par défaut
 INSERT IGNORE INTO `settings` (key_name, value) VALUES ('filaflow_url', 'http://127.0.0.1:3000');
 -- Imprimantes initiales : seulement si la table est vide (un renommage n'est pas écrasé à la mise à jour)

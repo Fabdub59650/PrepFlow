@@ -210,12 +210,17 @@ const GRID_MAX_HEIGHT = (GRID_HEADER_H + 10 * GRID_ROW_H + GRID_FOOTER_H + 2) + 
 
 export async function renderProject(el, id) {
   const project = await api.get(`projects/${id}`);
-  document.title = `${project.name} — PrepFlow`;
+  document.title = `${project.code ? project.code + ' · ' : ''}${project.name} — PrepFlow`;
 
   el.innerHTML = `
     <div class="project-head">
       <a href="#/" class="back-link">Projets</a>
       <div class="project-title-row">
+        ${project.code ? `<span class="project-code" title="Code du projet, à utiliser comme nom de dossier">
+          <span id="project-code">${escapeHtml(project.code)}</span>
+          <button type="button" class="icon-btn" id="copy-code" aria-label="Copier le code ${escapeHtml(project.code)}" title="Copier le code">
+            <svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="7" y="7" width="9" height="10" rx="1.5"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3h-6A1.5 1.5 0 0 0 4 4.5v8A1.5 1.5 0 0 0 5.5 14H7"/></svg>
+          </button></span>` : ''}
         <input class="project-name" id="project-name" value="${escapeHtml(project.name)}" aria-label="Nom du projet" maxlength="150">
         <div class="page-actions">
           <select id="project-status" class="select" aria-label="Statut du projet">
@@ -256,6 +261,21 @@ export async function renderProject(el, id) {
       </div>
     </section>`;
 
+  /* Copie du code projet (nom de dossier) */
+  el.querySelector('#copy-code')?.addEventListener('click', async () => {
+    const code = project.code;
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch (_) {
+      // Secours si le presse-papiers n'est pas accessible
+      const ta = document.createElement('textarea');
+      ta.value = code; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (__) {}
+      ta.remove();
+    }
+    toast(`Code ${code} copié`);
+  });
+
   /* En-tête du projet */
   const saveProject = async body => {
     try { await api.put(`projects/${id}`, body); }
@@ -266,7 +286,7 @@ export async function renderProject(el, id) {
     const v = nameInput.value.trim();
     if (!v) { nameInput.value = project.name; return; }
     project.name = v;
-    document.title = `${v} — PrepFlow`;
+    document.title = `${project.code ? project.code + ' · ' : ''}${v} — PrepFlow`;
     saveProject({ name: v });
   });
   nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') nameInput.blur(); });

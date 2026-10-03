@@ -11,6 +11,7 @@ const progress = p => (p.pieces_count ? p.pieces_done / p.pieces_count : null);
 const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
 
 const COLUMNS = [
+  { key: 'code',     label: 'Code',        value: p => p.code, text: true },
   { key: 'name',     label: 'Projet',      value: p => p.name, text: true },
   { key: 'status',   label: 'Statut',      value: p => STATUS_ORDER[p.status] },
   { key: 'created',  label: 'Créé le',     value: p => (p.created_at ? new Date(String(p.created_at).replace(' ', 'T')).getTime() : null), num: true },
@@ -81,6 +82,7 @@ export async function renderProjects(el) {
         ${rows.map(p => {
           const pct = p.pieces_count ? Math.round(100 * p.pieces_done / p.pieces_count) : 0;
           return `<tr data-id="${p.id}">
+            <td class="cell-code">${escapeHtml(p.code || '—')}</td>
             <td><a href="#/projet/${p.id}" class="row-link">${escapeHtml(p.name)}</a></td>
             <td><span class="pill pill-${p.status}">${PROJECT_STATUS[p.status]}</span></td>
             <td class="num" title="${escapeHtml(formatDate(p.created_at, { withTime: true }))}">${formatDate(p.created_at) || '—'}</td>
