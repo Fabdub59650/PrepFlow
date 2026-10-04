@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.9.1 — 04/10/2026
+
+- Page Besoins : liste des projets élargie (420 px) ; les noms longs passent à la ligne au lieu d'être tronqués
+
 ## v1.9.0 — 04/10/2026
 
 - Nouvelle page « Besoins » : sélection de projets (mémorisée ; par défaut en préparation et en cours)

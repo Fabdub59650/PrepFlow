@@ -361,16 +361,18 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .segmented button { height: 32px; padding: 0 12px; background: var(--bg3); color: var(--text2); border: 0; font: inherit; font-size: 13px; cursor: pointer; }
 .segmented button + button { border-left: 0.5px solid var(--border2); }
 .segmented button.is-active { background: var(--accent-bg); color: var(--accent); font-weight: 500; }
-.needs-layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 24px; align-items: start; }
+.needs-layout { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 24px; align-items: start; }
 .needs-projects { border: 0.5px solid var(--border); border-radius: var(--radius-lg); background: var(--bg2); padding: 12px; position: sticky; top: 72px; }
 .needs-quick { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
 .needs-quick .link-btn { margin-top: 0; }
 .needs-list { display: grid; gap: 2px; max-height: 60vh; overflow-y: auto; }
-.needs-item { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 4px; border-radius: var(--radius); font-size: 13px; cursor: pointer; }
+.needs-item { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: start; gap: 8px; padding: 6px 4px; border-radius: var(--radius); font-size: 13px; cursor: pointer; }
 .needs-item:hover { background: var(--bg3); }
 .needs-item input { accent-color: var(--accent); }
-.needs-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.needs-item .pill { font-size: 11px; }
+/* Libellé complet : passe à la ligne au lieu d'être tronqué */
+.needs-name { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+.needs-item input, .needs-item .cell-code, .needs-item .pill { margin-top: 1px; }
+.needs-item .pill { font-size: 11px; white-space: nowrap; }
 .needs-summary { padding: 10px 14px; border-radius: var(--radius); background: var(--success-bg); color: var(--success); font-size: 13px; margin-bottom: 14px; }
 .needs-summary.has-short { background: var(--danger-bg); color: var(--danger); }
 .needs-table td { vertical-align: top; }
