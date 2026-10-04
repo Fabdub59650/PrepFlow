@@ -9,8 +9,10 @@ const EDITABLE = {
   color_mode: v => (COLOR_MODES.includes(v) ? v : null),
   dark_from:  v => (/^\d{1,2}$/.test(String(v)) && +v >= 0 && +v <= 23 ? String(+v) : null),
   dark_to:    v => (/^\d{1,2}$/.test(String(v)) && +v >= 0 && +v <= 23 ? String(+v) : null),
+  // Marge de sécurité appliquée aux besoins de filament (purges, ratés), en %
+  needs_margin: v => (/^\d{1,3}$/.test(String(v).trim()) && +v >= 0 && +v <= 100 ? String(+v) : null),
 };
-const DEFAULTS = { color_mode: '', dark_from: '20', dark_to: '7' };
+const DEFAULTS = { color_mode: '', dark_from: '20', dark_to: '7', needs_margin: '10' };
 
 async function readSettings() {
   const [rows] = await db.query(

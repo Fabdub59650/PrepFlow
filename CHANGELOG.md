@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.9.0 — 04/10/2026
+
+- Nouvelle page « Besoins » : sélection de projets (mémorisée ; par défaut en préparation et en cours)
+  et récapitulatif du filament nécessaire comparé au stock FilaFlow
+- Par bobine (défaut) ou par référence (matière + couleur, toutes marques et bobines confondues)
+- Colonnes : besoin, stock, solde, à commander (avec estimation en bobines), projets concernés
+- Bloc « À choisir ou à acheter » pour le filament souhaité sans bobine choisie, comparé au stock libre
+  des bobines de même matière et couleur
+- Pièces non imprimées uniquement ; marge de sécurité appliquée aux besoins, réglable dans
+  Paramètres › Calcul des besoins (10 % par défaut)
+- Export CSV (séparateur « ; », s'ouvre directement dans Excel)
+
 ## v1.8.0 — 03/10/2026
 
 - Code projet unique attribué à la création : P + année + mois + numéro du mois sur 2 chiffres

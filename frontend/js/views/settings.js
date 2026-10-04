@@ -42,6 +42,17 @@ export async function renderSettings(el) {
       </div>
     </section>
 
+    <section class="settings-section" aria-labelledby="needs-title">
+      <h2 class="panel-title" id="needs-title">Calcul des besoins</h2>
+      <p class="panel-sub">Marge ajoutée aux besoins de filament de la page Besoins, pour couvrir les purges et les impressions ratées.</p>
+      <div class="settings-row">
+        <label class="field">
+          <span>Marge de sécurité</span>
+          <span class="input-suffix"><input type="number" id="needs-margin" min="0" max="100" step="1" value="${escapeHtml(s.needs_margin ?? '10')}"><span>%</span></span>
+        </label>
+      </div>
+    </section>
+
     <section class="settings-section" aria-labelledby="version-title">
       <h2 class="panel-title" id="version-title">Version</h2>
       <p class="panel-sub">Comparée au dernier tag publié sur GitHub (Fabdub59650/prepflow).</p>
@@ -74,6 +85,14 @@ export async function renderSettings(el) {
     hoursEl.hidden = true;
   };
   document.addEventListener('prepflow:color-mode', onToggle);
+
+  const marginInput = el.querySelector('#needs-margin');
+  marginInput.addEventListener('change', async () => {
+    const v = parseInt(marginInput.value, 10);
+    if (!Number.isFinite(v) || v < 0 || v > 100) { toast('Marge entre 0 et 100 %', 'error'); marginInput.value = s.needs_margin ?? '10'; return; }
+    try { const saved = await api.put('settings', { needs_margin: String(v) }); s.needs_margin = saved.needs_margin; toast('Réglage enregistré'); }
+    catch (e) { toast(e.message, 'error'); }
+  });
 
   const stopVersion = initVersionSection(el.querySelector('#version-box'));
   return () => {

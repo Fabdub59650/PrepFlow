@@ -31,6 +31,7 @@ app.use('/api/printers',  require('./routes/printers'));
 app.use('/api/filaments', require('./routes/filaments'));
 app.use('/api/settings',  require('./routes/settings'));
 app.use('/api/updater',   require('./routes/updater'));
+app.use('/api/needs',     require('./routes/needs'));
 app.use('/api',           require('./routes/parts').router);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Route API inconnue : ' + req.originalUrl }));

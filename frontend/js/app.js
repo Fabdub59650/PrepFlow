@@ -4,6 +4,7 @@ import { renderProjects } from './views/projects.js';
 import { renderProject } from './views/project.js';
 import { renderPrinters } from './views/printers.js';
 import { renderSettings } from './views/settings.js';
+import { renderNeeds } from './views/needs.js';
 import { store } from './store.js';
 import { initTheme } from './theme.js';
 import { initUpdateBadge } from './updates.js';
@@ -12,6 +13,7 @@ import { initUpdateBadge } from './updates.js';
 const routes = [
   { re: /^#?\/?$/,               view: renderProjects, nav: 'projects' },
   { re: /^#\/projet\/(\d+)$/,    view: renderProject,  nav: 'projects' },
+  { re: /^#\/besoins$/,          view: renderNeeds,    nav: 'needs' },
   { re: /^#\/imprimantes$/,      view: renderPrinters, nav: 'printers' },
   { re: /^#\/parametres$/,       view: renderSettings, nav: 'settings' },
 ];

@@ -23,6 +23,7 @@ Accès : **https://filaflow.local/prepflow/**
   besoin par bobine comparé au poids restant pesé dans FilaFlow, avec alerte si une bobine ne suffit pas
 - Les pièces marquées « Imprimé » ne comptent plus dans le besoin (la balance les a déjà décomptées)
 - Copie locale du stock : PrepFlow reste utilisable si FilaFlow est arrêté
+- Page Besoins : filament nécessaire sur plusieurs projets, par bobine ou par référence, comparé au stock, export CSV
 - Mode clair / sombre : bouton dans la barre du haut, modes automatiques dans Paramètres › Apparence
 
 ## Architecture
