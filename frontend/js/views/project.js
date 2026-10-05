@@ -244,9 +244,11 @@ export async function renderProject(el, id) {
 
     <div class="grid-toolbar">
       <button class="btn btn-primary" id="add-part">Ajouter une pièce</button>
+      <button class="btn" id="replace-spool" title="Remplacer une bobine par une autre dans tout le projet">Remplacer une bobine</button>
       <span class="hint" id="grid-hint">Cliquez une cellule pour la modifier, un en-tête pour trier. Temps : « 1h25 », « 45m » ou « 1:25 ». Glissez la poignée pour réordonner.</span>
       <span class="sort-bar" id="sort-bar" hidden></span>
     </div>
+    <div class="bulk-bar" id="bulk-bar" hidden></div>
     <div id="parts-grid" class="parts-grid"></div>
 
     <section class="panels">
@@ -312,6 +314,9 @@ export async function renderProject(el, id) {
     finally { e.target.disabled = false; }
   });
 
+  /* Sélection de pièces (modification en lot) */
+  const selectedIds = new Set();
+
   /* Tri mémorisé pour ce projet */
   const sortKey = `prepflow_parts_sort_${id}`;
   let partsSort = null;
@@ -340,14 +345,19 @@ export async function renderProject(el, id) {
     columnDefaults: { headerSort: false, resizable: true, vertAlign: 'middle' },
     editTriggerEvent: 'click',
     columns: [
+      { field: '_sel', width: 34, minWidth: 34, resizable: false, frozen: true, hozAlign: 'center', headerHozAlign: 'center',
+        titleFormatter: () => '<input type="checkbox" class="sel-all" aria-label="Tout sélectionner">',
+        headerClick: e => { e.stopPropagation(); toggleAll(); },
+        formatter: c => `<input type="checkbox" class="sel-row" aria-label="Sélectionner la pièce" ${selectedIds.has(c.getRow().getData().id) ? 'checked' : ''}>`,
+        cellClick: (e, c) => toggleRow(c.getRow()) },
       { rowHandle: true, field: '_handle', formatter: 'handle', width: 28, minWidth: 28, resizable: false, frozen: true },
-      { title: 'Pièce', field: 'name', editor: 'input', minWidth: 110, widthGrow: 2, frozen: true,
+      { title: 'Pièce', field: 'name', editor: 'input', minWidth: 100, widthGrow: 2, frozen: true,
         // Total : nombre de lignes (la colonne Qté donne le nombre de pièces à imprimer)
         // (calcul maison : le « count » de Tabulator ignore les pièces sans nom)
         bottomCalc: values => values.length,
         bottomCalcFormatter: c => { const n = c.getValue() || 0; return `${n} élément${n > 1 ? 's' : ''}`; },
         formatter: c => c.getValue() ? escapeHtml(c.getValue()) : '<span class="muted">Sans nom</span>' },
-      { title: 'Fichier', field: 'file_name', editor: 'input', minWidth: 70, widthGrow: 1.4,
+      { title: 'Fichier', field: 'file_name', editor: 'input', minWidth: 60, widthGrow: 1.4,
         formatter: c => c.getValue() ? `<span class="cell-file">${escapeHtml(c.getValue())}</span>` : '' },
       { title: 'Qté', field: 'quantity', editor: 'number', editorParams: { min: 1, step: 1 },
         hozAlign: 'right', width: 56, bottomCalc: 'sum' },
@@ -444,7 +454,7 @@ export async function renderProject(el, id) {
       { title: 'Temps total', field: 'total_time', hozAlign: 'right', width: 96, cssClass: 'col-calc',
         formatter: c => formatDuration(c.getValue()),
         bottomCalc: 'sum', bottomCalcFormatter: c => formatDuration(c.getValue()) },
-      { title: 'Coût', field: 'cost', hozAlign: 'right', width: 88, cssClass: 'col-calc',
+      { title: 'Coût', field: 'cost', hozAlign: 'right', width: 80, cssClass: 'col-calc',
         formatter: c => {
           const r = c.getRow().getData();
           if (c.getValue() === null) return '';
@@ -455,7 +465,7 @@ export async function renderProject(el, id) {
       { title: 'Statut', field: 'status', editor: 'list', width: 108,
         editorParams: { values: Object.entries(PART_STATUS).map(([value, label]) => ({ label, value })) },
         formatter: fmtStatus },
-      { title: 'Notes', field: 'notes', editor: 'textarea', minWidth: 60, widthGrow: 1,
+      { title: 'Notes', field: 'notes', editor: 'textarea', minWidth: 50, widthGrow: 1,
         formatter: c => c.getValue() ? `<span class="cell-notes" title="${escapeHtml(c.getValue())}">${escapeHtml(c.getValue())}</span>` : '' },
       { title: '', field: '_actions', width: 70, minWidth: 70, resizable: false, hozAlign: 'right', cssClass: 'col-actions', frozen: true,
         formatter: () => `
@@ -828,6 +838,155 @@ export async function renderProject(el, id) {
     applySort({ keepScroll: false });
   });
   table.on('tableBuilt', refreshSummary);
+
+  /* ── Modification en lot ─────────────────────────────────────── */
+  function syncSelectionUi() {
+    // Ne garder que les pièces encore présentes
+    const present = new Set(table.getData().map(r => r.id));
+    [...selectedIds].forEach(sid => { if (!present.has(sid)) selectedIds.delete(sid); });
+    const all = el.querySelector('#parts-grid .sel-all');
+    if (all) {
+      all.checked = present.size > 0 && selectedIds.size === present.size;
+      all.indeterminate = selectedIds.size > 0 && selectedIds.size < present.size;
+    }
+    drawBulkBar();
+  }
+  function toggleRow(row) {
+    const rid = row.getData().id;
+    selectedIds.has(rid) ? selectedIds.delete(rid) : selectedIds.add(rid);
+    row.reformat();
+    syncSelectionUi();
+  }
+  function toggleAll() {
+    const rows = table.getRows();
+    const selectAll = selectedIds.size < rows.length;
+    selectedIds.clear();
+    if (selectAll) rows.forEach(r => selectedIds.add(r.getData().id));
+    rows.forEach(r => r.reformat());
+    syncSelectionUi();
+  }
+
+  function drawBulkBar() {
+    const bar = el.querySelector('#bulk-bar');
+    if (!selectedIds.size) { bar.hidden = true; bar.innerHTML = ''; return; }
+    const rows = table.getData().filter(r => selectedIds.has(r.id));
+    const multi = rows.filter(r => (r.filaments || []).length > 1).length;
+    const n = rows.length;
+    const opts = filamentOptions([]).map(o =>
+      `<option value="${o.value}">${escapeHtml(o.label)}${o.f.weight_remaining !== null ? ' · ' + formatWeight(Number(o.f.weight_remaining)) : ''}</option>`).join('');
+    bar.hidden = false;
+    bar.innerHTML = `
+      <strong>${n} pièce${n > 1 ? 's' : ''} sélectionnée${n > 1 ? 's' : ''}</strong>
+      <label>Bobine <select class="select" data-bulk="filament_id"><option value="">— inchangée —</option>${opts}</select></label>
+      <label>Imprimante <select class="select" data-bulk="printer_id"><option value="">— inchangée —</option>
+        <option value="__none">Aucune</option>
+        ${store.printers.filter(p => p.active).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}</select></label>
+      <label>Statut <select class="select" data-bulk="status"><option value="">— inchangé —</option>
+        ${Object.entries(PART_STATUS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
+      <button type="button" class="btn btn-primary btn-sm" data-bulk-apply>Appliquer</button>
+      <button type="button" class="link-btn" data-bulk-clear>Désélectionner</button>
+      ${multi ? `<span class="bulk-note">${multi} pièce${multi > 1 ? 's' : ''} multicolore${multi > 1 ? 's' : ''} : bobine non modifiée (utilisez « Remplacer une bobine »)</span>` : ''}`;
+    bar.querySelector('[data-bulk-clear]').addEventListener('click', () => {
+      selectedIds.clear(); table.getRows().forEach(r => r.reformat()); syncSelectionUi();
+    });
+    bar.querySelector('[data-bulk-apply]').addEventListener('click', applyBulk);
+  }
+
+  async function applyBulk() {
+    const bar = el.querySelector('#bulk-bar');
+    const v = k => bar.querySelector(`[data-bulk="${k}"]`).value;
+    const set = {};
+    if (v('filament_id')) set.filament_id = +v('filament_id');
+    if (v('printer_id')) set.printer_id = v('printer_id') === '__none' ? null : +v('printer_id');
+    if (v('status')) set.status = v('status');
+    if (!Object.keys(set).length) return toast('Choisissez au moins une modification', 'error');
+    try {
+      const r = await api.post(`projects/${id}/parts/bulk`, { part_ids: [...selectedIds], set });
+      await applyUpdatedParts(r.parts);
+      const done = r.parts.length;
+      toast(`${done} pièce${done > 1 ? 's' : ''} modifiée${done > 1 ? 's' : ''}`
+        + (set.filament_id && r.skipped_multicolor.length ? ` (bobine inchangée sur ${r.skipped_multicolor.length} multicolore${r.skipped_multicolor.length > 1 ? 's' : ''})` : ''));
+      selectedIds.clear();
+      table.getRows().forEach(row => row.reformat());
+      syncSelectionUi();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function applyUpdatedParts(parts) {
+    for (const p of parts) {
+      const row = table.getRow(p.id);
+      if (row) { await row.update(toRow(p)); row.reformat(); }
+    }
+    table.recalc();
+    refreshSummary();
+  }
+
+  /* Remplacer une bobine par une autre dans tout le projet */
+  el.querySelector('#replace-spool').addEventListener('click', () => {
+    const rows = table.getData();
+    const usage = new Map();       // bobine → { pièces, dont imprimées }
+    for (const r of rows) {
+      for (const f of r.filaments || []) {
+        if (!f.filament_id) continue;
+        const u = usage.get(f.filament_id) || { parts: new Set(), printed: new Set() };
+        u.parts.add(r.id); if (r.status === 'imprime') u.printed.add(r.id);
+        usage.set(f.filament_id, u);
+      }
+    }
+    if (!usage.size) return toast('Aucune bobine choisie dans ce projet', 'error');
+    const fromOpts = [...usage.entries()]
+      .map(([fid, u]) => ({ fid, u, f: store.filamentsById.get(fid) }))
+      .sort((a, b) => filamentLabel(a.f).localeCompare(filamentLabel(b.f), 'fr'));
+    let material = '', color = '';
+
+    openDialog({
+      title: 'Remplacer une bobine',
+      confirmLabel: 'Remplacer',
+      wide: true,
+      build(body) {
+        const draw = () => {
+          const fromVal = body.querySelector('[data-k=from]')?.value || String(fromOpts[0].fid);
+          const toVal = body.querySelector('[data-k=to]')?.value || '';
+          const include = body.querySelector('[data-k=printed]')?.checked || false;
+          const targets = filamentOptions([], color || null, material || null).filter(o => String(o.value) !== fromVal);
+          const u = usage.get(+fromVal);
+          const concerned = include ? u.parts.size : u.parts.size - u.printed.size;
+          body.innerHTML = `
+            <p class="dialog-help">Toutes les pièces du projet qui utilisent la bobine passent sur la nouvelle, y compris les lignes des
+              pièces multicolores. Les poids sont conservés ; la matière et la couleur suivent la nouvelle bobine.</p>
+            <div class="replace-grid">
+              <label class="field"><span>Bobine à remplacer</span>
+                <select class="select" data-k="from">${fromOpts.map(o => `<option value="${o.fid}" ${String(o.fid) === fromVal ? 'selected' : ''}>${escapeHtml(filamentLabel(o.f))} · ${o.u.parts.size} pièce${o.u.parts.size > 1 ? 's' : ''}</option>`).join('')}</select></label>
+              <label class="field"><span>Matière</span>
+                <select class="select" data-k="material"><option value="">Toutes</option>${materialOptions(material).filter(o => o.value).map(o => `<option value="${escapeHtml(o.value)}" ${normColor(o.value) === normColor(material) ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}</select></label>
+              <label class="field"><span>Couleur</span>
+                <select class="select" data-k="color"><option value="">Toutes</option>${colorOptions(color, material || null).filter(o => o.value).map(o => `<option value="${escapeHtml(o.value)}" ${normColor(o.value) === normColor(color) ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}</select></label>
+              <label class="field"><span>Nouvelle bobine</span>
+                <select class="select" data-k="to"><option value="">${targets.length ? 'Choisir…' : 'Aucune bobine'}</option>${targets.map(o => `<option value="${o.value}" ${String(o.value) === toVal ? 'selected' : ''}>${escapeHtml(o.label)}${o.f.weight_remaining !== null ? ' · ' + formatWeight(Number(o.f.weight_remaining)) : ''}</option>`).join('')}</select></label>
+            </div>
+            <label class="toggle replace-printed"><input type="checkbox" data-k="printed" ${include ? 'checked' : ''}>
+              Inclure les pièces déjà imprimées${u.printed.size ? ` (${u.printed.size})` : ''}</label>
+            <p class="replace-count"><strong>${concerned}</strong> pièce${concerned > 1 ? 's' : ''} concernée${concerned > 1 ? 's' : ''}</p>`;
+          body.querySelector('[data-k=from]').addEventListener('change', draw);
+          body.querySelector('[data-k=printed]').addEventListener('change', draw);
+          body.querySelector('[data-k=to]').addEventListener('change', () => {});
+          body.querySelector('[data-k=material]').addEventListener('change', e => { material = e.target.value; draw(); });
+          body.querySelector('[data-k=color]').addEventListener('change', e => { color = e.target.value; draw(); });
+        };
+        draw();
+      },
+      async onConfirm(body) {
+        const from = +body.querySelector('[data-k=from]').value;
+        const to = +body.querySelector('[data-k=to]').value;
+        if (!to) { toast('Choisissez la nouvelle bobine', 'error'); return false; }
+        const r = await api.post(`projects/${id}/replace-spool`, {
+          from, to, include_printed: body.querySelector('[data-k=printed]').checked });
+        await applyUpdatedParts(r.parts);
+        const n = r.parts.length;
+        toast(n ? `Bobine remplacée sur ${n} pièce${n > 1 ? 's' : ''}` : 'Aucune pièce à modifier');
+      },
+    });
+  });
 
   return () => table.destroy();
 }

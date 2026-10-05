@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.10.0 — 04/10/2026
+
+- « Remplacer une bobine » : remplace une bobine par une autre dans tout le projet, y compris
+  dans les pièces multicolores (seule la ligne concernée change) ; poids conservés, matière et couleur
+  reprises de la nouvelle bobine ; pièces imprimées exclues par défaut
+- Sélection de pièces (cases à cocher, tout sélectionner) et barre de modification en lot :
+  bobine, imprimante, statut ; les pièces multicolores gardent leur bobine (signalé)
+- Modifications enregistrées en une seule transaction ; totaux et synthèses mis à jour
+
 ## v1.9.1 — 04/10/2026
 
 - Page Besoins : liste des projets élargie (420 px) ; les noms longs passent à la ligne au lieu d'être tronqués

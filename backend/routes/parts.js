@@ -134,6 +134,108 @@ router.post('/projects/:id/parts/reorder', async (req, res) => {
   } finally { conn.release(); }
 });
 
+// ── Modifications en lot ──────────────────────────────────────
+
+// Bobine du cache FilaFlow (pour reprendre sa matière et sa couleur)
+async function cachedFilament(conn, id) {
+  const [[f]] = await conn.query('SELECT id, material, color_name FROM filament_cache WHERE id=?', [id]);
+  return f || null;
+}
+const trimOrNull = v => (v && String(v).trim() ? String(v).trim().replace(/\s+/g, ' ') : null);
+
+/**
+ * Appliquer une bobine, une imprimante et/ou un statut à une sélection de pièces.
+ * Bobine : seulement pour les pièces à un filament (les multicolores sont signalées, pas modifiées) ;
+ * poids conservé ; matière et couleur reprises de la bobine.
+ */
+router.post('/projects/:id/parts/bulk', async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const ids = (Array.isArray(req.body.part_ids) ? req.body.part_ids : []).map(n => parseInt(n, 10)).filter(Number.isFinite);
+    const set = req.body.set || {};
+    if (!ids.length) return res.status(400).json({ error: 'Aucune pièce sélectionnée' });
+    const has = k => Object.prototype.hasOwnProperty.call(set, k) && set[k] !== undefined;
+    if (!has('filament_id') && !has('printer_id') && !has('status')) return res.status(400).json({ error: 'Rien à modifier' });
+    const status = has('status') ? cleanField('status', set.status) : null;
+    const printerId = has('printer_id') ? cleanField('printer_id', set.printer_id) : null;
+
+    await conn.beginTransaction();
+    const [parts] = await conn.query('SELECT id FROM parts WHERE project_id=? AND id IN (?)', [req.params.id, ids]);
+    const partIds = parts.map(p => p.id);
+    const skipped = [];
+    let fil = null;
+    if (has('filament_id')) {
+      fil = await cachedFilament(conn, parseInt(set.filament_id, 10));
+      if (!fil) throw new Error('Bobine inconnue : actualisez le stock');
+    }
+    for (const pid of partIds) {
+      const sets = [], vals = [];
+      if (has('printer_id')) { sets.push('printer_id=?'); vals.push(printerId); }
+      if (has('status'))     { sets.push('status=?');     vals.push(status); }
+      if (fil) {
+        const [lines] = await conn.query('SELECT weight_g FROM part_filaments WHERE part_id=? ORDER BY sort_order, id', [pid]);
+        if (lines.length > 1) skipped.push(pid);
+        else {
+          await replaceFilaments(conn, pid, [{ filament_id: fil.id, material: null, color_name: null,
+            weight_g: lines[0] ? lines[0].weight_g : null }]);
+          sets.push('material=?', 'color_name=?');
+          vals.push(trimOrNull(fil.material), trimOrNull(fil.color_name));
+        }
+      }
+      if (sets.length) await conn.query(`UPDATE parts SET ${sets.join(', ')} WHERE id=?`, [...vals, pid]);
+    }
+    await conn.query('UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?', [req.params.id]);
+    await conn.commit();
+    const updated = [];
+    for (const pid of partIds) updated.push((await loadParts({ partId: pid }))[0]);
+    res.json({ parts: updated, skipped_multicolor: skipped });
+  } catch (e) {
+    await conn.rollback().catch(() => {});
+    const isInput = /invalide|Statut|inconnue|Aucune|Rien/.test(e.message);
+    res.status(isInput ? 400 : 500).json({ error: e.message });
+  } finally { conn.release(); }
+});
+
+/**
+ * Remplacer une bobine par une autre dans tout le projet, y compris dans les pièces multicolores
+ * (seule la ligne de cette bobine change). Poids conservés. Pièces imprimées exclues par défaut.
+ */
+router.post('/projects/:id/replace-spool', async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const from = parseInt(req.body.from, 10), to = parseInt(req.body.to, 10);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) return res.status(400).json({ error: 'Bobines à préciser' });
+    if (from === to) return res.status(400).json({ error: 'Choisissez une bobine différente' });
+    const includePrinted = !!req.body.include_printed;
+
+    await conn.beginTransaction();
+    const fil = await cachedFilament(conn, to);
+    if (!fil) throw new Error('Bobine inconnue : actualisez le stock');
+    const [lines] = await conn.query(
+      `SELECT pf.id, pf.part_id FROM part_filaments pf JOIN parts p ON p.id = pf.part_id
+       WHERE p.project_id=? AND pf.filament_id=? ${includePrinted ? '' : "AND p.status <> 'imprime'"}`,
+      [req.params.id, from]);
+    const partIds = [...new Set(lines.map(l => l.part_id))];
+    if (lines.length) {
+      await conn.query('UPDATE part_filaments SET filament_id=?, material=?, color_name=? WHERE id IN (?)',
+        [fil.id, trimOrNull(fil.material), trimOrNull(fil.color_name), lines.map(l => l.id)]);
+      // Pièces à un seul filament : leurs colonnes Matière / Couleur suivent la nouvelle bobine
+      await conn.query(
+        `UPDATE parts p SET p.material=?, p.color_name=?
+         WHERE p.id IN (?) AND (SELECT COUNT(*) FROM part_filaments x WHERE x.part_id = p.id) = 1`,
+        [trimOrNull(fil.material), trimOrNull(fil.color_name), partIds]);
+      await conn.query('UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?', [req.params.id]);
+    }
+    await conn.commit();
+    const updated = [];
+    for (const pid of partIds) updated.push((await loadParts({ partId: pid }))[0]);
+    res.json({ parts: updated, replaced: lines.length });
+  } catch (e) {
+    await conn.rollback().catch(() => {});
+    res.status(/inconnue|préciser|différente/.test(e.message) ? 400 : 500).json({ error: e.message });
+  } finally { conn.release(); }
+});
+
 router.put('/parts/:id', async (req, res) => {
   const conn = await db.getConnection();
   try {
