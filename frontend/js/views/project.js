@@ -204,6 +204,20 @@ function sortParts(rows, sort) {
 
 /* ── Vue ───────────────────────────────────────────────────────── */
 
+// En-tête fixe : classe is-stuck quand il colle sous la barre du haut,
+// et hauteur exposée (--head-h) pour placer la barre d'outils du tableau juste dessous
+function initStickyHead(root, head) {
+  const sentinel = root.querySelector('.sticky-sentinel');
+  if (!head || !sentinel) return () => {};
+  const io = new IntersectionObserver(([e]) => head.classList.toggle('is-stuck', !e.isIntersecting),
+    { rootMargin: '-56px 0px 0px 0px' });
+  io.observe(sentinel);
+  // Hauteur réelle (bordure comprise) mesurée à chaque changement de taille de l'en-tête
+  const ro = new ResizeObserver(() => root.style.setProperty('--head-h', head.getBoundingClientRect().height + 'px'));
+  ro.observe(head);
+  return () => { io.disconnect(); ro.disconnect(); };
+}
+
 // Hauteur maximale du tableau : en-tête + 10 lignes + ligne de totaux
 const GRID_ROW_H = 39, GRID_HEADER_H = 36, GRID_FOOTER_H = 40;
 const GRID_MAX_HEIGHT = (GRID_HEADER_H + 10 * GRID_ROW_H + GRID_FOOTER_H + 2) + 'px';
@@ -213,6 +227,7 @@ export async function renderProject(el, id) {
   document.title = `${project.code ? project.code + ' · ' : ''}${project.name} — PrepFlow`;
 
   el.innerHTML = `
+    <div class="sticky-sentinel" aria-hidden="true"></div>
     <div class="project-head">
       <a href="#/" class="back-link">Projets</a>
       <div class="project-title-row">
@@ -242,6 +257,7 @@ export async function renderProject(el, id) {
     <div id="stock-alert"></div>
     <section class="figures" id="figures" aria-label="Totaux du projet"></section>
 
+    <div class="grid-sticky">
     <div class="grid-toolbar">
       <button class="btn btn-primary" id="add-part">Ajouter une pièce</button>
       <button class="btn" id="replace-spool" title="Remplacer une bobine par une autre dans tout le projet">Remplacer une bobine</button>
@@ -252,6 +268,7 @@ export async function renderProject(el, id) {
       <span class="sort-bar" id="sort-bar" hidden></span>
     </div>
     <div class="bulk-bar" id="bulk-bar" hidden></div>
+    </div>
     <div id="parts-grid" class="parts-grid"></div>
 
     <section class="panels">
@@ -265,6 +282,9 @@ export async function renderProject(el, id) {
         <div id="printers-load"></div>
       </div>
     </section>`;
+
+  /* En-tête fixe : compacté une fois collé sous la barre du haut */
+  const stopSticky = initStickyHead(el, el.querySelector('.project-head'));
 
   /* Copie du code projet (nom de dossier) */
   el.querySelector('#copy-code')?.addEventListener('click', async () => {
@@ -1054,5 +1074,5 @@ export async function renderProject(el, id) {
     });
   });
 
-  return () => table.destroy();
+  return () => { stopSticky(); table.destroy(); };
 }

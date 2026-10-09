@@ -177,6 +177,27 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 
 /* ── Projet : en-tête ──────────────────────────────────────────── */
 .project-head { margin-bottom: 18px; }
+
+/* ── En-têtes fixes au défilement (sous la barre du haut de 56 px) ── */
+.sticky-sentinel { height: 1px; margin-bottom: -1px; }
+.page-head, .project-head, .grid-sticky {
+  position: sticky; z-index: 15; background: var(--bg);
+}
+.page-head { top: 56px; margin: -24px -24px 18px; padding: 16px 24px 12px; border-bottom: 0.5px solid transparent; }
+.page-head + .page-sub { margin-top: 0; }
+.project-head { top: 56px; margin: -24px -24px 18px; padding: 16px 24px 4px; border-bottom: 0.5px solid transparent; }
+.project-head.is-stuck { padding: 8px 24px 6px; border-bottom-color: var(--border); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18); }
+.project-head.is-stuck .back-link, .project-head.is-stuck .project-dates, .project-head.is-stuck .project-notes { display: none; }
+.project-head.is-stuck .project-title-row { margin: 0; }
+.project-head.is-stuck .project-name { font-size: 24px; }
+.grid-sticky { top: calc(56px + var(--head-h, 0px) - 1px); z-index: 14; padding-top: 7px; margin-top: -7px; }
+@media (max-width: 900px) {
+  .page-head, .project-head { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
+  .page-head { margin-top: -16px; }
+  .project-head { margin-top: -16px; }
+  /* Écran étroit : seul l'en-tête reste fixe, pour garder de la place au tableau */
+  .grid-sticky { position: static; }
+}
 .back-link { font-size: 12px; color: var(--text3); text-decoration: none; }
 .back-link::before { content: '‹ '; }
 .back-link:hover { color: var(--accent); }
@@ -387,7 +408,7 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .segmented button + button { border-left: 0.5px solid var(--border2); }
 .segmented button.is-active { background: var(--accent-bg); color: var(--accent); font-weight: 500; }
 .needs-layout { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 24px; align-items: start; }
-.needs-projects { border: 0.5px solid var(--border); border-radius: var(--radius-lg); background: var(--bg2); padding: 12px; position: sticky; top: 72px; }
+.needs-projects { border: 0.5px solid var(--border); border-radius: var(--radius-lg); background: var(--bg2); padding: 12px; position: sticky; top: 136px; }
 .needs-quick { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
 .needs-quick .link-btn { margin-top: 0; }
 .needs-list { display: grid; gap: 2px; max-height: 60vh; overflow-y: auto; }

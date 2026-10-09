@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.11.1 — 09/10/2026
+
+- En-tête de page fixe au défilement, sous la barre du haut (titre et boutons d'action) sur toutes les pages
+- Projet : l'en-tête se compacte une fois fixé (code, nom, statut, actions) et la barre d'outils du
+  tableau (Ajouter une pièce, Remplacer une bobine, filtre, sélection en lot) reste visible dessous ;
+  sur écran étroit, seul l'en-tête reste fixe
+- Page Besoins : la liste des projets reste placée sous l'en-tête fixe
+
 ## v1.11.0 — 09/10/2026
 
 - Tableau des pièces : filtre par bobine (bobines du projet avec leur nombre de pièces, ou
