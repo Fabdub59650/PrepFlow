@@ -245,6 +245,9 @@ export async function renderProject(el, id) {
     <div class="grid-toolbar">
       <button class="btn btn-primary" id="add-part">Ajouter une pièce</button>
       <button class="btn" id="replace-spool" title="Remplacer une bobine par une autre dans tout le projet">Remplacer une bobine</button>
+      <label class="filter-box"><span class="sr-only">Filtrer les pièces par bobine</span>
+        <select class="select" id="spool-filter" aria-label="Filtrer les pièces par bobine"></select></label>
+      <span class="filter-status" id="filter-status" hidden></span>
       <span class="hint" id="grid-hint">Cliquez une cellule pour la modifier, un en-tête pour trier. Temps : « 1h25 », « 45m » ou « 1:25 ». Glissez la poignée pour réordonner.</span>
       <span class="sort-bar" id="sort-bar" hidden></span>
     </div>
@@ -569,6 +572,8 @@ export async function renderProject(el, id) {
       const rows = table.getData();
       const last = rows[rows.length - 1];
       const part = await api.post(`projects/${id}/parts`, last?.printer_id ? { printer_id: last.printer_id } : {});
+      // La nouvelle pièce n'a pas de bobine : un filtre actif la masquerait
+      if (spoolFilter) { setSpoolFilter(''); toast('Filtre retiré pour afficher la nouvelle pièce'); }
       const row = await table.addRow(toRow(part));
       table.recalc();          // totaux du pied (nombre d'éléments, quantités)
       refreshSummary();
@@ -701,6 +706,7 @@ export async function renderProject(el, id) {
 
   /* Synthèses */
   function refreshSummary() {
+    drawSpoolFilter();
     const parts = table.getData().map(fromRow);
     const s = summarize(parts, store.filamentsById, store.printers);
 
@@ -839,15 +845,75 @@ export async function renderProject(el, id) {
   });
   table.on('tableBuilt', refreshSummary);
 
+  /* ── Filtre par bobine ───────────────────────────────────────── */
+  // '' = toutes ; 'none' = pièces sans bobine choisie ; sinon id de bobine. Non mémorisé.
+  let spoolFilter = '';
+  const usesSpool = (r, f) => f === 'none'
+    ? !(r.filaments || []).some(x => x.filament_id)
+    : (r.filaments || []).some(x => String(x.filament_id) === f);
+
+  function drawSpoolFilter() {
+    const sel = el.querySelector('#spool-filter');
+    if (!sel) return;
+    const rows = table.getData();
+    const counts = new Map();
+    let none = 0;
+    for (const r of rows) {
+      const ids = new Set((r.filaments || []).map(x => x.filament_id).filter(Boolean));
+      if (!ids.size) none++;
+      ids.forEach(fid => counts.set(fid, (counts.get(fid) || 0) + 1));
+    }
+    if (spoolFilter && spoolFilter !== 'none' && !counts.has(+spoolFilter)) counts.set(+spoolFilter, 0);
+    const spools = [...counts.entries()]
+      .map(([fid, n]) => ({ fid, n, label: filamentLabel(store.filamentsById.get(fid)) }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+    const plural = n => `${n} pièce${n > 1 ? 's' : ''}`;
+    sel.innerHTML = `<option value="">Filtrer : toutes les bobines</option>`
+      + spools.map(s => `<option value="${s.fid}" ${String(s.fid) === spoolFilter ? 'selected' : ''}>${escapeHtml(s.label)} · ${plural(s.n)}</option>`).join('')
+      + `<option value="none" ${spoolFilter === 'none' ? 'selected' : ''}>Sans bobine choisie · ${plural(none)}</option>`;
+    sel.classList.toggle('is-active', !!spoolFilter);
+    drawFilterStatus();
+  }
+
+  function drawFilterStatus() {
+    const st = el.querySelector('#filter-status');
+    if (!st) return;
+    if (!spoolFilter) { st.hidden = true; st.innerHTML = ''; return; }
+    const shown = table.getRows('active').length, total = table.getRows().length;
+    st.hidden = false;
+    st.innerHTML = `Filtré : <strong>${shown}</strong> élément${shown > 1 ? 's' : ''} sur ${total}
+      <button type="button" class="link-btn" data-filter-clear>Retirer le filtre</button>`;
+    st.querySelector('[data-filter-clear]').addEventListener('click', () => setSpoolFilter(''));
+  }
+
+  function setSpoolFilter(value) {
+    spoolFilter = value || '';
+    if (spoolFilter) table.setFilter(r => usesSpool(r, spoolFilter));
+    else table.clearFilter();
+    // Une pièce masquée ne reste pas sélectionnée : la modification en lot ne doit pas la toucher
+    const visible = new Set(table.getRows('active').map(r => r.getData().id));
+    [...selectedIds].forEach(sid => { if (!visible.has(sid)) selectedIds.delete(sid); });
+    table.getRows().forEach(r => r.reformat());
+    table.recalc();
+    drawSpoolFilter();
+    syncSelectionUi();
+  }
+
+  el.querySelector('#spool-filter').addEventListener('change', e => setSpoolFilter(e.target.value));
+  // Après une modification (bobine changée…), le filtre est réévalué
+  table.on('dataChanged', () => { if (spoolFilter) table.refreshFilter(); });
+  table.on('dataFiltered', () => setTimeout(drawFilterStatus, 0));
+
   /* ── Modification en lot ─────────────────────────────────────── */
   function syncSelectionUi() {
     // Ne garder que les pièces encore présentes
     const present = new Set(table.getData().map(r => r.id));
     [...selectedIds].forEach(sid => { if (!present.has(sid)) selectedIds.delete(sid); });
+    const visibleCount = table.getRows('active').length;
     const all = el.querySelector('#parts-grid .sel-all');
     if (all) {
-      all.checked = present.size > 0 && selectedIds.size === present.size;
-      all.indeterminate = selectedIds.size > 0 && selectedIds.size < present.size;
+      all.checked = visibleCount > 0 && selectedIds.size === visibleCount;
+      all.indeterminate = selectedIds.size > 0 && selectedIds.size < visibleCount;
     }
     drawBulkBar();
   }
@@ -858,7 +924,7 @@ export async function renderProject(el, id) {
     syncSelectionUi();
   }
   function toggleAll() {
-    const rows = table.getRows();
+    const rows = table.getRows('active');      // pièces visibles (filtre)
     const selectAll = selectedIds.size < rows.length;
     selectedIds.clear();
     if (selectAll) rows.forEach(r => selectedIds.add(r.getData().id));

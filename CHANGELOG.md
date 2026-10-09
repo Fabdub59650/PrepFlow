@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.11.0 — 09/10/2026
+
+- Tableau des pièces : filtre par bobine (bobines du projet avec leur nombre de pièces, ou
+  « Sans bobine choisie »), y compris les pièces multicolores qui utilisent la bobine
+- Totaux du tableau et « Tout sélectionner » limités aux pièces affichées ; les synthèses sous le
+  tableau restent calculées sur tout le projet
+- Ajouter une pièce retire le filtre ; le filtre n'est pas mémorisé d'une visite à l'autre
+
 ## v1.10.0 — 04/10/2026
 
 - « Remplacer une bobine » : remplace une bobine par une autre dans tout le projet, y compris
