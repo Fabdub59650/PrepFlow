@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.11.2 — 11/10/2026
+
+- Page Besoins : les projets terminés ne sont plus pris en compte, comme les archivés (absents de la
+  liste et retirés de la sélection mémorisée s'ils y étaient restés cochés)
+- Raccourci « En préparation et en cours » retiré, devenu identique à « Tous » ; mention sous la liste
+
 ## v1.11.1 — 09/10/2026
 
 - En-tête de page fixe au défilement, sous la barre du haut (titre et boutons d'action) sur toutes les pages

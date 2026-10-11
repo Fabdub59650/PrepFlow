@@ -136,11 +136,14 @@ const projectsCell = g => {
 
 export async function renderNeeds(el) {
   document.title = 'Besoins — PrepFlow';
-  const [projectsAll, settings] = await Promise.all([api.get('projects'), api.get('settings')]);
+  const [projectsList, settings] = await Promise.all([api.get('projects'), api.get('settings')]);
+  // Projets terminés exclus, comme les archivés (non renvoyés par l'API)
+  const projectsAll = projectsList.filter(p => p.status !== 'termine');
   const margin = parseInt(settings.needs_margin, 10) || 0;
 
-  // Sélection : mémorisée, sinon projets en préparation et en cours
-  let selected = new Set(readJSON(SEL_KEY, null) ?? projectsAll.filter(p => ['preparation', 'en_cours'].includes(p.status)).map(p => p.id));
+  // Sélection : mémorisée, sinon tous les projets en préparation et en cours.
+  // Les projets passés en Terminé ou Archivé depuis sont retirés de la sélection mémorisée.
+  let selected = new Set(readJSON(SEL_KEY, null) ?? projectsAll.map(p => p.id));
   selected = new Set([...selected].filter(id => projectsAll.some(p => p.id === id)));
   let mode = readJSON(MODE_KEY, 'spool') === 'ref' ? 'ref' : 'spool';
   let last = null;   // dernier calcul (export CSV)
@@ -164,7 +167,6 @@ export async function renderNeeds(el) {
         <div class="needs-quick">
           <button type="button" class="link-btn" data-pick="all">Tous</button>
           <button type="button" class="link-btn" data-pick="none">Aucun</button>
-          <button type="button" class="link-btn" data-pick="active">En préparation et en cours</button>
         </div>
         <div class="needs-list">
           ${projectsAll.length ? projectsAll.map(p => `
@@ -173,8 +175,9 @@ export async function renderNeeds(el) {
               <span class="cell-code">${escapeHtml(p.code || '')}</span>
               <span class="needs-name">${escapeHtml(p.name)}</span>
               <span class="pill pill-${p.status}">${PROJECT_STATUS[p.status]}</span>
-            </label>`).join('') : '<p class="muted">Aucun projet.</p>'}
+            </label>`).join('') : '<p class="muted">Aucun projet en préparation ou en cours.</p>'}
         </div>
+        <p class="needs-note">Projets terminés et archivés non pris en compte</p>
       </aside>
       <section class="needs-result" id="needs-result" aria-live="polite"></section>
     </div>`;
@@ -298,8 +301,7 @@ export async function renderNeeds(el) {
   }));
   el.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => {
     const pick = b.dataset.pick;
-    selected = new Set(pick === 'all' ? projectsAll.map(p => p.id)
-      : pick === 'none' ? [] : projectsAll.filter(p => ['preparation', 'en_cours'].includes(p.status)).map(p => p.id));
+    selected = new Set(pick === 'all' ? projectsAll.map(p => p.id) : []);
     el.querySelectorAll('.needs-item input').forEach(cb => { cb.checked = selected.has(+cb.value); });
     refresh().catch(e => toast(e.message, 'error'));
   }));
