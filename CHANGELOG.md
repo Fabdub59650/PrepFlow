@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.11.3 — 16/10/2026
+
+- Thème commun avec FilaFlow : nouveau fichier `frontend/css/theme.css` (polices, palette graphite / béton,
+  espacements typographiques), identique dans les deux dépôts ; l'accent bleu reste propre à PrepFlow
+- Typographie alignée sur FilaFlow : menu, boutons et titres en Barlow Condensed majuscules ; libellés,
+  en-têtes de colonnes, étiquettes et état FilaFlow en IBM Plex Mono
+
 ## v1.11.2 — 11/10/2026
 
 - Page Besoins : les projets terminés ne sont plus pris en compte, comme les archivés (absents de la
