@@ -114,6 +114,51 @@ CREATE TABLE IF NOT EXISTS `project_code_counters` (
   PRIMARY KEY (`period`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ── v1.12.0 : suivi de production ─────────────────────────────
+-- Date de la dernière pesée de la bobine dans FilaFlow (point de départ du « reste estimé »)
+ALTER TABLE `filament_cache` ADD COLUMN IF NOT EXISTS `last_weighed_at` datetime DEFAULT NULL AFTER `price`;
+
+-- Une impression (run) = un lancement d'une pièce sur une imprimante.
+-- Un lancement groupé (plateau mixte) crée un run par pièce, avec le même batch_id.
+-- Heures en heure locale du Pi (comme FilaFlow), pour pouvoir les comparer aux pesées.
+CREATE TABLE IF NOT EXISTS `print_runs` (
+  `id`           int(11)      NOT NULL AUTO_INCREMENT,
+  `part_id`      int(11)      NOT NULL,
+  `printer_id`   int(11)      DEFAULT NULL,
+  `batch_id`     char(36)     DEFAULT NULL,
+  `quantity`     int(11)      NOT NULL DEFAULT 1,
+  `state`        enum('en_cours','termine') NOT NULL DEFAULT 'en_cours',
+  `result`       enum('ok','rate','annule') DEFAULT NULL,
+  `progress_pct` tinyint(3) unsigned DEFAULT NULL,
+  `started_at`   datetime     NOT NULL DEFAULT current_timestamp(),
+  `ended_at`     datetime     DEFAULT NULL,
+  `duration_s`   int(11)      DEFAULT NULL,
+  `notes`        text         DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_run_part` (`part_id`),
+  KEY `idx_run_state` (`state`,`ended_at`),
+  KEY `idx_run_batch` (`batch_id`),
+  CONSTRAINT `fk_run_part`    FOREIGN KEY (`part_id`)    REFERENCES `parts` (`id`)    ON DELETE CASCADE,
+  CONSTRAINT `fk_run_printer` FOREIGN KEY (`printer_id`) REFERENCES `printers` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Consommation estimée d'un run, par bobine FilaFlow (pas de clé étrangère : autre base)
+-- planned_g : poids prévu (poids unitaire × quantité), figé au démarrage
+-- weight_g  : poids retenu à la fin (prévu × % réalisé par défaut, corrigeable)
+CREATE TABLE IF NOT EXISTS `print_run_filaments` (
+  `id`          int(11)      NOT NULL AUTO_INCREMENT,
+  `run_id`      int(11)      NOT NULL,
+  `filament_id` int(11)      NOT NULL,
+  `material`    varchar(50)  DEFAULT NULL,
+  `color_name`  varchar(100) DEFAULT NULL,
+  `planned_g`   decimal(8,2) NOT NULL DEFAULT 0,
+  `weight_g`    decimal(8,2) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_run_filament` (`run_id`,`filament_id`),
+  KEY `idx_prf_filament` (`filament_id`),
+  CONSTRAINT `fk_prf_run` FOREIGN KEY (`run_id`) REFERENCES `print_runs` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Valeurs par défaut
 INSERT IGNORE INTO `settings` (key_name, value) VALUES ('filaflow_url', 'http://127.0.0.1:3000');
 -- Imprimantes initiales : seulement si la table est vide (un renommage n'est pas écrasé à la mise à jour)

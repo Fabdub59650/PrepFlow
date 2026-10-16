@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.12.0 — 16/10/2026
+
+Suivi de production, partie serveur (les boutons et la page « Production » arrivent en v1.13.0).
+
+- Nouvelles tables `print_runs` (une impression = un lancement d'une pièce sur une imprimante) et
+  `print_run_filaments` (consommation par bobine : poids prévu figé au démarrage, poids retenu à la fin)
+- Lancement groupé (plateau mixte) : une impression par pièce, même imprimante, même heure de début,
+  même `batch_id` ; fin groupée possible en un appel
+- Fin d'impression : réussie, ratée (consommation = prévu × % réalisé) ou annulée (aucune consommation) ;
+  poids corrigeables bobine par bobine ; durée réelle calculée ; heure de début/fin modifiable
+- Statut de la pièce déduit des impressions : « imprimé » quand les impressions réussies couvrent la
+  quantité, « en cours » tant qu'une impression est active ; une pièce sans impression garde son statut manuel ;
+  le premier lancement d'un projet en préparation le passe « en cours »
+- Reste estimé des bobines : dernière pesée FilaFlow − consommation des impressions terminées depuis
+  cette pesée (`weight_estimated`), et poids « réservé » par les impressions en cours (`reserved_g`).
+  Calculé à la lecture, jamais écrit dans FilaFlow : une nouvelle pesée remet le compteur à zéro
+- La copie locale des filaments mémorise la date de dernière pesée (`last_weighed_at`)
+- API : `POST /api/runs/start`, `POST /api/parts/:id/runs/start`, `POST /api/runs/:id/finish`,
+  `POST /api/batches/:batchId/finish`, `PUT` et `DELETE /api/runs/:id`, `GET /api/runs`,
+  `GET /api/projects/:id/runs` ; `GET /api/filaments` renvoie les nouveaux champs d'estimation
+
 ## v1.11.3 — 16/10/2026
 
 - Thème commun avec FilaFlow : nouveau fichier `frontend/css/theme.css` (polices, palette graphite / béton,
