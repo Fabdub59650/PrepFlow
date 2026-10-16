@@ -5,14 +5,17 @@ import { renderProject } from './views/project.js';
 import { renderPrinters } from './views/printers.js';
 import { renderSettings } from './views/settings.js';
 import { renderNeeds } from './views/needs.js';
+import { renderProduction } from './views/production.js';
+import { updateRunsBadge } from './runs.js';
 import { store } from './store.js';
 import { initTheme } from './theme.js';
 import { initUpdateBadge } from './updates.js';
 
-// Routes : #/  #/projet/12  #/imprimantes
+// Routes : #/  #/projet/12  #/production  #/besoins  #/imprimantes
 const routes = [
   { re: /^#?\/?$/,               view: renderProjects, nav: 'projects' },
   { re: /^#\/projet\/(\d+)$/,    view: renderProject,  nav: 'projects' },
+  { re: /^#\/production$/,       view: renderProduction, nav: 'production' },
   { re: /^#\/besoins$/,          view: renderNeeds,    nav: 'needs' },
   { re: /^#\/imprimantes$/,      view: renderPrinters, nav: 'printers' },
   { re: /^#\/parametres$/,       view: renderSettings, nav: 'settings' },
@@ -31,6 +34,7 @@ async function route() {
 
   if (!match) { location.hash = '#/'; return; }
   content.innerHTML = '<p class="loading">Chargement…</p>';
+  updateRunsBadge();
   try {
     currentCleanup = await match.r.view(content, ...match.m.slice(1)) || null;
   } catch (e) {

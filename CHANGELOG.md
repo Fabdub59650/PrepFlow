@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.13.0 — 16/10/2026
+
+Suivi de production : boutons dans les projets et page « Production ».
+
+- Tableau d'un projet : colonne **▶ Démarrer** / **■ Terminer** sur chaque pièce, avec l'avancement
+  (pièces réussies sur quantité) ; le bouton reste actif sur une pièce déjà imprimée (réimpression)
+- Fenêtre « Lancer » : imprimante, quantité du lancement (par défaut le reste à imprimer), besoin en
+  filament par bobine comparé au reste estimé (avertissement si insuffisant, sans bloquer),
+  heure de début modifiable si l'impression est déjà partie
+- Lancement groupé (plateau mixte) : cocher plusieurs pièces puis **▶ Lancer la sélection** ; les pièces
+  sans bobine choisie sont signalées et exclues
+- Fenêtre « Terminer » : Réussie / Ratée / Annulée par pièce, % réalisé pour un raté (consommation
+  proratisée, valeur par défaut visible), poids retenu corrigeable par bobine, notes, heure de fin ;
+  un lancement groupé se termine d'un coup (« Pour toutes ») puis s'ajuste pièce par pièce
+- Nouvelle page **Production** : impressions en cours (une carte par imprimante ou plateau, durée écoulée
+  qui avance, barre de progression sur la durée prévue) et historique filtrable par projet et par
+  résultat, avec temps et poids prévus contre réels ; pastille du menu = nombre d'impressions en cours
+- Sélecteurs de bobine : reste estimé (« ~320 g ») avec l'âge de la dernière pesée au lieu du seul
+  poids de la dernière pesée
+- Aucun changement des totaux de projet ni de la page Besoins (quantités partielles : v1.13.1)
+
 ## v1.12.0 — 16/10/2026
 
 Suivi de production, partie serveur (les boutons et la page « Production » arrivent en v1.13.0).

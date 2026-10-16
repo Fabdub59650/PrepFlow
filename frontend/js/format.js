@@ -7,6 +7,13 @@ export const PART_STATUS = {
   imprime:    'Imprimé',
 };
 
+// Résultat d'une impression (suivi de production)
+export const RUN_RESULT = {
+  ok:     'Réussie',
+  rate:   'Ratée',
+  annule: 'Annulée',
+};
+
 export const PROJECT_STATUS = {
   preparation: 'En préparation',
   en_cours:    'En cours',
@@ -122,4 +129,35 @@ export function formatDate(str, { withTime = false } = {}) {
   const p = n => String(n).padStart(2, '0');
   const date = `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
   return withTime ? `${date} ${p(d.getHours())}:${p(d.getMinutes())}` : date;
+}
+
+/** « 2026-10-04 15:43:13 » → « pesée il y a 12 j » ; « jamais pesée » si absente */
+export function weighAge(str) {
+  if (!str) return 'jamais pesée';
+  const t = Date.parse(String(str).replace(' ', 'T'));
+  if (Number.isNaN(t)) return 'jamais pesée';
+  const days = Math.max(0, Math.floor((Date.now() - t) / 86400000));
+  if (days === 0) return "pesée aujourd'hui";
+  if (days === 1) return 'pesée hier';
+  return `pesée il y a ${days} j`;
+}
+
+/**
+ * Reste d'une bobine à afficher. Si des impressions ont été faites depuis la dernière pesée,
+ * le reste est estimé (marqué « ~ ») ; sinon c'est le poids pesé dans FilaFlow.
+ * value : grammes (null si inconnu) ; text : texte court ; title : explication au survol ; age : date de pesée.
+ */
+export function spoolStock(f) {
+  if (!f || f.weight_remaining === null || f.weight_remaining === undefined) {
+    return { value: null, estimated: false, text: '', title: '', age: '' };
+  }
+  const base = Number(f.weight_remaining);
+  const used = Number(f.used_since_weighing_g) || 0;
+  const age = weighAge(f.last_weighed_at);
+  if (used > 0 && f.weight_estimated !== null && f.weight_estimated !== undefined) {
+    const est = Number(f.weight_estimated);
+    return { value: est, estimated: true, text: '~' + formatWeight(est), age,
+      title: `Estimé : ${formatWeight(base)} à la dernière pesée − ${formatWeight(used)} consommés depuis (${age})` };
+  }
+  return { value: base, estimated: false, text: formatWeight(base), age, title: `Reste pesé dans FilaFlow (${age})` };
 }

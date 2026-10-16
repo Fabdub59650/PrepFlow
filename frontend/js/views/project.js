@@ -3,9 +3,10 @@ import { store } from '../store.js';
 import { toast, confirmDialog, openDialog } from '../ui.js';
 import {
   PART_STATUS, PROJECT_STATUS, parseDuration, formatDuration, durationToInput,
-  formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch,
+  formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolStock,
 } from '../format.js';
 import { derivePart, summarize } from '../summary.js';
+import { indexRuns, runsToFinish, openStartDialog, openFinishDialog, updateRunsBadge } from '../runs.js';
 
 /* ── Données d'une ligne ───────────────────────────────────────── */
 
@@ -135,10 +136,10 @@ function colorHex(name) {
 function filamentItemFormatter(label, value, item) {
   const f = item.f;
   if (!f) return escapeHtml(label);
-  const stock = f.weight_remaining !== null ? formatWeight(Number(f.weight_remaining)) : '';
+  const st = spoolStock(f);
   return `<span class="opt-filament">${swatch(f.color_hex)}<span class="opt-name">${escapeHtml(label)}</span>`
     + `<span class="opt-meta">${escapeHtml(f.brand || '')}${f.archived ? ' (archivée)' : ''}</span>`
-    + `<span class="opt-stock">${stock}</span></span>`;
+    + `<span class="opt-stock" title="${escapeHtml(st.title)}">${st.text}${st.text ? `<span class="opt-age">${escapeHtml(st.age)}</span>` : ''}</span></span>`;
 }
 
 /* ── Formatteurs ───────────────────────────────────────────────── */
@@ -223,7 +224,11 @@ const GRID_ROW_H = 39, GRID_HEADER_H = 36, GRID_FOOTER_H = 40;
 const GRID_MAX_HEIGHT = (GRID_HEADER_H + 10 * GRID_ROW_H + GRID_FOOTER_H + 2) + 'px';
 
 export async function renderProject(el, id) {
-  const project = await api.get(`projects/${id}`);
+  const [project, runList] = await Promise.all([
+    api.get(`projects/${id}`),
+    api.get(`projects/${id}/runs?limit=1000`).catch(() => []),   // serveur ancien : pas de suivi
+  ]);
+  let runIdx = indexRuns(runList);
   document.title = `${project.code ? project.code + ' · ' : ''}${project.name} — PrepFlow`;
 
   el.innerHTML = `
@@ -485,11 +490,31 @@ export async function renderProject(el, id) {
           return formatMoney(c.getValue()) + (r.cost_complete ? '' : '<span class="warn-mark" title="Prix manquant pour une bobine dans FilaFlow">*</span>');
         },
         bottomCalc: 'sum', bottomCalcFormatter: c => formatMoney(c.getValue()) },
-      { title: 'Statut', field: 'status', editor: 'list', width: 108,
+      { title: 'Statut', field: 'status', editor: 'list', width: 120,
         editorParams: { values: Object.entries(PART_STATUS).map(([value, label]) => ({ label, value })) },
-        formatter: fmtStatus },
+        // Avancement du suivi de production : pièces réussies sur quantité
+        formatter: c => {
+          const r = c.getRow().getData();
+          const done = runIdx.get(r.id)?.done || 0;
+          return fmtStatus(c) + (done ? `<span class="run-prog" title="Pièces réussies sur quantité">${done}/${r.quantity}</span>` : '');
+        } },
       { title: 'Notes', field: 'notes', editor: 'textarea', minWidth: 50, widthGrow: 1,
         formatter: c => c.getValue() ? `<span class="cell-notes" title="${escapeHtml(c.getValue())}">${escapeHtml(c.getValue())}</span>` : '' },
+      { title: '', field: '_run', width: 100, minWidth: 100, resizable: false, hozAlign: 'right', cssClass: 'col-run', frozen: true,
+        formatter: c => {
+          const r = c.getRow().getData();
+          const e = runIdx.get(r.id) || { done: 0, active: [] };
+          return e.active.length
+            ? `<button type="button" class="btn btn-sm btn-run is-running" data-run="finish" title="Terminer l'impression en cours">■ Terminer</button>`
+            : `<button type="button" class="btn btn-sm btn-run" data-run="start" title="Lancer l'impression de cette pièce">▶ Démarrer</button>`;
+        },
+        cellClick: (e, c) => {
+          const btn = e.target.closest('[data-run]');
+          if (!btn) return;
+          const data = c.getRow().getData();
+          if (btn.dataset.run === 'start') startRuns([data]);
+          else openFinishDialog({ runs: runsToFinish(data.id, runIdx), onDone: refreshAfterRun });
+        } },
       { title: '', field: '_actions', width: 70, minWidth: 70, resizable: false, hozAlign: 'right', cssClass: 'col-actions', frozen: true,
         formatter: () => `
           <button class="icon-btn" data-action="filaments" title="Plusieurs filaments (multicolore)" aria-label="Gérer les filaments">
@@ -601,6 +626,28 @@ export async function renderProject(el, id) {
       row.getCell('name').edit(true);
     } catch (e) { toast(e.message, 'error'); }
   });
+
+  /* ── Production : lancer / terminer ───────────────────────────── */
+  function startRuns(rows) {
+    openStartDialog({ parts: rows, runIdx, onDone: refreshAfterRun });
+  }
+
+  // Après un lancement ou une fin : statuts des pièces, projet, impressions et estimations de stock
+  async function refreshAfterRun() {
+    const [proj, runs] = await Promise.all([
+      api.get(`projects/${id}`),
+      api.get(`projects/${id}/runs?limit=1000`),
+    ]);
+    runIdx = indexRuns(runs);
+    await store.loadFilaments().catch(() => {});
+    const sel = el.querySelector('#project-status');
+    if (sel) sel.value = proj.status;
+    await applyUpdatedParts(proj.parts);
+    selectedIds.clear();
+    table.getRows().forEach(r => r.reformat());
+    syncSelectionUi();
+    updateRunsBadge();
+  }
 
   /* Fenêtre « plusieurs filaments » */
   function openFilamentsDialog(row) {
@@ -959,7 +1006,7 @@ export async function renderProject(el, id) {
     const multi = rows.filter(r => (r.filaments || []).length > 1).length;
     const n = rows.length;
     const opts = filamentOptions([]).map(o =>
-      `<option value="${o.value}">${escapeHtml(o.label)}${o.f.weight_remaining !== null ? ' · ' + formatWeight(Number(o.f.weight_remaining)) : ''}</option>`).join('');
+      `<option value="${o.value}">${escapeHtml(o.label)}${spoolStock(o.f).text ? ' · ' + spoolStock(o.f).text : ''}</option>`).join('');
     bar.hidden = false;
     bar.innerHTML = `
       <strong>${n} pièce${n > 1 ? 's' : ''} sélectionnée${n > 1 ? 's' : ''}</strong>
@@ -970,12 +1017,14 @@ export async function renderProject(el, id) {
       <label>Statut <select class="select" data-bulk="status"><option value="">— inchangé —</option>
         ${Object.entries(PART_STATUS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
       <button type="button" class="btn btn-primary btn-sm" data-bulk-apply>Appliquer</button>
+      <button type="button" class="btn btn-sm" data-bulk-start title="Lancer ces pièces ensemble, sur une même imprimante">▶ Lancer la sélection</button>
       <button type="button" class="link-btn" data-bulk-clear>Désélectionner</button>
       ${multi ? `<span class="bulk-note">${multi} pièce${multi > 1 ? 's' : ''} multicolore${multi > 1 ? 's' : ''} : bobine non modifiée (utilisez « Remplacer une bobine »)</span>` : ''}`;
     bar.querySelector('[data-bulk-clear]').addEventListener('click', () => {
       selectedIds.clear(); table.getRows().forEach(r => r.reformat()); syncSelectionUi();
     });
     bar.querySelector('[data-bulk-apply]').addEventListener('click', applyBulk);
+    bar.querySelector('[data-bulk-start]').addEventListener('click', () => startRuns(rows));
   }
 
   async function applyBulk() {
@@ -1048,7 +1097,7 @@ export async function renderProject(el, id) {
               <label class="field"><span>Couleur</span>
                 <select class="select" data-k="color"><option value="">Toutes</option>${colorOptions(color, material || null).filter(o => o.value).map(o => `<option value="${escapeHtml(o.value)}" ${normColor(o.value) === normColor(color) ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}</select></label>
               <label class="field"><span>Nouvelle bobine</span>
-                <select class="select" data-k="to"><option value="">${targets.length ? 'Choisir…' : 'Aucune bobine'}</option>${targets.map(o => `<option value="${o.value}" ${String(o.value) === toVal ? 'selected' : ''}>${escapeHtml(o.label)}${o.f.weight_remaining !== null ? ' · ' + formatWeight(Number(o.f.weight_remaining)) : ''}</option>`).join('')}</select></label>
+                <select class="select" data-k="to"><option value="">${targets.length ? 'Choisir…' : 'Aucune bobine'}</option>${targets.map(o => `<option value="${o.value}" ${String(o.value) === toVal ? 'selected' : ''}>${escapeHtml(o.label)}${spoolStock(o.f).text ? ' · ' + spoolStock(o.f).text : ''}</option>`).join('')}</select></label>
             </div>
             <label class="toggle replace-printed"><input type="checkbox" data-k="printed" ${include ? 'checked' : ''}>
               Inclure les pièces déjà imprimées${u.printed.size ? ` (${u.printed.size})` : ''}</label>
