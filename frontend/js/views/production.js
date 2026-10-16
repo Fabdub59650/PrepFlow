@@ -3,7 +3,7 @@ import { api } from '../api.js';
 import { store } from '../store.js';
 import { toast, confirmDialog } from '../ui.js';
 import { RUN_RESULT, formatDuration, formatWeight, formatDate, escapeHtml, filamentLabel, swatch } from '../format.js';
-import { openFinishDialog, updateRunsBadge } from '../runs.js';
+import { openFinishDialog, openCorrectDialog, updateRunsBadge } from '../runs.js';
 
 const sum = (list, k) => list.reduce((s, x) => s + (Number(x[k]) || 0), 0);
 
@@ -153,11 +153,17 @@ export async function renderProduction(el) {
           <td class="num"><strong>${formatDuration(r.duration_s) || '—'}</strong>${r.planned_time_s ? `<span class="sub-line">prévu ${formatDuration(r.planned_time_s)}</span>` : ''}</td>
           <td class="num" title="${escapeHtml(detail)}"><strong>${formatWeight(used) || '0 g'}</strong><span class="sub-line">prévu ${formatWeight(plan) || '0 g'}</span></td>
           <td class="cell-notes">${r.notes ? `<span title="${escapeHtml(r.notes)}">${escapeHtml(r.notes)}</span>` : ''}</td>
-          <td><button type="button" class="icon-btn icon-btn-danger" data-delete="${r.id}" title="Supprimer cette impression" aria-label="Supprimer cette impression">
+          <td class="nowrap"><button type="button" class="icon-btn" data-correct="${r.id}" title="Corriger les poids ou les notes" aria-label="Corriger cette impression">
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 16l1-4 8-8 3 3-8 8-4 1z"/></svg></button>
+            <button type="button" class="icon-btn icon-btn-danger" data-delete="${r.id}" title="Supprimer cette impression" aria-label="Supprimer cette impression">
             <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg></button></td>
         </tr>`;
       }).join('')}</tbody></table></div>`;
 
+    box.querySelectorAll('[data-correct]').forEach(b => b.addEventListener('click', () => {
+      const r = history.find(x => x.id === +b.dataset.correct);
+      if (r) openCorrectDialog({ run: r, onDone: reloadAll });
+    }));
     box.querySelectorAll('[data-delete]').forEach(b => b.addEventListener('click', async () => {
       const r = history.find(x => x.id === +b.dataset.delete);
       if (!r) return;

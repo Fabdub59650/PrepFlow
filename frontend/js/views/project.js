@@ -228,6 +228,7 @@ export async function renderProject(el, id) {
     api.get(`projects/${id}`),
     api.get(`projects/${id}/runs?limit=1000`).catch(() => []),   // serveur ancien : pas de suivi
   ]);
+  let runsAll = runList;
   let runIdx = indexRuns(runList);
   document.title = `${project.code ? project.code + ' · ' : ''}${project.name} — PrepFlow`;
 
@@ -279,13 +280,14 @@ export async function renderProject(el, id) {
     <section class="panels">
       <div class="panel">
         <h2 class="panel-title">Bobines nécessaires</h2>
-        <p class="panel-sub">Besoin des pièces non imprimées, comparé au poids restant pesé dans FilaFlow.</p>
+        <p class="panel-sub">Besoin des pièces restant à imprimer, comparé au reste de chaque bobine (estimé « ~ » quand des impressions ont suivi la dernière pesée).</p>
         <div id="spools"></div>
       </div>
       <div class="panel">
         <h2 class="panel-title">Temps par imprimante</h2>
         <div id="printers-load"></div>
       </div>
+      <div class="panel panel-wide" id="plan-vs-real" hidden></div>
     </section>`;
 
   /* En-tête fixe : compacté une fois collé sous la barre du haut */
@@ -638,6 +640,7 @@ export async function renderProject(el, id) {
       api.get(`projects/${id}`),
       api.get(`projects/${id}/runs?limit=1000`),
     ]);
+    runsAll = runs;
     runIdx = indexRuns(runs);
     await store.loadFilaments().catch(() => {});
     const sel = el.querySelector('#project-status');
@@ -771,6 +774,42 @@ export async function renderProject(el, id) {
     });
   }
 
+  /* Prévu contre réalisé : impressions terminées du projet */
+  function drawPlanVsReal() {
+    const box = el.querySelector('#plan-vs-real');
+    const done = runsAll.filter(r => r.state === 'termine' && r.result !== 'annule');
+    box.hidden = !done.length;
+    if (!done.length) { box.innerHTML = ''; return; }
+    const sumOf = (list, k) => list.reduce((a, x) => a + (Number(x[k]) || 0), 0);
+    const failed = done.filter(r => r.result === 'rate');
+    // Durées : lancements groupés exclus (la durée réelle est celle du plateau, le prévu celui de la pièce)
+    const timed = done.filter(r => !r.batch_id && r.duration_s != null && r.planned_time_s != null);
+    const realT = sumOf(timed, 'duration_s'), planT = sumOf(timed, 'planned_time_s');
+    const fw = r => ({ real: sumOf(r.filaments, 'weight_g'), plan: sumOf(r.filaments, 'planned_g') });
+    const realW = done.reduce((a, r) => a + fw(r).real, 0), planW = done.reduce((a, r) => a + fw(r).plan, 0);
+    const gap = (real, plan) => {
+      if (!(plan > 0)) return '';
+      const d = Math.round(100 * (real - plan) / plan);
+      return `<span class="figure-sub">${d === 0 ? 'conforme au prévu' : `${d > 0 ? '+' : '−'}${Math.abs(d)} % par rapport au prévu`}</span>`;
+    };
+    const grouped = done.length - timed.length;
+    box.innerHTML = `
+      <h2 class="panel-title">Prévu et réalisé</h2>
+      <p class="panel-sub">Impressions terminées de ce projet (annulées exclues).</p>
+      <div class="figures plan-figures">
+        <div class="figure"><span class="figure-label">Impressions</span>
+          <span class="figure-value">${done.length}</span>
+          <span class="figure-sub">${failed.length ? `dont ${failed.length} ratée${failed.length > 1 ? 's' : ''}` : 'aucune ratée'}</span></div>
+        <div class="figure"><span class="figure-label">Temps réel</span>
+          <span class="figure-value">${formatDuration(realT) || '0 min'}</span>
+          <span class="figure-sub">prévu ${formatDuration(planT) || '0 min'}</span>${gap(realT, planT)}
+          ${grouped ? `<span class="figure-sub">${grouped} impression${grouped > 1 ? 's' : ''} en lancement groupé ou sans temps non comptée${grouped > 1 ? 's' : ''}</span>` : ''}</div>
+        <div class="figure"><span class="figure-label">Filament réel</span>
+          <span class="figure-value">${formatWeight(realW) || '0 g'}</span>
+          <span class="figure-sub">prévu ${formatWeight(planW) || '0 g'}</span>${gap(realW, planW)}</div>
+      </div>`;
+  }
+
   /* Synthèses */
   function refreshSummary() {
     drawSpoolFilter();
@@ -836,9 +875,11 @@ export async function renderProject(el, id) {
             <div class="gauge-stock" style="width:${stockPct}%"></div>
             <div class="gauge-need" style="width:${needPct}%"></div>
           </div>
-          <div class="spool-foot"><span>Besoin ${formatWeight(b.needed) || '0 g'}</span><span>Stock ${formatWeight(b.stock) || '0 g'}</span></div>
+          <div class="spool-foot"><span>Besoin ${formatWeight(b.needed) || '0 g'}</span><span title="${b.stock_estimated ? 'Reste estimé depuis la dernière pesée' : 'Reste pesé'}">Stock ${b.stock_estimated ? '~' : ''}${formatWeight(b.stock) || '0 g'}</span></div>
         </div>`;
     }).join('') : '<p class="muted">Aucun filament choisi pour l\'instant.</p>';
+
+    drawPlanVsReal();
 
     const load = [...s.byPrinter.values()].filter(p => p.pieces);
     el.querySelector('#printers-load').innerHTML = load.length ? `

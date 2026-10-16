@@ -1,10 +1,11 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
 import { toast } from '../ui.js';
-import { PROJECT_STATUS, formatWeight, escapeHtml, filamentLabel, swatch } from '../format.js';
+import { PROJECT_STATUS, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock } from '../format.js';
+import { doneQty } from '../summary.js';
 
 // ── Besoins de filament sur plusieurs projets ─────────────────────
-// Règles (identiques à la synthèse d'un projet) : seules les pièces non imprimées comptent,
+// Règles (identiques à la synthèse d'un projet) : seules les pièces restant à imprimer comptent,
 // poids unitaire × quantité, chaque filament d'une pièce multicolore compte pour sa bobine.
 // La marge de sécurité (Paramètres) majore les besoins.
 
@@ -18,6 +19,9 @@ function readJSON(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v ?? fallback; } catch (_) { return fallback; }
 }
 function writeJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (_) {} }
+
+// Stock d'une bobine : reste estimé (pesée − impressions depuis) quand il existe
+const stockOf = f => spoolStock(f).value ?? 0;
 
 // Estimation du nombre de bobines à acheter
 function spoolsToBuy(deficit, unit) {
@@ -55,8 +59,8 @@ function compute(projects, mode, marginPct) {
 
   for (const p of projects) {
     for (const part of p.parts) {
-      if (part.status === 'imprime') continue;
-      const qty = part.quantity || 0;
+      const qty = (part.quantity || 0) - doneQty(part);   // pièces restant à imprimer
+      if (qty <= 0) continue;
       const fils = part.filaments || [];
       for (const f of fils) {
         const w = Number(f.weight_g) || 0;
@@ -93,11 +97,11 @@ function compute(projects, mode, marginPct) {
   // Stock et manque
   for (const g of groups.values()) {
     if (g.kind === 'spool') {
-      g.stock = g.spool.weight_remaining !== null ? Number(g.spool.weight_remaining) : 0;
+      g.stock = stockOf(g.spool);
       g.unit = Number(g.spool.weight_total) || 1000;
     } else {
       g.spools = matching(g.material, g.color);
-      g.stock = g.spools.reduce((s, x) => s + (Number(x.weight_remaining) || 0), 0);
+      g.stock = g.spools.reduce((s, x) => s + stockOf(x), 0);
       g.spools.forEach(x => x.brand && g.brands.add(clean(x.brand)));
       g.hex = g.spools[0]?.color_hex || store.filaments.find(x => norm(x.color_name) === norm(g.color))?.color_hex || null;
       const units = g.spools.map(x => Number(x.weight_total)).filter(Boolean);
@@ -113,7 +117,7 @@ function compute(projects, mode, marginPct) {
   for (const g of intents.values()) {
     const ss = matching(g.material, g.color);
     g.matchCount = ss.length;
-    g.free = Math.max(0, ss.reduce((s, x) => s + Math.max(0, (Number(x.weight_remaining) || 0) - (spoolNeeds.get(x.id) || 0)), 0));
+    g.free = Math.max(0, ss.reduce((s, x) => s + Math.max(0, stockOf(x) - (spoolNeeds.get(x.id) || 0)), 0));
     g.deficit = Math.max(0, g.need - g.free);
     g.hex = ss[0]?.color_hex || store.filaments.find(x => norm(x.color_name) === norm(g.color))?.color_hex || null;
     const units = ss.map(x => Number(x.weight_total)).filter(Boolean);
@@ -161,7 +165,7 @@ export async function renderNeeds(el) {
       </div>
     </div>
     <p class="page-sub">Filament nécessaire pour les pièces non imprimées des projets cochés, marge de sécurité de
-      <strong>${margin} %</strong> comprise (<a href="#/parametres">modifier</a>), comparé au stock pesé dans FilaFlow.</p>
+      <strong>${margin} %</strong> comprise (<a href="#/parametres">modifier</a>), comparé au stock FilaFlow (reste estimé quand des impressions ont suivi la dernière pesée).</p>
     <div class="needs-layout">
       <aside class="needs-projects" aria-label="Projets pris en compte">
         <div class="needs-quick">

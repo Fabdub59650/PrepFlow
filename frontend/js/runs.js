@@ -264,3 +264,43 @@ export function openFinishDialog({ runs, onDone }) {
     },
   });
 }
+
+/* ── Corriger une impression terminée (poids retenus, notes) ────── */
+export function openCorrectDialog({ run, onDone }) {
+  const editable = run.result !== 'annule';
+  return openDialog({
+    title: "Corriger l'impression",
+    confirmLabel: 'Enregistrer',
+    build(body) {
+      body.innerHTML = `
+        <p class="muted">${escapeHtml(`${run.part_name || 'Sans nom'} × ${run.quantity}`)}${run.project_code ? ' · ' + escapeHtml(run.project_code) : ''}
+          · le résultat ne se modifie pas : supprimez l'impression et refaites-la si besoin.</p>
+        ${editable ? `<div class="corr-fils">${run.filaments.map(f => `
+          <label class="fw" data-fid="${f.filament_id}">
+            ${swatch(store.filamentsById.get(f.filament_id)?.color_hex)}
+            <span class="fw-name">${escapeHtml(f.name || filamentLabel(store.filamentsById.get(f.filament_id)))}</span>
+            <span class="fw-plan">prévu ${formatWeight(Number(f.planned_g)) || '0 g'}</span>
+            <input type="text" inputmode="decimal" data-w value="${f.weight_g === null || f.weight_g === undefined ? '' : String(Number(f.weight_g)).replace('.', ',')}"
+              aria-label="Poids retenu de ${escapeHtml(f.name || 'la bobine')} en grammes">
+            <span>g</span>
+          </label>`).join('')}</div>` : ''}
+        <label class="field"><span>Notes</span><textarea rows="3" data-k="notes">${escapeHtml(run.notes || '')}</textarea></label>`;
+    },
+    async onConfirm(body) {
+      const payload = { notes: body.querySelector('[data-k=notes]').value.trim() };
+      if (editable) {
+        const weights = [];
+        for (const w of body.querySelectorAll('.fw')) {
+          const g = parseWeight(w.querySelector('[data-w]').value);
+          if (Number.isNaN(g)) { toast('Poids non reconnu', 'error'); return false; }
+          if (g !== null) weights.push({ filament_id: +w.dataset.fid, weight_g: g });
+        }
+        if (weights.length) payload.weights = weights;
+      }
+      try { await api.put(`runs/${run.id}`, payload); }
+      catch (e) { toast(e.message, 'error'); return false; }
+      toast('Impression corrigée');
+      try { await onDone?.(); } catch (e) { toast(e.message, 'error'); }
+    },
+  });
+}

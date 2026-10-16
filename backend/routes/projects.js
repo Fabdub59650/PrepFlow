@@ -13,13 +13,17 @@ router.get('/', async (req, res) => {
       `SELECT p.*,
          COUNT(pt.id)                                         AS parts_count,
          COALESCE(SUM(pt.quantity), 0)                        AS pieces_count,
-         COALESCE(SUM(CASE WHEN pt.status='imprime' THEN pt.quantity ELSE 0 END), 0) AS pieces_done,
+         COALESCE(SUM(CASE WHEN ra.n_runs IS NULL THEN (CASE WHEN pt.status='imprime' THEN pt.quantity ELSE 0 END)
+                           ELSE LEAST(pt.quantity, ra.ok_qty) END), 0) AS pieces_done,
          COALESCE(SUM(pt.quantity * COALESCE(pt.print_time_s, 0)), 0) AS total_time_s,
          COALESCE(SUM(pt.quantity * COALESCE(w.unit_weight, 0)), 0)   AS total_weight_g,
          COALESCE(MAX(sp.spools_count), 0)                    AS spools_count,
          MAX(sp.spools_names)                                 AS spools_names
        FROM projects p
        LEFT JOIN parts pt ON pt.project_id = p.id
+       LEFT JOIN (SELECT part_id, COUNT(*) AS n_runs,
+                         COALESCE(SUM(CASE WHEN state='termine' AND result='ok' THEN quantity ELSE 0 END), 0) AS ok_qty
+                  FROM print_runs GROUP BY part_id) ra ON ra.part_id = pt.id
        LEFT JOIN (SELECT part_id, SUM(weight_g) AS unit_weight
                   FROM part_filaments GROUP BY part_id) w ON w.part_id = pt.id
        -- Bobines différentes réellement choisies dans le projet (les intentions sans bobine ne comptent pas)

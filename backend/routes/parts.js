@@ -22,7 +22,17 @@ async function loadParts({ projectId = null, partId = null }) {
     `SELECT part_id, filament_id, material, color_name, weight_g FROM part_filaments
      WHERE part_id IN (?) ORDER BY sort_order, id`, [ids]
   );
+  // Pièces réussies : somme des quantités des impressions réussies (plafonnée à la quantité) ;
+  // sans aucune impression, le statut manuel « imprimé » compte pour la totalité.
+  const [runAgg] = await db.query(
+    `SELECT part_id, COUNT(*) AS n_runs,
+            COALESCE(SUM(CASE WHEN state='termine' AND result='ok' THEN quantity ELSE 0 END), 0) AS ok_qty
+     FROM print_runs WHERE part_id IN (?) GROUP BY part_id`, [ids]
+  );
+  const aggBy = new Map(runAgg.map(r => [r.part_id, r]));
   for (const p of parts) {
+    const a = aggBy.get(p.id);
+    p.done_qty = a ? Math.min(p.quantity, Number(a.ok_qty)) : (p.status === 'imprime' ? p.quantity : 0);
     p.filaments = fils
       .filter(f => f.part_id === p.id)
       .map(f => ({ filament_id: f.filament_id, material: f.material, color_name: f.color_name, weight_g: f.weight_g }));

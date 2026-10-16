@@ -1,5 +1,13 @@
 // Calculs dérivés d'une pièce et synthèse d'un projet (côté navigateur :
 // la synthèse se met à jour à chaque saisie sans recharger le projet).
+import { spoolStock } from './format.js';
+
+/** Pièces réussies d'une ligne (calculées par le serveur à partir des impressions) */
+export function doneQty(part) {
+  const qty = part.quantity || 0;
+  if (part.done_qty !== undefined && part.done_qty !== null) return Math.min(qty, Number(part.done_qty));
+  return part.status === 'imprime' ? qty : 0;
+}
 
 /** Coût d'un gramme de filament : prix de la bobine / poids net de la bobine */
 export function pricePerGram(f) {
@@ -33,8 +41,8 @@ export function derivePart(part, filamentsById) {
 
 /**
  * Synthèse d'un projet.
- * « Reste » = pièces non imprimées : les pièces déjà imprimées ont déjà été
- * retirées du stock par la balance, on ne les recompte pas face au stock.
+ * « Reste » = pièces restant à imprimer (quantité − pièces réussies) : les pièces déjà imprimées
+ * sont déjà décomptées du stock (pesée ou reste estimé), on ne les recompte pas.
  */
 export function summarize(parts, filamentsById, printers) {
   const s = {
@@ -50,19 +58,20 @@ export function summarize(parts, filamentsById, printers) {
   for (const p of parts) {
     const d = derivePart(p, filamentsById);
     const qty = p.quantity || 0;
-    const done = p.status === 'imprime';
+    const done = doneQty(p);
+    const left = qty - done;                       // pièces restant à imprimer (celles en cours comprises)
     s.pieces += qty;
-    if (done) s.pieces_done += qty;
+    s.pieces_done += done;
 
     if (d.total_time === null) s.missing_time++;
     else {
       s.time_total += d.total_time;
-      if (!done) s.time_left += d.total_time;
+      s.time_left += (p.print_time_s || 0) * left;
     }
     if (d.total_weight === null) s.missing_weight++;
     else {
       s.weight_total += d.total_weight;
-      if (!done) s.weight_left += d.total_weight;
+      s.weight_left += (d.unit_weight || 0) * left;
     }
     if (d.cost !== null) s.cost_total += d.cost;
     if (!d.cost_complete) s.cost_complete = false;
@@ -78,10 +87,10 @@ export function summarize(parts, filamentsById, printers) {
     }
     const bp = s.byPrinter.get(key);
     bp.pieces += qty;
-    if (!done) bp.pieces_left += qty;
+    bp.pieces_left += left;
     if (d.total_time !== null) {
       bp.time_total += d.total_time;
-      if (!done) bp.time_left += d.total_time;
+      bp.time_left += (p.print_time_s || 0) * left;
     }
 
     for (const f of p.filaments || []) {
@@ -91,15 +100,16 @@ export function summarize(parts, filamentsById, printers) {
         s.byFilament.set(f.filament_id, {
           filament_id: f.filament_id,
           info: info || null,
-          stock: info && info.weight_remaining !== null ? Number(info.weight_remaining) : null,
+          stock: info ? spoolStock(info).value : null,      // reste estimé si des impressions ont suivi la dernière pesée
+          stock_estimated: info ? spoolStock(info).estimated : false,
           used_total: 0,
           needed: 0,
         });
       }
       const bf = s.byFilament.get(f.filament_id);
-      const w = (Number(f.weight_g) || 0) * qty;
-      bf.used_total += w;
-      if (!done) bf.needed += w;
+      const wu = Number(f.weight_g) || 0;
+      bf.used_total += wu * qty;
+      bf.needed += wu * left;
     }
   }
 

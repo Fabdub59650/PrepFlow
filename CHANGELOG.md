@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.13.1 — 16/10/2026
+
+Quantités partielles, stock estimé dans les besoins, prévu contre réalisé, correction d'une impression.
+
+- **Quantités partielles** : le « reste à imprimer » d'une pièce est sa quantité moins les pièces réussies
+  (somme des impressions réussies). Temps restant, filament restant, pièces par imprimante, avancement de la
+  liste des projets et page Besoins en tiennent compte. Une pièce sans impression garde son statut manuel
+- **Stock estimé** dans « Bobines nécessaires », dans le bandeau rouge « Une bobine ne suffit pas » et dans
+  la page Besoins (reste pesé − consommation des impressions depuis la dernière pesée, signalé par « ~ »).
+  Les pièces en cours comptent toujours comme restant à imprimer
+- Page projet : bloc **Prévu et réalisé** (nombre d'impressions et de ratées, temps réel contre prévu,
+  filament réel contre prévu ; les lancements groupés sont exclus du temps)
+- Page Production : bouton **Corriger** sur chaque ligne de l'historique (poids retenus par bobine, notes)
+
 ## v1.13.0 — 16/10/2026
 
 Suivi de production : boutons dans les projets et page « Production ».
