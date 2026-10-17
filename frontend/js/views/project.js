@@ -287,6 +287,7 @@ export async function renderProject(el, id) {
         <h2 class="panel-title">Temps par imprimante</h2>
         <div id="printers-load"></div>
       </div>
+      <div class="panel panel-wide" id="cost-panel"></div>
       <div class="panel panel-wide" id="plan-vs-real" hidden></div>
     </section>`;
 
@@ -774,6 +775,75 @@ export async function renderProject(el, id) {
     });
   }
 
+  /* Coût de revient et prix de vente (calculés par le serveur à partir des pièces enregistrées) */
+  let costTimer = null;
+  const money = v => formatMoney(v) || '0,00 €';
+  const comma = v => String(v).replace('.', ',');
+  async function drawCost() {
+    const box = el.querySelector('#cost-panel');
+    let c;
+    try { c = await api.get(`projects/${id}/cost`); }
+    catch (_) { box.innerHTML = ''; return; }
+    if (!c.totals) { box.innerHTML = ''; return; }
+    const t = c.totals, st = c.settings, f = c.flags || {};
+    const warn = [];
+    if (f.missing_price) warn.push('prix manquant pour une bobine (FilaFlow) ou bobine non choisie');
+    if (f.missing_printer) warn.push('pièce sans imprimante');
+    if (f.missing_power) warn.push('puissance non renseignée sur une imprimante');
+    if (f.missing_weight) warn.push('pièce sans poids');
+    if (f.missing_time) warn.push('pièce sans temps');
+    const basisLabel = { reel: 'réel', mixte: 'réel + prévu', prevu: 'prévu' };
+    box.innerHTML = `
+      <h2 class="panel-title">Coût et prix de vente</h2>
+      <p class="panel-sub">Pièces imprimées au poids et au temps réels (ratés compris), le reste au prévu.
+        Machine : puissance × prix du kWh (${comma(st.kwh_price)} €) + usure de l'imprimante.</p>
+      ${warn.length ? `<p class="version-warn">Calcul incomplet : ${escapeHtml(warn.join(' · '))}.</p>` : ''}
+      <div class="figures">
+        <div class="figure"><span class="figure-label">Coût de revient</span><span class="figure-value">${money(t.cost)}</span>
+          <span class="figure-sub">${t.cost_per_piece !== null ? money(t.cost_per_piece) + ' par pièce' : ''}</span></div>
+        <div class="figure"><span class="figure-label">Prix de vente conseillé</span><span class="figure-value">${money(t.price)}</span>
+          <span class="figure-sub">${t.price_per_piece !== null ? money(t.price_per_piece) + ' par pièce' : ''}</span></div>
+        <div class="figure"><span class="figure-label">Bénéfice</span><span class="figure-value">${money(t.profit)}</span>
+          <span class="figure-sub">${t.margin_obtained_pct !== null ? comma(t.margin_obtained_pct) + ' % du coût' : ''}</span></div>
+        <div class="figure"><span class="figure-label">Dont gâchis</span><span class="figure-value">${money(t.waste)}</span>
+          <span class="figure-sub">impressions ratées, déjà dans le coût</span></div>
+      </div>
+      <div class="cost-grid">
+        <dl class="version-grid">
+          <dt>Matière</dt><dd>${money(t.material)}</dd>
+          <dt>Électricité</dt><dd>${money(t.electricity)}</dd>
+          <dt>Usure machine</dt><dd>${money(t.wear)}</dd>
+          <dt>Temps machine</dt><dd>${formatDuration(t.hours * 3600) || '0 min'}</dd>
+        </dl>
+        <div class="cost-fields">
+          <label class="field"><span>Marge de ce projet</span>
+            <span class="input-suffix"><input type="text" inputmode="decimal" id="cost-margin" value="${st.margin_is_default ? '' : comma(st.margin_pct)}" placeholder="${comma(st.default_margin_pct)}"><span>%</span></span></label>
+          <label class="field"><span>Minimum par pièce</span>
+            <span class="input-suffix"><input type="text" inputmode="decimal" id="cost-min" value="${st.min_is_default ? '' : comma(st.min_piece_price)}" placeholder="${comma(st.default_min_piece_price)}"><span>€</span></span></label>
+          <span class="hint">Vide = valeur par défaut des Paramètres (${comma(st.default_margin_pct)} %, ${comma(st.default_min_piece_price)} €).</span>
+        </div>
+      </div>
+      <details class="cost-details"><summary>Détail par pièce</summary>
+        <table class="mini-table"><thead><tr><th>Pièce</th><th class="num">Qté</th><th>Base</th><th class="num">Matière</th><th class="num">Électricité</th><th class="num">Usure</th><th class="num">Coût</th><th class="num">Prix</th></tr></thead>
+        <tbody>${c.parts.map(x => `<tr><td>${escapeHtml(x.name || 'Sans nom')}</td><td class="num">${x.quantity}</td><td>${basisLabel[x.basis]}</td>
+          <td class="num">${money(x.material)}</td><td class="num">${money(x.electricity)}</td><td class="num">${money(x.wear)}</td>
+          <td class="num"><strong>${money(x.cost)}</strong></td>
+          <td class="num">${money(x.price)}${x.min_applied ? ' <span class="tag" title="Prix minimum par pièce appliqué">min.</span>' : ''}</td></tr>`).join('')}</tbody></table>
+      </details>`;
+    for (const [sel, key] of [['#cost-margin', 'margin_pct'], ['#cost-min', 'min_piece_price']]) {
+      const inp = box.querySelector(sel);
+      inp.addEventListener('change', async () => {
+        const raw = inp.value.trim().replace(',', '.');
+        const n = Number(raw);
+        if (raw !== '' && (!Number.isFinite(n) || n < 0)) { toast('Valeur invalide', 'error'); return; }
+        try { await api.put(`projects/${id}`, { [key]: raw === '' ? null : n }); await drawCost(); }
+        catch (e) { toast(e.message, 'error'); }
+      });
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+    }
+  }
+  const scheduleCost = () => { clearTimeout(costTimer); costTimer = setTimeout(drawCost, 700); };
+
   /* Prévu contre réalisé : impressions terminées du projet */
   function drawPlanVsReal() {
     const box = el.querySelector('#plan-vs-real');
@@ -880,6 +950,7 @@ export async function renderProject(el, id) {
     }).join('') : '<p class="muted">Aucun filament choisi pour l\'instant.</p>';
 
     drawPlanVsReal();
+    scheduleCost();
 
     const load = [...s.byPrinter.values()].filter(p => p.pieces);
     el.querySelector('#printers-load').innerHTML = load.length ? `
@@ -1164,5 +1235,5 @@ export async function renderProject(el, id) {
     });
   });
 
-  return () => { stopSticky(); table.destroy(); };
+  return () => { clearTimeout(costTimer); stopSticky(); table.destroy(); };
 }

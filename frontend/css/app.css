@@ -598,3 +598,11 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .waste-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 32px; margin-top: 4px; }
 .waste-title { font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text3); font-weight: 500; margin-bottom: 4px; }
 @media (max-width: 900px) { .waste-grid { grid-template-columns: 1fr; } }
+
+/* ── v1.15.0 : coût et prix ── */
+.cost-grid { display: grid; grid-template-columns: minmax(220px, 1fr) 2fr; gap: 24px 40px; align-items: start; }
+.cost-fields { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+.cost-details { margin-top: 14px; }
+.cost-details summary { cursor: pointer; color: var(--text2); font-size: 13px; margin-bottom: 8px; }
+.num-input { text-align: right; width: 90px; }
+@media (max-width: 700px) { .cost-grid { grid-template-columns: 1fr; } }

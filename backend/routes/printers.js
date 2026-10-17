@@ -32,6 +32,14 @@ router.put('/:id', async (req, res) => {
       if (!name) return res.status(400).json({ error: "Le nom de l'imprimante est obligatoire" });
       sets.push('name=?'); vals.push(name);
     }
+    for (const [k, max, dec] of [['power_w', 5000, 0], ['wear_eur_h', 100, 2]]) {
+      if (!(k in req.body)) continue;
+      const v = req.body[k];
+      if (v === null || v === '') { sets.push(`${k}=NULL`); continue; }
+      const n = Number(String(v).replace(',', '.'));
+      if (!Number.isFinite(n) || n < 0 || n > max) return res.status(400).json({ error: `Valeur invalide pour ${k}` });
+      sets.push(`${k}=?`); vals.push(dec ? Math.round(n * 100) / 100 : Math.round(n));
+    }
     if ('active' in req.body) { sets.push('active=?'); vals.push(req.body.active ? 1 : 0); }
     if (sets.length) await db.query(`UPDATE printers SET ${sets.join(', ')} WHERE id=?`, [...vals, req.params.id]);
     const [[row]] = await db.query('SELECT * FROM printers WHERE id=?', [req.params.id]);

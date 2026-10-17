@@ -53,6 +53,20 @@ export async function renderSettings(el) {
       </div>
     </section>
 
+    <section class="settings-section" aria-labelledby="cost-title">
+      <h2 class="panel-title" id="cost-title">Coût et prix de vente</h2>
+      <p class="panel-sub">Valeurs par défaut des projets (la marge et le minimum se règlent aussi projet par projet).
+        La puissance moyenne et l'usure se saisissent sur chaque imprimante.</p>
+      <div class="settings-row">
+        <label class="field"><span>Prix du kWh</span>
+          <span class="input-suffix"><input type="text" inputmode="decimal" data-cost="kwh_price" value="${escapeHtml(String(s.kwh_price ?? '0.25').replace('.', ','))}"><span>€</span></span></label>
+        <label class="field"><span>Marge sur le coût</span>
+          <span class="input-suffix"><input type="text" inputmode="decimal" data-cost="margin_pct" value="${escapeHtml(String(s.margin_pct ?? '30').replace('.', ','))}"><span>%</span></span></label>
+        <label class="field"><span>Prix minimum par pièce</span>
+          <span class="input-suffix"><input type="text" inputmode="decimal" data-cost="min_piece_price" value="${escapeHtml(String(s.min_piece_price ?? '0').replace('.', ','))}"><span>€</span></span></label>
+      </div>
+    </section>
+
     <section class="settings-section" aria-labelledby="version-title">
       <h2 class="panel-title" id="version-title">Version</h2>
       <p class="panel-sub">Comparée au dernier tag publié sur GitHub (Fabdub59650/prepflow).</p>
@@ -93,6 +107,14 @@ export async function renderSettings(el) {
     try { const saved = await api.put('settings', { needs_margin: String(v) }); s.needs_margin = saved.needs_margin; toast('Réglage enregistré'); }
     catch (e) { toast(e.message, 'error'); }
   });
+
+  el.querySelectorAll('[data-cost]').forEach(inp => inp.addEventListener('change', async () => {
+    const k = inp.dataset.cost;
+    try {
+      const saved = await api.put('settings', { [k]: inp.value.trim() });
+      s[k] = saved[k]; inp.value = String(saved[k]).replace('.', ','); toast('Réglage enregistré');
+    } catch (e) { toast(e.message, 'error'); inp.value = String(s[k]).replace('.', ','); }
+  }));
 
   const stopVersion = initVersionSection(el.querySelector('#version-box'));
   return () => {

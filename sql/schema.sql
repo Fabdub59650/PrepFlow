@@ -159,6 +159,12 @@ CREATE TABLE IF NOT EXISTS `print_run_filaments` (
   CONSTRAINT `fk_prf_run` FOREIGN KEY (`run_id`) REFERENCES `print_runs` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- v1.15.0 : coût de revient et prix de vente
+ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `power_w`      int(11)      DEFAULT NULL;
+ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `wear_eur_h`   decimal(6,2) DEFAULT NULL;
+ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `margin_pct`      decimal(6,2) DEFAULT NULL;
+ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `min_piece_price` decimal(8,2) DEFAULT NULL;
+
 -- Valeurs par défaut
 INSERT IGNORE INTO `settings` (key_name, value) VALUES ('filaflow_url', 'http://127.0.0.1:3000');
 -- Imprimantes initiales : seulement si la table est vide (un renommage n'est pas écrasé à la mise à jour)

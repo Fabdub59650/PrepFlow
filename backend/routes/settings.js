@@ -4,6 +4,12 @@ const db = require('../db');
 
 const COLOR_MODES = ['', 'light', 'dark', 'auto-system', 'auto-time'];
 
+// Décimal (virgule ou point) entre min et max, renvoyé en texte avec au plus 4 décimales
+function decimalIn(v, min, max) {
+  const n = Number(String(v).trim().replace(',', '.'));
+  return String(v).trim() !== '' && Number.isFinite(n) && n >= min && n <= max ? String(Math.round(n * 10000) / 10000) : null;
+}
+
 // Clés modifiables et leur validation
 const EDITABLE = {
   color_mode: v => (COLOR_MODES.includes(v) ? v : null),
@@ -11,8 +17,13 @@ const EDITABLE = {
   dark_to:    v => (/^\d{1,2}$/.test(String(v)) && +v >= 0 && +v <= 23 ? String(+v) : null),
   // Marge de sécurité appliquée aux besoins de filament (purges, ratés), en %
   needs_margin: v => (/^\d{1,3}$/.test(String(v).trim()) && +v >= 0 && +v <= 100 ? String(+v) : null),
+  // Coût et prix : prix du kWh (€), marge par défaut (% du coût), prix minimum par pièce (€)
+  kwh_price:       v => decimalIn(v, 0, 5),
+  margin_pct:      v => decimalIn(v, 0, 1000),
+  min_piece_price: v => decimalIn(v, 0, 10000),
 };
-const DEFAULTS = { color_mode: '', dark_from: '20', dark_to: '7', needs_margin: '10' };
+const DEFAULTS = { color_mode: '', dark_from: '20', dark_to: '7', needs_margin: '10',
+  kwh_price: '0.25', margin_pct: '30', min_piece_price: '0' };
 
 async function readSettings() {
   const [rows] = await db.query(

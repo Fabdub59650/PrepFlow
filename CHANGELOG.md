@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.15.0 — 17/10/2026
+
+Coût de revient et prix de vente (V2).
+
+- Page projet : panneau **Coût et prix de vente** : coût de revient (matière, électricité, usure), prix conseillé,
+  bénéfice, part de gâchis, détail par pièce
+- Base de calcul : pièces imprimées au poids et au temps **réels** (ratés compris), pièces restantes au **prévu**
+- Coût machine par heure = puissance moyenne × prix du kWh + usure (€/h) ; le temps d'un lancement groupé
+  est réparti entre ses pièces
+- Prix de vente d'une ligne = max(coût × (1 + marge), minimum par pièce × quantité)
+- Imprimantes : colonnes **Puissance moyenne (W)** et **Usure (€/h)**
+- Paramètres : prix du kWh, marge par défaut (30 %), prix minimum par pièce ; marge et minimum modifiables par projet
+- Avertissement quand le calcul est incomplet (prix de bobine, puissance, imprimante, poids ou temps manquants)
+- API : `GET /api/projects/:id/cost` ; la mise à jour rejoue le schéma (colonnes ajoutées aux imprimantes et aux projets)
+
 ## v1.14.0 — 17/10/2026
 
 Bloc « Gâchis » sur la page Production.

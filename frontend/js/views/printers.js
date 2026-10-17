@@ -12,15 +12,17 @@ export async function renderPrinters(el) {
       <h1 class="page-title">Imprimantes</h1>
       <div class="page-actions"><button class="btn btn-primary" id="add-printer">Ajouter une imprimante</button></div>
     </div>
-    <p class="page-sub">Une imprimante désactivée n'est plus proposée dans les tableaux, mais reste affichée sur les pièces qui l'utilisent.</p>
+    <p class="page-sub">La puissance moyenne et l'usure servent au calcul du coût de revient des projets. Une imprimante désactivée n'est plus proposée dans les tableaux, mais reste affichée sur les pièces qui l'utilisent.</p>
     <div class="table-wrap">
     <table class="list-table printers-table">
-      <thead><tr><th>Nom</th><th>Proposée</th><th class="num">Pièces</th><th></th></tr></thead>
+      <thead><tr><th>Nom</th><th>Proposée</th><th class="num" title="Puissance électrique moyenne pendant l'impression">Puissance moy. (W)</th><th class="num" title="Usure : buse, courroies, plateau…">Usure (€/h)</th><th class="num">Pièces</th><th></th></tr></thead>
       <tbody>
         ${printers.map(p => `
           <tr data-id="${p.id}">
             <td><input class="inline-input" value="${escapeHtml(p.name)}" data-k="name" aria-label="Nom de l'imprimante" maxlength="100"></td>
             <td><label class="toggle"><input type="checkbox" data-k="active" ${p.active ? 'checked' : ''}> ${p.active ? 'Oui' : 'Non'}</label></td>
+            <td class="num"><input class="inline-input num-input" inputmode="numeric" data-k="power_w" value="${p.power_w ?? ''}" placeholder="—" aria-label="Puissance moyenne en watts"></td>
+            <td class="num"><input class="inline-input num-input" inputmode="decimal" data-k="wear_eur_h" value="${p.wear_eur_h !== null && p.wear_eur_h !== undefined ? String(Number(p.wear_eur_h)).replace('.', ',') : ''}" placeholder="—" aria-label="Usure en euros par heure"></td>
             <td class="num">${p.parts_count}</td>
             <td class="num"><button class="btn btn-ghost-danger btn-sm" data-delete>Supprimer</button></td>
           </tr>`).join('')}
@@ -39,6 +41,18 @@ export async function renderPrinters(el) {
       catch (e) { toast(e.message, 'error'); name.value = p.name; }
     });
     name.addEventListener('keydown', e => { if (e.key === 'Enter') name.blur(); });
+    for (const k of ['power_w', 'wear_eur_h']) {
+      const inp = tr.querySelector(`[data-k=${k}]`);
+      const show = () => { inp.value = p[k] === null || p[k] === undefined ? '' : String(Number(p[k])).replace('.', ','); };
+      inp.addEventListener('change', async () => {
+        const raw = inp.value.trim().replace(',', '.');
+        const n = Number(raw);
+        if (raw !== '' && (!Number.isFinite(n) || n < 0)) { toast('Valeur invalide', 'error'); show(); return; }
+        try { const saved = await api.put(`printers/${pid}`, { [k]: raw === '' ? null : n }); p[k] = saved[k]; show(); toast('Enregistré'); store.loadPrinters(); }
+        catch (e) { toast(e.message, 'error'); show(); }
+      });
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+    }
     tr.querySelector('[data-k=active]').addEventListener('change', async e => {
       try {
         await api.put(`printers/${pid}`, { active: e.target.checked });

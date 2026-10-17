@@ -90,6 +90,14 @@ router.put('/:id', async (req, res) => {
       sets.push('name=?'); vals.push(name);
     }
     if ('notes' in req.body) { sets.push('notes=?'); vals.push(req.body.notes || null); }
+    for (const [k, max] of [['margin_pct', 1000], ['min_piece_price', 10000]]) {
+      if (!(k in req.body)) continue;
+      const v = req.body[k];
+      if (v === null || v === '') { sets.push(`${k}=NULL`); continue; }
+      const n = Number(String(v).replace(',', '.'));
+      if (!Number.isFinite(n) || n < 0 || n > max) return res.status(400).json({ error: `Valeur invalide pour ${k}` });
+      sets.push(`${k}=?`); vals.push(Math.round(n * 100) / 100);
+    }
     if ('status' in req.body) {
       if (!STATUSES.includes(req.body.status)) return res.status(400).json({ error: 'Statut inconnu' });
       sets.push('status=?'); vals.push(req.body.status);
