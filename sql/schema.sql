@@ -165,6 +165,39 @@ ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `wear_eur_h`   decimal(6,2) DEFA
 ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `margin_pct`      decimal(6,2) DEFAULT NULL;
 ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `min_piece_price` decimal(8,2) DEFAULT NULL;
 
+-- v1.16.0 : maintenance des imprimantes
+-- base_hours : heures d'impression déjà faites avant PrepFlow
+ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `base_hours` decimal(8,1) NOT NULL DEFAULT 0;
+
+-- Tâche récurrente d'une imprimante : intervalle en heures d'impression et/ou en jours (le premier atteint compte).
+-- start_at / start_hours : repère de départ tant que la tâche n'a jamais été faite.
+CREATE TABLE IF NOT EXISTS `maintenance_tasks` (
+  `id`             int(11)      NOT NULL AUTO_INCREMENT,
+  `printer_id`     int(11)      NOT NULL,
+  `name`           varchar(100) NOT NULL,
+  `interval_hours` int(11)      DEFAULT NULL,
+  `interval_days`  int(11)      DEFAULT NULL,
+  `start_at`       datetime     NOT NULL DEFAULT current_timestamp(),
+  `start_hours`    decimal(8,1) NOT NULL DEFAULT 0,
+  `sort_order`     int(11)      NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_mt_printer` (`printer_id`),
+  CONSTRAINT `fk_mt_printer` FOREIGN KEY (`printer_id`) REFERENCES `printers` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Historique : une ligne à chaque « Fait » (heures de l'imprimante à ce moment, note, coût des pièces changées)
+CREATE TABLE IF NOT EXISTS `maintenance_log` (
+  `id`            int(11)      NOT NULL AUTO_INCREMENT,
+  `task_id`       int(11)      NOT NULL,
+  `done_at`       datetime     NOT NULL DEFAULT current_timestamp(),
+  `printer_hours` decimal(8,1) NOT NULL DEFAULT 0,
+  `note`          text         DEFAULT NULL,
+  `cost`          decimal(8,2) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_ml_task` (`task_id`,`done_at`),
+  CONSTRAINT `fk_ml_task` FOREIGN KEY (`task_id`) REFERENCES `maintenance_tasks` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Valeurs par défaut
 INSERT IGNORE INTO `settings` (key_name, value) VALUES ('filaflow_url', 'http://127.0.0.1:3000');
 -- Imprimantes initiales : seulement si la table est vide (un renommage n'est pas écrasé à la mise à jour)

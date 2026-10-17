@@ -2,6 +2,7 @@
 import { api } from './api.js';
 import { store } from './store.js';
 import { toast, openDialog } from './ui.js';
+import { overdueWarning } from './maintenance.js';
 import { formatDuration, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, RUN_RESULT } from './format.js';
 
 const round2 = n => Math.round(n * 100) / 100;
@@ -38,7 +39,7 @@ export function runsToFinish(partId, runIdx) {
 export async function updateRunsBadge() {
   try {
     const list = await api.get('runs?state=en_cours');
-    document.querySelectorAll('.nav-badge').forEach(b => { b.textContent = list.length; b.hidden = !list.length; });
+    document.querySelectorAll('[data-nav=production] .nav-badge').forEach(b => { b.textContent = list.length; b.hidden = !list.length; });
   } catch (_) { /* le menu reste tel quel */ }
 }
 
@@ -83,6 +84,7 @@ export function openStartDialog({ parts, runIdx = new Map(), onDone }) {
             <option value="">Choisir…</option>
             ${printers.map(p => `<option value="${p.id}" ${p.id === initialPrinter ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
           </select></label>
+        <p class="start-skip maint-warn" data-maint hidden></p>
         <div class="start-items">
           ${ok.map(p => {
             const done = doneOf(p);
@@ -128,6 +130,16 @@ export function openStartDialog({ parts, runIdx = new Map(), onDone }) {
       };
       body.querySelectorAll('[data-qty]').forEach(i => i.addEventListener('input', drawNeeds));
       drawNeeds();
+
+      // Avertissement (non bloquant) si l'imprimante choisie a une maintenance dépassée
+      let maint = null;
+      const drawMaint = () => {
+        const box = body.querySelector('[data-maint]');
+        const txt = maint ? overdueWarning(maint, parseInt(body.querySelector('[data-k=printer]').value, 10)) : '';
+        box.hidden = !txt; box.innerHTML = txt;
+      };
+      body.querySelector('[data-k=printer]').addEventListener('change', drawMaint);
+      api.get('maintenance').then(m => { maint = m; drawMaint(); }).catch(() => {});
     },
     async onConfirm(body) {
       const printer = parseInt(body.querySelector('[data-k=printer]').value, 10);

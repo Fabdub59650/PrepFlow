@@ -32,16 +32,29 @@ router.put('/:id', async (req, res) => {
       if (!name) return res.status(400).json({ error: "Le nom de l'imprimante est obligatoire" });
       sets.push('name=?'); vals.push(name);
     }
-    for (const [k, max, dec] of [['power_w', 5000, 0], ['wear_eur_h', 100, 2]]) {
+    for (const [k, max, dec] of [['power_w', 5000, 0], ['wear_eur_h', 100, 2], ['base_hours', 100000, 1]]) {
       if (!(k in req.body)) continue;
       const v = req.body[k];
       if (v === null || v === '') { sets.push(`${k}=NULL`); continue; }
       const n = Number(String(v).replace(',', '.'));
       if (!Number.isFinite(n) || n < 0 || n > max) return res.status(400).json({ error: `Valeur invalide pour ${k}` });
-      sets.push(`${k}=?`); vals.push(dec ? Math.round(n * 100) / 100 : Math.round(n));
+      sets.push(`${k}=?`); vals.push(dec ? Math.round(n * 10 ** dec) / 10 ** dec : Math.round(n));
     }
     if ('active' in req.body) { sets.push('active=?'); vals.push(req.body.active ? 1 : 0); }
+    // Changer les heures de départ décale d'autant les repères de maintenance (tâches jamais faites et historique),
+    // pour que les échéances restent justes quel que soit l'ordre de saisie
+    let baseDelta = 0;
+    if ('base_hours' in req.body) {
+      const [[cur]] = await db.query('SELECT base_hours FROM printers WHERE id=?', [req.params.id]);
+      const nv = req.body.base_hours === null || req.body.base_hours === '' ? 0
+        : Math.round(Number(String(req.body.base_hours).replace(',', '.')) * 10) / 10;
+      if (cur && Number.isFinite(nv)) baseDelta = Math.round((nv - Number(cur.base_hours)) * 10) / 10;
+    }
     if (sets.length) await db.query(`UPDATE printers SET ${sets.join(', ')} WHERE id=?`, [...vals, req.params.id]);
+    if (baseDelta) {
+      await db.query('UPDATE maintenance_tasks SET start_hours = start_hours + ? WHERE printer_id=?', [baseDelta, req.params.id]);
+      await db.query('UPDATE maintenance_log l JOIN maintenance_tasks t ON t.id = l.task_id SET l.printer_hours = l.printer_hours + ? WHERE t.printer_id=?', [baseDelta, req.params.id]);
+    }
     const [[row]] = await db.query('SELECT * FROM printers WHERE id=?', [req.params.id]);
     if (!row) return res.status(404).json({ error: 'Imprimante introuvable' });
     res.json(row);

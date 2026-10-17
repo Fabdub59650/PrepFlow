@@ -620,3 +620,15 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .tab-dot.is-danger { background: #ff6b5a; }
 .tab-dot.is-warn { background: #e8a33d; }
 .tab-panel .panel + .panel { margin-top: 28px; }
+
+/* ── v1.16.0 : maintenance des imprimantes ── */
+.nav-badge.is-danger { background: var(--danger); color: #fff; }
+.maint-pill { display: inline-block; padding: 2px 8px; border-radius: 3px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.02em; border: 0.5px solid var(--border2); color: var(--text2); }
+.maint-pill.is-soon { border-color: var(--warning); color: var(--warning); background: var(--warning-bg); }
+.maint-pill.is-overdue { border-color: var(--danger); color: var(--danger); }
+.maint-toggle { height: auto; padding: 3px 8px; }
+.printers-table tr.maint-row > td { background: var(--bg-deep, var(--bg)); padding: 14px 18px 18px; }
+.maint-head { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: flex-end; margin-bottom: 12px; }
+.maint-base input { width: 110px; }
+.maint-actions { display: flex; gap: 8px; margin: 12px 0; }
+.maint-warn { color: var(--warning); }

@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.16.0 — 17/10/2026
+
+Maintenance des imprimantes.
+
+- Page Imprimantes : colonnes **Heures** (heures déjà faites avant PrepFlow + durées réelles des impressions
+  terminées, un lancement groupé comptant une fois) et **Maintenance** (prochaine échéance, rouge si dépassée)
+- Tâches par imprimante : intervalle en heures d'impression et/ou en jours (la première échéance atteinte compte) ;
+  « Ajouter les tâches types » propose buse, courroies, plateau et axes, modifiables
+- Bouton **Fait** : remet le compteur de la tâche à zéro, avec note, coût des pièces changées et date si c'était avant ;
+  historique par imprimante et coût réel d'entretien par heure (affiché, sans effet sur le calcul des coûts)
+- Changer les heures de départ d'une imprimante ne fausse pas les échéances déjà suivies
+- Pastille rouge sur « Imprimantes » (tâches dépassées) et avertissement non bloquant dans la fenêtre « Lancer »
+- API : `GET /api/maintenance` et routes `/api/maintenance/…` ; la mise à jour rejoue le schéma (nouvelles tables)
+
 ## v1.15.2 — 17/10/2026
 
 - « Prévu et réalisé » : un lancement groupé compte désormais une seule fois (durée réelle du plateau contre

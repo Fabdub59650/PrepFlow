@@ -7,6 +7,7 @@ import { renderSettings } from './views/settings.js';
 import { renderNeeds } from './views/needs.js';
 import { renderProduction } from './views/production.js';
 import { updateRunsBadge } from './runs.js';
+import { updateMaintBadge } from './maintenance.js';
 import { store } from './store.js';
 import { initTheme } from './theme.js';
 import { initUpdateBadge } from './updates.js';
@@ -35,6 +36,7 @@ async function route() {
   if (!match) { location.hash = '#/'; return; }
   content.innerHTML = '<p class="loading">Chargement…</p>';
   updateRunsBadge();
+  updateMaintBadge();
   try {
     currentCleanup = await match.r.view(content, ...match.m.slice(1)) || null;
   } catch (e) {
