@@ -606,3 +606,17 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .cost-details summary { cursor: pointer; color: var(--text2); font-size: 13px; margin-bottom: 8px; }
 .num-input { text-align: right; width: 90px; }
 @media (max-width: 700px) { .cost-grid { grid-template-columns: 1fr; } }
+
+/* ── v1.15.1 : onglets d'analyse sous le tableau ── */
+.analysis { margin-top: 28px; }
+.tabs { display: flex; gap: 4px; border-bottom: 0.5px solid var(--border); margin-bottom: 18px; overflow-x: auto; }
+.tab { position: relative; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--text2); cursor: pointer;
+  font-family: var(--font-display); font-weight: 700; font-size: 15px; letter-spacing: var(--tracking-heading); text-transform: uppercase;
+  padding: 10px 16px; white-space: nowrap; }
+.tab:hover { color: var(--text); }
+.tab.is-active { color: var(--text); border-bottom-color: var(--accent, #4aa8e0); }
+.tab:focus-visible { outline: 2px solid var(--accent, #4aa8e0); outline-offset: -2px; }
+.tab-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 8px; vertical-align: middle; }
+.tab-dot.is-danger { background: #ff6b5a; }
+.tab-dot.is-warn { background: #e8a33d; }
+.tab-panel .panel + .panel { margin-top: 28px; }

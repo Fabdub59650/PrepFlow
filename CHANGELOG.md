@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.15.1 — 17/10/2026
+
+Page projet plus compacte : onglets d'analyse sous le tableau.
+
+- Trois onglets : **Bobines**, **Production** (temps par imprimante, prévu et réalisé) et **Coût et prix** ;
+  l'onglet choisi est mémorisé
+- Pastilles : rouge sur « Bobines » quand une bobine ne suffit pas, orange sur « Coût et prix » quand le calcul est incomplet
+- Barre de chiffres : « Coût matière » devient **Coût de revient** avec le prix conseillé
+- Aucune modification du serveur ni de la base
+
 ## v1.15.0 — 17/10/2026
 
 Coût de revient et prix de vente (V2).

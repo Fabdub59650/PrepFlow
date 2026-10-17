@@ -277,22 +277,66 @@ export async function renderProject(el, id) {
     </div>
     <div id="parts-grid" class="parts-grid"></div>
 
-    <section class="panels">
-      <div class="panel">
+    <section class="analysis" aria-label="Analyse du projet">
+      <div class="tabs" role="tablist" aria-label="Analyse du projet">
+        <button type="button" role="tab" class="tab" id="tabbtn-bobines" data-tab="bobines" aria-controls="tab-bobines">Bobines<span class="tab-dot" hidden></span></button>
+        <button type="button" role="tab" class="tab" id="tabbtn-production" data-tab="production" aria-controls="tab-production">Production<span class="tab-dot" hidden></span></button>
+        <button type="button" role="tab" class="tab" id="tabbtn-cout" data-tab="cout" aria-controls="tab-cout">Coût et prix<span class="tab-dot" hidden></span></button>
+      </div>
+      <div class="tab-panel" role="tabpanel" id="tab-bobines" aria-labelledby="tabbtn-bobines">
         <h2 class="panel-title">Bobines nécessaires</h2>
         <p class="panel-sub">Besoin des pièces restant à imprimer, comparé au reste de chaque bobine (estimé « ~ » quand des impressions ont suivi la dernière pesée).</p>
         <div id="spools"></div>
       </div>
-      <div class="panel">
-        <h2 class="panel-title">Temps par imprimante</h2>
-        <div id="printers-load"></div>
+      <div class="tab-panel" role="tabpanel" id="tab-production" aria-labelledby="tabbtn-production" hidden>
+        <div class="panel">
+          <h2 class="panel-title">Temps par imprimante</h2>
+          <div id="printers-load"></div>
+        </div>
+        <div class="panel panel-wide" id="plan-vs-real" hidden></div>
       </div>
-      <div class="panel panel-wide" id="cost-panel"></div>
-      <div class="panel panel-wide" id="plan-vs-real" hidden></div>
+      <div class="tab-panel" role="tabpanel" id="tab-cout" aria-labelledby="tabbtn-cout" hidden>
+        <div class="panel panel-wide" id="cost-panel"></div>
+      </div>
     </section>`;
 
   /* En-tête fixe : compacté une fois collé sous la barre du haut */
   const stopSticky = initStickyHead(el, el.querySelector('.project-head'));
+
+  let costTimer = null;
+  let lastCost = null;   // dernier calcul serveur : alimente la barre de chiffres
+  const money = v => formatMoney(v) || '0,00 €';
+
+  /* Onglets d'analyse : l'onglet choisi est mémorisé */
+  const TAB_KEY = 'prepflow_project_tab';
+  const TABS = ['bobines', 'production', 'cout'];
+  function showTab(name) {
+    if (!TABS.includes(name)) name = 'bobines';
+    for (const t of TABS) {
+      const on = t === name;
+      el.querySelector(`#tab-${t}`).hidden = !on;
+      const b = el.querySelector(`#tabbtn-${t}`);
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+    }
+    try { localStorage.setItem(TAB_KEY, name); } catch (_) {}
+  }
+  el.querySelectorAll('[data-tab]').forEach(b => {
+    b.addEventListener('click', () => showTab(b.dataset.tab));
+    b.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const i = (TABS.indexOf(b.dataset.tab) + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length;
+      showTab(TABS[i]); el.querySelector(`#tabbtn-${TABS[i]}`).focus();
+    });
+  });
+  let savedTab = 'bobines';
+  try { savedTab = localStorage.getItem(TAB_KEY) || 'bobines'; } catch (_) {}
+  showTab(savedTab);
+  const setDot = (tab, kind, title) => {
+    const d = el.querySelector(`#tabbtn-${tab} .tab-dot`);
+    d.hidden = !kind; d.className = 'tab-dot' + (kind ? ' is-' + kind : ''); d.title = title || '';
+  };
 
   /* Copie du code projet (nom de dossier) */
   el.querySelector('#copy-code')?.addEventListener('click', async () => {
@@ -776,15 +820,15 @@ export async function renderProject(el, id) {
   }
 
   /* Coût de revient et prix de vente (calculés par le serveur à partir des pièces enregistrées) */
-  let costTimer = null;
-  const money = v => formatMoney(v) || '0,00 €';
   const comma = v => String(v).replace('.', ',');
   async function drawCost() {
     const box = el.querySelector('#cost-panel');
     let c;
     try { c = await api.get(`projects/${id}/cost`); }
     catch (_) { box.innerHTML = ''; return; }
-    if (!c.totals) { box.innerHTML = ''; return; }
+    lastCost = c.totals ? c : null;
+    drawCostFigure();
+    if (!c.totals) { box.innerHTML = ''; setDot('cout', null); return; }
     const t = c.totals, st = c.settings, f = c.flags || {};
     const warn = [];
     if (f.missing_price) warn.push('prix manquant pour une bobine (FilaFlow) ou bobine non choisie');
@@ -792,6 +836,7 @@ export async function renderProject(el, id) {
     if (f.missing_power) warn.push('puissance non renseignée sur une imprimante');
     if (f.missing_weight) warn.push('pièce sans poids');
     if (f.missing_time) warn.push('pièce sans temps');
+    setDot('cout', warn.length ? 'warn' : null, warn.length ? 'Calcul incomplet' : '');
     const basisLabel = { reel: 'réel', mixte: 'réel + prévu', prevu: 'prévu' };
     box.innerHTML = `
       <h2 class="panel-title">Coût et prix de vente</h2>
@@ -841,6 +886,15 @@ export async function renderProject(el, id) {
       });
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
     }
+  }
+  function drawCostFigure() {
+    const fig = el.querySelector('#fig-cost');
+    if (!fig || !lastCost) return;
+    const t = lastCost.totals;
+    fig.innerHTML = `
+      <span class="figure-label">Coût de revient</span>
+      <span class="figure-value">${money(t.cost)}</span>
+      <span class="figure-sub">prix conseillé ${money(t.price)}</span>`;
   }
   const scheduleCost = () => { clearTimeout(costTimer); costTimer = setTimeout(drawCost, 700); };
 
@@ -907,7 +961,7 @@ export async function renderProject(el, id) {
         <span class="figure-value">${formatWeight(s.weight_left) || '0 g'}</span>
         <span class="figure-sub">sur ${formatWeight(s.weight_total) || '0 g'} au total</span>
       </div>
-      <div class="figure">
+      <div class="figure" id="fig-cost">
         <span class="figure-label">Coût matière</span>
         <span class="figure-value">${formatMoney(s.cost_total)}</span>
         <span class="figure-sub">${s.cost_complete ? 'prix des bobines FilaFlow' : 'incomplet : prix manquant dans FilaFlow'}</span>
@@ -917,6 +971,9 @@ export async function renderProject(el, id) {
         <span class="figure-value">${s.pieces_done} / ${s.pieces}</span>
         <span class="figure-sub">${missing.length ? `lignes incomplètes : ${missing.join(', ')}` : 'toutes les lignes sont renseignées'}</span>
       </div>`;
+
+    drawCostFigure();
+    setDot('bobines', s.short.length ? 'danger' : null, s.short.length ? 'Stock insuffisant' : '');
 
     // Bobines : jauge stock vs besoin
     // Ordre : bobines insuffisantes, puis celles à consommer, puis celles déjà utilisées
