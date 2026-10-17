@@ -89,7 +89,11 @@ async function loadRuns({ ids = null, state = null, projectId = null, partId = n
             p.project_id, pj.code AS project_code, pj.name AS project_name,
             prn.name AS printer_name,
             CASE WHEN p.print_time_s IS NULL THEN NULL ELSE p.print_time_s * r.quantity END AS planned_time_s,
-            CASE WHEN r.state='en_cours' THEN GREATEST(0, TIMESTAMPDIFF(SECOND, r.started_at, NOW())) ELSE NULL END AS elapsed_s
+            CASE WHEN r.state='en_cours' THEN GREATEST(0, TIMESTAMPDIFF(SECOND, r.started_at, NOW())) ELSE NULL END AS elapsed_s,
+            -- Lancement groupé : temps prévu de tout le plateau (null si une pièce n'a pas de temps)
+            (SELECT CASE WHEN COUNT(*) = COUNT(p2.print_time_s) THEN SUM(p2.print_time_s * r2.quantity) END
+               FROM print_runs r2 JOIN parts p2 ON p2.id = r2.part_id
+               WHERE r.batch_id IS NOT NULL AND r2.batch_id = r.batch_id) AS batch_planned_time_s
      FROM print_runs r
      JOIN parts p     ON p.id = r.part_id
      JOIN projects pj ON pj.id = p.project_id

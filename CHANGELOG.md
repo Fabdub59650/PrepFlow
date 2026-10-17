@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.15.2 — 17/10/2026
+
+- « Prévu et réalisé » : un lancement groupé compte désormais une seule fois (durée réelle du plateau contre
+  temps prévu de toutes ses pièces) au lieu d'être exclu du temps réel
+- API : `batch_planned_time_s` sur les impressions d'un lancement groupé
+
 ## v1.15.1 — 17/10/2026
 
 Page projet plus compacte : onglets d'analyse sous le tableau.

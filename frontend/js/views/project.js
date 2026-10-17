@@ -906,9 +906,15 @@ export async function renderProject(el, id) {
     if (!done.length) { box.innerHTML = ''; return; }
     const sumOf = (list, k) => list.reduce((a, x) => a + (Number(x[k]) || 0), 0);
     const failed = done.filter(r => r.result === 'rate');
-    // Durées : lancements groupés exclus (la durée réelle est celle du plateau, le prévu celui de la pièce)
-    const timed = done.filter(r => !r.batch_id && r.duration_s != null && r.planned_time_s != null);
-    const realT = sumOf(timed, 'duration_s'), planT = sumOf(timed, 'planned_time_s');
+    // Durées : un lancement groupé compte une fois (durée réelle du plateau contre temps prévu de toutes ses pièces)
+    const units = new Map();
+    for (const r of done) {
+      const key = r.batch_id || `run-${r.id}`;
+      if (units.has(key)) continue;
+      units.set(key, { real: r.duration_s, plan: r.batch_id ? r.batch_planned_time_s : r.planned_time_s });
+    }
+    const timed = [...units.values()].filter(u => u.real != null && u.plan != null);
+    const realT = sumOf(timed, 'real'), planT = sumOf(timed, 'plan');
     const fw = r => ({ real: sumOf(r.filaments, 'weight_g'), plan: sumOf(r.filaments, 'planned_g') });
     const realW = done.reduce((a, r) => a + fw(r).real, 0), planW = done.reduce((a, r) => a + fw(r).plan, 0);
     const gap = (real, plan) => {
@@ -916,7 +922,7 @@ export async function renderProject(el, id) {
       const d = Math.round(100 * (real - plan) / plan);
       return `<span class="figure-sub">${d === 0 ? 'conforme au prévu' : `${d > 0 ? '+' : '−'}${Math.abs(d)} % par rapport au prévu`}</span>`;
     };
-    const grouped = done.length - timed.length;
+    const untimed = units.size - timed.length;
     box.innerHTML = `
       <h2 class="panel-title">Prévu et réalisé</h2>
       <p class="panel-sub">Impressions terminées de ce projet (annulées exclues).</p>
@@ -927,7 +933,7 @@ export async function renderProject(el, id) {
         <div class="figure"><span class="figure-label">Temps réel</span>
           <span class="figure-value">${formatDuration(realT) || '0 min'}</span>
           <span class="figure-sub">prévu ${formatDuration(planT) || '0 min'}</span>${gap(realT, planT)}
-          ${grouped ? `<span class="figure-sub">${grouped} impression${grouped > 1 ? 's' : ''} en lancement groupé ou sans temps non comptée${grouped > 1 ? 's' : ''}</span>` : ''}</div>
+          ${untimed ? `<span class="figure-sub">${untimed} impression${untimed > 1 ? 's' : ''} sans durée ou sans temps prévu non comptée${untimed > 1 ? 's' : ''}</span>` : ''}</div>
         <div class="figure"><span class="figure-label">Filament réel</span>
           <span class="figure-value">${formatWeight(realW) || '0 g'}</span>
           <span class="figure-sub">prévu ${formatWeight(planW) || '0 g'}</span>${gap(realW, planW)}</div>
