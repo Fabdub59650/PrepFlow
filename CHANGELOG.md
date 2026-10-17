@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.14.0 — 17/10/2026
+
+Bloc « Gâchis » sur la page Production.
+
+- Impressions ratées : taux de ratés, filament perdu (et part du filament consommé), temps machine perdu,
+  coût matière perdu (prix des bobines FilaFlow) ; la consommation est proratisée au % réalisé
+- Ventilation par imprimante, par bobine, par projet et par mois ; période au choix (30 j, 90 j, 12 mois, tout)
+- Le temps d'un lancement groupé est réparti à parts égales entre ses pièces
+- API : `GET /api/runs/waste?days=`
+
 ## v1.13.1 — 16/10/2026
 
 Quantités partielles, stock estimé dans les besoins, prévu contre réalisé, correction d'une impression.

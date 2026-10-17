@@ -592,3 +592,9 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .plan-figures { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 10px; }
 .corr-fils { display: grid; gap: 10px; margin: 12px 0; }
 .corr-fil { display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center; }
+
+/* ── v1.14.0 : gâchis ── */
+.prod-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.waste-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 32px; margin-top: 4px; }
+.waste-title { font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text3); font-weight: 500; margin-bottom: 4px; }
+@media (max-width: 900px) { .waste-grid { grid-template-columns: 1fr; } }

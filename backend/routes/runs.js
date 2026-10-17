@@ -9,6 +9,7 @@
  *   DELETE /api/runs/:id                    supprimer une impression (erreur de saisie)
  *   GET    /api/runs                        liste (?state=en_cours|termine, ?project_id=, ?part_id=, ?limit=)
  *   GET    /api/projects/:id/runs           impressions d'un projet
+ *   GET    /api/runs/waste                  gâchis : grammes, heures et coût perdus sur les impressions ratées (?days=)
  *
  * PrepFlow n'écrit jamais dans FilaFlow : la consommation est enregistrée ici (print_run_filaments)
  * et le reste estimé des bobines se calcule à la lecture (voir filaflow.js).
@@ -116,6 +117,81 @@ router.get('/runs', async (req, res) => {
       partId: parseInt(req.query.part_id, 10) || null,
       limit: req.query.limit,
     }));
+  } catch (e) { fail(res, e); }
+});
+
+
+// ── Gâchis ────────────────────────────────────────────────────
+// Impressions ratées sur la période : filament consommé, temps machine et coût matière perdus.
+// Temps : la durée réelle d'un lancement groupé est celle du plateau ; elle est répartie à parts égales
+// entre les pièces du lot pour ne pas être comptée plusieurs fois.
+router.get('/runs/waste', async (req, res) => {
+  try {
+    const days = Math.max(0, parseInt(req.query.days, 10) || 0);
+    const [runs] = await db.query(
+      `SELECT r.id, r.result, r.batch_id, r.duration_s, r.ended_at, r.printer_id, p.project_id,
+              pj.code AS project_code, pj.name AS project_name, prn.name AS printer_name
+       FROM print_runs r
+       JOIN parts p ON p.id = r.part_id
+       JOIN projects pj ON pj.id = p.project_id
+       LEFT JOIN printers prn ON prn.id = r.printer_id
+       WHERE r.state='termine' AND r.result IN ('ok','rate')
+         ${days ? 'AND r.ended_at >= DATE_SUB(NOW(), INTERVAL ? DAY)' : ''}`, days ? [days] : []);
+    const empty = { days, totals: { runs: 0, failed: 0, fail_pct: 0, grams_used: 0, grams_lost: 0, seconds_lost: 0, cost_lost: 0, cost_complete: true },
+      by_project: [], by_printer: [], by_filament: [], by_month: [] };
+    if (!runs.length) return res.json(empty);
+    const [fils] = await db.query(
+      `SELECT rf.run_id, rf.filament_id, rf.weight_g, fc.name, fc.spool_number, fc.price, fc.weight_total
+       FROM print_run_filaments rf LEFT JOIN filament_cache fc ON fc.id = rf.filament_id
+       WHERE rf.run_id IN (?)`, [runs.map(r => r.id)]);
+    const filsBy = new Map();
+    for (const f of fils) { if (!filsBy.has(f.run_id)) filsBy.set(f.run_id, []); filsBy.get(f.run_id).push(f); }
+    const batchSize = new Map();
+    for (const r of runs) if (r.batch_id) batchSize.set(r.batch_id, (batchSize.get(r.batch_id) || 0) + 1);
+
+    const t = empty.totals;
+    const groups = { project: new Map(), printer: new Map(), filament: new Map(), month: new Map() };
+    const bump = (map, key, label, add) => {
+      if (!map.has(key)) map.set(key, { key, label, runs: 0, failed: 0, grams_lost: 0, seconds_lost: 0, cost_lost: 0 });
+      const g = map.get(key);
+      for (const [k, v] of Object.entries(add)) g[k] += v;
+    };
+    for (const r of runs) {
+      const lines = filsBy.get(r.id) || [];
+      const used = lines.reduce((a, f) => a + (Number(f.weight_g) || 0), 0);
+      t.runs++; t.grams_used += used;
+      const failed = r.result === 'rate';
+      const secs = failed && r.duration_s ? r.duration_s / (r.batch_id ? batchSize.get(r.batch_id) : 1) : 0;
+      let cost = 0;
+      const perLine = [];
+      for (const f of lines) {
+        const w = Number(f.weight_g) || 0;
+        const ppg = f.price !== null && f.price !== undefined && Number(f.weight_total) > 0 ? Number(f.price) / Number(f.weight_total) : null;
+        if (failed && w > 0 && ppg === null) t.cost_complete = false;
+        const c = failed && ppg !== null ? w * ppg : 0;
+        cost += c; perLine.push({ f, w, c });
+      }
+      const month = String(r.ended_at).slice(0, 7);
+      const base = { runs: 1, failed: failed ? 1 : 0, grams_lost: failed ? used : 0, seconds_lost: secs, cost_lost: cost };
+      bump(groups.project, r.project_id, `${r.project_code ? r.project_code + ' · ' : ''}${r.project_name}`, base);
+      bump(groups.printer, r.printer_id ?? 0, r.printer_name || 'Sans imprimante', base);
+      bump(groups.month, month, month, base);
+      if (failed) for (const { f, w, c } of perLine) {
+        bump(groups.filament, f.filament_id ?? 0, f.name ? `${f.name}${f.spool_number ? ' (' + String(f.spool_number).trim() + ')' : ''}` : 'Bobine inconnue',
+          { runs: 0, failed: 1, grams_lost: w, seconds_lost: 0, cost_lost: c });
+      }
+      if (failed) { t.failed++; t.grams_lost += used; t.seconds_lost += secs; t.cost_lost += cost; }
+    }
+    t.fail_pct = Math.round(1000 * t.failed / t.runs) / 10;
+    const out = m => [...m.values()].map(g => ({ ...g, grams_lost: round2(g.grams_lost), seconds_lost: Math.round(g.seconds_lost), cost_lost: round2(g.cost_lost) }));
+    t.grams_used = round2(t.grams_used); t.grams_lost = round2(t.grams_lost);
+    t.seconds_lost = Math.round(t.seconds_lost); t.cost_lost = round2(t.cost_lost);
+    const byLost = (a, b) => b.grams_lost - a.grams_lost || b.failed - a.failed;
+    res.json({ days, totals: t,
+      by_project: out(groups.project).filter(g => g.failed).sort(byLost),
+      by_printer: out(groups.printer).sort(byLost),
+      by_filament: out(groups.filament).sort(byLost),
+      by_month: out(groups.month).sort((a, b) => b.key.localeCompare(a.key)) });
   } catch (e) { fail(res, e); }
 });
 

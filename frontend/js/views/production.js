@@ -2,7 +2,7 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
 import { toast, confirmDialog } from '../ui.js';
-import { RUN_RESULT, formatDuration, formatWeight, formatDate, escapeHtml, filamentLabel, swatch } from '../format.js';
+import { RUN_RESULT, formatDuration, formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch } from '../format.js';
 import { openFinishDialog, openCorrectDialog, updateRunsBadge } from '../runs.js';
 
 const sum = (list, k) => list.reduce((s, x) => s + (Number(x[k]) || 0), 0);
@@ -32,6 +32,20 @@ export async function renderProduction(el) {
       <h2 class="panel-title">En cours <span class="count-chip" id="running-count"></span></h2>
       <div id="running"></div>
     </section>
+    <section class="prod-section" id="waste-section">
+      <div class="prod-head">
+        <h2 class="panel-title">Gâchis</h2>
+        <label class="sr-only" for="waste-days">Période</label>
+        <select class="select" id="waste-days">
+          <option value="30">30 derniers jours</option>
+          <option value="90">90 derniers jours</option>
+          <option value="365">12 derniers mois</option>
+          <option value="0">Depuis le début</option>
+        </select>
+      </div>
+      <p class="panel-sub">Filament, temps machine et argent perdus sur les impressions ratées (consommation proratisée au % réalisé).</p>
+      <div id="waste"></div>
+    </section>
     <section class="prod-section">
       <h2 class="panel-title">Historique</h2>
       <div class="prod-filters">
@@ -46,6 +60,49 @@ export async function renderProduction(el) {
       </div>
       <div id="history"></div>
     </section>`;
+
+  /* ── Gâchis ───────────────────────────────────────────────────── */
+  let wasteDays = 90;
+  async function drawWaste() {
+    const box = el.querySelector('#waste');
+    let w;
+    try { w = await api.get(`runs/waste?days=${wasteDays}`); }
+    catch (e) { box.innerHTML = `<p class="muted">${escapeHtml(e.message)}</p>`; return; }
+    const t = w.totals;
+    if (!t.runs) { box.innerHTML = '<div class="empty-state"><p class="empty-title">Pas encore de données</p><p>Les impressions terminées de la période apparaîtront ici.</p></div>'; return; }
+    const table = (title, rows, first) => `
+      <div class="waste-block"><h3 class="waste-title">${title}</h3>
+      ${rows.length ? `<table class="mini-table"><thead><tr><th>${first}</th><th class="num">Ratées</th><th class="num">Filament</th><th class="num">Temps</th><th class="num">Coût</th></tr></thead>
+        <tbody>${rows.slice(0, 8).map(g => `<tr><td>${escapeHtml(g.label)}</td>
+          <td class="num">${g.failed}${g.runs ? ` / ${g.runs}` : ''}</td>
+          <td class="num"><strong>${formatWeight(g.grams_lost) || '0 g'}</strong></td>
+          <td class="num">${g.seconds_lost ? formatDuration(g.seconds_lost) : '—'}</td>
+          <td class="num">${g.cost_lost ? formatMoney(g.cost_lost) : '—'}</td></tr>`).join('')}</tbody></table>`
+        : '<p class="muted">Aucune impression ratée.</p>'}</div>`;
+    box.innerHTML = `
+      <div class="figures">
+        <div class="figure"><span class="figure-label">Impressions ratées</span>
+          <span class="figure-value">${t.failed} / ${t.runs}</span><span class="figure-sub">${String(t.fail_pct).replace('.', ',')} % des impressions</span></div>
+        <div class="figure"><span class="figure-label">Filament perdu</span>
+          <span class="figure-value">${formatWeight(t.grams_lost) || '0 g'}</span>
+          <span class="figure-sub">${t.grams_used ? String(Math.round(1000 * t.grams_lost / t.grams_used) / 10).replace('.', ',') : 0} % du filament consommé</span></div>
+        <div class="figure"><span class="figure-label">Temps perdu</span>
+          <span class="figure-value">${formatDuration(t.seconds_lost) || '0 min'}</span>
+          <span class="figure-sub">temps machine sur les ratées</span></div>
+        <div class="figure"><span class="figure-label">Coût matière perdu</span>
+          <span class="figure-value">${formatMoney(t.cost_lost)}</span>
+          <span class="figure-sub">${t.cost_complete ? 'prix des bobines FilaFlow' : 'incomplet : prix manquant dans FilaFlow'}</span></div>
+      </div>
+      <div class="waste-grid">
+        ${table('Par imprimante', w.by_printer, 'Imprimante')}
+        ${table('Par bobine', w.by_filament, 'Bobine')}
+        ${table('Par projet', w.by_project, 'Projet')}
+        ${table('Par mois', w.by_month, 'Mois')}
+      </div>
+      <p class="hint">Le temps d'un lancement groupé est réparti à parts égales entre ses pièces.</p>`;
+  }
+  el.querySelector('#waste-days').value = String(wasteDays);
+  el.querySelector('#waste-days').addEventListener('change', e => { wasteDays = parseInt(e.target.value, 10); drawWaste(); });
 
   /* ── En cours ─────────────────────────────────────────────────── */
   const elapsedOf = r => (r.elapsed_s || 0) + (Date.now() - loadedAt) / 1000;
@@ -182,10 +239,12 @@ export async function renderProduction(el) {
     await store.loadFilaments().catch(() => {});
     drawRunning();
     drawHistory();
+    drawWaste();
     updateRunsBadge();
   }
 
   drawRunning();
   drawHistory();
+  drawWaste();
   return () => clearInterval(tick);
 }
