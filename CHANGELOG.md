@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.18.0 — 19/10/2026
+
+Lien source d'un projet (MakerWorld, Printables…).
+
+- Page projet : rangée **Lien** sous les thèmes. On colle l'adresse (Entrée ou clic ailleurs pour valider) ; elle s'affiche
+  ensuite en lien cliquable avec le nom du site (ex. « makerworld.com ↗ »), ouvert dans un nouvel onglet. Le crayon ✎ rouvre la saisie ;
+  champ vidé = lien supprimé. La rangée se replie avec l'en-tête compact au défilement
+- Liste des projets : petite icône ↗ après le nom des projets qui ont un lien (pas de nouvelle colonne)
+- Sécurité : seules les adresses `http://` et `https://` sont acceptées (500 caractères max), jamais `javascript:` ou `data:`
+- Un seul lien par projet ; les liens supplémentaires peuvent aller dans les notes
+- API : champ `source_url` sur `POST /api/projects` et `PUT /api/projects/:id` (400 si invalide), renvoyé par les lectures ;
+  la mise à jour rejoue le schéma (colonne `projects.source_url`)
+
 ## v1.17.1 — 19/10/2026
 
 Thèmes de projet : couleurs, gestion, totaux.

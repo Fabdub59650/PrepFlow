@@ -160,7 +160,7 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .page-head + .page-sub { margin-top: 0; }
 .project-head { top: 56px; margin: -24px -24px 18px; padding: 16px 24px 4px; border-bottom: 0.5px solid transparent; }
 .project-head.is-stuck { padding: 8px 24px 6px; border-bottom-color: var(--border); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18); }
-.project-head.is-stuck .back-link, .project-head.is-stuck .project-dates, .project-head.is-stuck .project-notes, .project-head.is-stuck .project-themes { display: none; }
+.project-head.is-stuck .back-link, .project-head.is-stuck .project-dates, .project-head.is-stuck .project-notes, .project-head.is-stuck .project-themes, .project-head.is-stuck .project-link { display: none; }
 .project-head.is-stuck .project-title-row { margin: 0; }
 .project-head.is-stuck .project-name { font-size: 24px; }
 .grid-sticky { top: calc(56px + var(--head-h, 0px) - 1px); z-index: 14; padding-top: 7px; margin-top: -7px; }
@@ -700,3 +700,16 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .themes-table .inline-input { min-width: 140px; border-color: var(--border); }
 .theme-actions { white-space: nowrap; text-align: right; }
 .theme-note { margin: 10px 0; }
+
+/* Lien source du projet (v1.18.0) */
+.project-link { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 12px; }
+.project-link-label { color: var(--text3); }
+.project-link-a { color: var(--accent, var(--text)); text-decoration: none; border-bottom: 0.5px solid currentColor; }
+.project-link-a:hover { opacity: .8; }
+.project-link-input { height: 24px; width: min(420px, 100%); padding: 0 8px; font: inherit; font-size: 12px; color: var(--text);
+  background: transparent; border: 0.5px dashed var(--border2); border-radius: 11px; }
+.project-link-edit { background: none; border: 0; cursor: pointer; color: var(--text3); font-size: 12px; padding: 0 2px; }
+.project-link-edit:hover { color: var(--text); }
+.row-ext { color: var(--text3); text-decoration: none; font-size: 12px; }
+.row-ext:hover { color: var(--text); }
+.project-link [hidden] { display: none; }

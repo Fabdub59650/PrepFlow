@@ -164,6 +164,8 @@ ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `power_w`      int(11)      DEFA
 ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `wear_eur_h`   decimal(6,2) DEFAULT NULL;
 ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `margin_pct`      decimal(6,2) DEFAULT NULL;
 ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `min_piece_price` decimal(8,2) DEFAULT NULL;
+-- v1.18.0 : lien vers la source du projet (MakerWorld, Printables…)
+ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `source_url` varchar(500) DEFAULT NULL;
 
 -- v1.17.0 : thèmes de projet (plusieurs par projet). Nom unique sans tenir compte
 -- de la casse ni des accents (collation unicode_ci) : « Noel » = « Noël ».

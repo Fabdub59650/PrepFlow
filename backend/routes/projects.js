@@ -4,6 +4,17 @@ const { loadParts } = require('./parts');
 const { assignCode, withRetry } = require('../codes');
 const { parseThemeNames, themesByProject, setProjectThemes } = require('./themes');
 
+// Lien source : http(s) uniquement (jamais javascript:, data:…), 500 caractères max
+function cleanSourceUrl(v) {
+  const u = String(v == null ? '' : v).trim();
+  if (!u) return { value: null };
+  if (u.length > 500) return { error: 'Lien trop long (500 caractères maximum).' };
+  let ok = false;
+  try { const x = new URL(u); ok = x.protocol === 'http:' || x.protocol === 'https:'; } catch { ok = false; }
+  if (!ok) return { error: 'Le lien doit commencer par http:// ou https://' };
+  return { value: u };
+}
+
 const STATUSES = ['preparation', 'en_cours', 'termine', 'archive'];
 
 // Liste des projets avec leurs totaux (temps, poids, avancement)
@@ -53,13 +64,15 @@ router.post('/', async (req, res) => {
   try {
     const name = String(req.body.name || '').trim();
     if (!name) return res.status(400).json({ error: 'Le nom du projet est obligatoire' });
+    const srcUrl = cleanSourceUrl(req.body.source_url);
+    if (srcUrl.error) return res.status(400).json({ error: srcUrl.error });
     // Création et attribution du code dans la même transaction
     // (rejouée en cas d'interblocage entre deux créations simultanées)
     const id = await withRetry(async () => {
       const conn = await db.getConnection();
       try {
         await conn.beginTransaction();
-        const [r] = await conn.query('INSERT INTO projects (name, notes) VALUES (?, ?)', [name, req.body.notes || null]);
+        const [r] = await conn.query('INSERT INTO projects (name, notes, source_url) VALUES (?, ?, ?)', [name, req.body.notes || null, srcUrl.value]);
         await assignCode(r.insertId, conn);
         await conn.commit();
         return r.insertId;
@@ -100,6 +113,11 @@ router.put('/:id', async (req, res) => {
       sets.push('name=?'); vals.push(name);
     }
     if ('notes' in req.body) { sets.push('notes=?'); vals.push(req.body.notes || null); }
+    if ('source_url' in req.body) {
+      const r = cleanSourceUrl(req.body.source_url);
+      if (r.error) return res.status(400).json({ error: r.error });
+      sets.push('source_url=?'); vals.push(r.value);
+    }
     for (const [k, max] of [['margin_pct', 1000], ['min_piece_price', 10000]]) {
       if (!(k in req.body)) continue;
       const v = req.body[k];

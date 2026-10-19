@@ -161,3 +161,12 @@ export function spoolStock(f) {
   }
   return { value: base, estimated: false, text: formatWeight(base), age, title: `Reste pesé dans FilaFlow (${age})` };
 }
+
+// Lien source d'un projet : n'accepte que http(s) ; renvoie { href, host } ou null
+export function sourceLink(url) {
+  try {
+    const u = new URL(String(url || '').trim());
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    return { href: u.href, host: u.hostname.replace(/^www\./, '') };
+  } catch { return null; }
+}

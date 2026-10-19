@@ -3,7 +3,7 @@ import { store } from '../store.js';
 import { toast, confirmDialog, openDialog } from '../ui.js';
 import {
   PART_STATUS, PROJECT_STATUS, parseDuration, formatDuration, durationToInput,
-  formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolStock,
+  formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolStock, sourceLink,
 } from '../format.js';
 import { derivePart, summarize } from '../summary.js';
 import { mountThemeEditor } from '../themes.js';
@@ -256,6 +256,13 @@ export async function renderProject(el, id) {
       <p class="project-dates">Créé le ${formatDate(project.created_at, { withTime: true })}
         ${project.updated_at && project.updated_at !== project.created_at ? ` · modifié le ${formatDate(project.updated_at, { withTime: true })}` : ''}</p>
       <div class="project-themes" id="project-themes"></div>
+      <div class="project-link" id="project-link-row">
+        <span class="project-link-label">Lien</span>
+        <a class="project-link-a" id="project-link-a" target="_blank" rel="noopener noreferrer" hidden></a>
+        <button type="button" class="project-link-edit" id="project-link-edit" title="Modifier le lien" aria-label="Modifier le lien" hidden>✎</button>
+        <input class="project-link-input" id="project-link" type="url" inputmode="url" maxlength="500"
+          placeholder="https://makerworld.com/…" aria-label="Lien du projet" value="${escapeHtml(project.source_url || '')}">
+      </div>
       <details class="project-notes" ${project.notes ? 'open' : ''}>
         <summary>Notes du projet</summary>
         <textarea id="project-notes" rows="3" placeholder="Contexte, contraintes, idées…">${escapeHtml(project.notes || '')}</textarea>
@@ -371,6 +378,28 @@ export async function renderProject(el, id) {
   nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') nameInput.blur(); });
   mountThemeEditor(el.querySelector('#project-themes'), project);
   el.querySelector('#project-status').addEventListener('change', e => saveProject({ status: e.target.value }));
+  const linkIn = el.querySelector('#project-link');
+  const linkA = el.querySelector('#project-link-a');
+  const showLink = () => {
+    const l = sourceLink(linkIn.value);
+    linkA.hidden = !l;
+    linkIn.hidden = !!l;
+    if (l) { linkA.href = l.href; linkA.textContent = l.host + ' ↗'; linkA.title = l.href; }
+  };
+  linkIn.addEventListener('change', async () => {
+    const v = linkIn.value.trim();
+    if (v && !sourceLink(v)) { toast('Le lien doit commencer par http:// ou https://', 'error'); linkIn.value = project.source_url || ''; showLink(); return; }
+    project.source_url = v || null;
+    await saveProject({ source_url: v });
+    showLink();
+  });
+  linkIn.addEventListener('keydown', e => { if (e.key === 'Enter') linkIn.blur(); });
+  linkIn.addEventListener('blur', showLink);
+  const editBtn = el.querySelector('#project-link-edit');
+  editBtn.addEventListener('click', () => { linkIn.hidden = false; linkA.hidden = true; linkIn.focus(); });
+  const syncEdit = () => { editBtn.hidden = !sourceLink(linkIn.value) || !linkIn.hidden; };
+  new MutationObserver(syncEdit).observe(linkIn, { attributes: true, attributeFilter: ['hidden'] });
+  showLink(); syncEdit();
   el.querySelector('#project-notes').addEventListener('change', e => saveProject({ notes: e.target.value }));
   el.querySelector('#delete-project').addEventListener('click', async () => {
     const ok = await confirmDialog('Supprimer le projet',

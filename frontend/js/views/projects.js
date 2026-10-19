@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { toast, promptDialog } from '../ui.js';
-import { PROJECT_STATUS, formatDuration, formatWeight, formatDate, escapeHtml } from '../format.js';
+import { PROJECT_STATUS, formatDuration, formatWeight, formatDate, escapeHtml, sourceLink } from '../format.js';
 import { themeChipsHtml, colorAttr } from '../themes.js';
 
 let showArchived = false;
@@ -139,7 +139,7 @@ export async function renderProjects(el) {
           const pct = p.pieces_count ? Math.round(100 * p.pieces_done / p.pieces_count) : 0;
           return `<tr data-id="${p.id}">
             <td class="cell-code">${escapeHtml(p.code || '—')}</td>
-            <td><a href="#/projet/${p.id}" class="row-link">${escapeHtml(p.name)}</a></td>
+            <td><a href="#/projet/${p.id}" class="row-link">${escapeHtml(p.name)}</a>${(l => l ? ` <a class="row-ext" href="${escapeHtml(l.href)}" target="_blank" rel="noopener noreferrer" title="Ouvrir ${escapeHtml(l.host)}" aria-label="Ouvrir le lien source (${escapeHtml(l.host)})">↗</a>` : '')(sourceLink(p.source_url))}</td>
             <td class="cell-themes">${themeChipsHtml(p.themes || [], selected)}</td>
             <td><span class="pill pill-${p.status}">${PROJECT_STATUS[p.status]}</span></td>
             <td class="num" title="${escapeHtml(formatDate(p.created_at, { withTime: true }))}">${formatDate(p.created_at) || '—'}</td>

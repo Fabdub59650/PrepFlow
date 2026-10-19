@@ -13,6 +13,7 @@ Accès : **https://filaflow.local/prepflow/**
 ## Fonctionnalités (v1)
 
 - Projets avec statut (en préparation, en cours, terminé, archivé) et notes
+- Lien source du projet (MakerWorld, Printables…) cliquable sur la fiche, icône ↗ dans la liste
 - Thèmes de projet (Noël, Halloween, Statuettes…) : plusieurs par projet, couleur, filtre « tous / au moins un » dans la liste,
   gestion et totaux par thème dans Paramètres
 - Tableau éditable façon tableur (Tabulator) : pièce, fichier, quantité, imprimante,
