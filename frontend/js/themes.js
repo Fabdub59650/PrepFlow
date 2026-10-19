@@ -5,11 +5,18 @@ import { escapeHtml } from './format.js';
 
 // Même thème à la casse et aux accents près (comme la base : « Noel » = « Noël »)
 const fold = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('fr');
+// Palette des thèmes : clé enregistrée en base → libellé (les teintes sont définies dans le CSS)
+export const THEME_COLORS = [
+  ['rouge', 'Rouge'], ['orange', 'Orange'], ['jaune', 'Jaune'], ['vert', 'Vert'], ['turquoise', 'Turquoise'],
+  ['bleu', 'Bleu'], ['violet', 'Violet'], ['rose', 'Rose'], ['gris', 'Gris'],
+];
+export const colorAttr = c => (c ? ` data-color="${escapeHtml(c)}"` : '');
+
 export const sameTheme = (a, b) => fold(a) === fold(b);
 
 /** Pastilles cliquables (filtre de la liste). `active` : ensemble d'identifiants de thèmes actifs. */
 export function themeChipsHtml(themes, active = new Set()) {
-  return themes.map(t => `<button type="button" class="theme-chip is-btn ${active.has(t.id) ? 'is-active' : ''}"
+  return themes.map(t => `<button type="button" class="theme-chip is-btn ${active.has(t.id) ? 'is-active' : ''}"${colorAttr(t.color)}
     data-theme-toggle="${t.id}" aria-pressed="${active.has(t.id)}"
     title="Filtrer sur le thème « ${escapeHtml(t.name)} »">${escapeHtml(t.name)}</button>`).join('');
 }
@@ -34,7 +41,7 @@ export function mountThemeEditor(box, project) {
   const options = box.querySelector('#theme-options');
 
   const draw = () => {
-    chipsEl.innerHTML = themes.map(t => `<span class="theme-chip">${escapeHtml(t.name)}<button type="button"
+    chipsEl.innerHTML = themes.map(t => `<span class="theme-chip"${colorAttr(t.color)}>${escapeHtml(t.name)}<button type="button"
       class="theme-remove" data-remove="${t.id}" aria-label="Retirer le thème ${escapeHtml(t.name)}">×</button></span>`).join('');
     options.innerHTML = known.filter(k => !themes.some(t => t.id === k.id))
       .map(k => `<option value="${escapeHtml(k.name)}"></option>`).join('');

@@ -13,7 +13,8 @@ Accès : **https://filaflow.local/prepflow/**
 ## Fonctionnalités (v1)
 
 - Projets avec statut (en préparation, en cours, terminé, archivé) et notes
-- Thèmes de projet (Noël, Halloween, Statuettes…), plusieurs par projet, avec filtre dans la liste
+- Thèmes de projet (Noël, Halloween, Statuettes…) : plusieurs par projet, couleur, filtre « tous / au moins un » dans la liste,
+  gestion et totaux par thème dans Paramètres
 - Tableau éditable façon tableur (Tabulator) : pièce, fichier, quantité, imprimante,
   filament, poids et temps unitaires, totaux calculés, coût, statut, notes
 - Plusieurs filaments par pièce (multicolore)

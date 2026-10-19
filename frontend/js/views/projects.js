@@ -1,7 +1,7 @@
 import { api } from '../api.js';
 import { toast, promptDialog } from '../ui.js';
 import { PROJECT_STATUS, formatDuration, formatWeight, formatDate, escapeHtml } from '../format.js';
-import { themeChipsHtml } from '../themes.js';
+import { themeChipsHtml, colorAttr } from '../themes.js';
 
 let showArchived = false;
 
@@ -46,6 +46,14 @@ function readThemeFilter() {
 function writeThemeFilter(set) {
   try { set.size ? localStorage.setItem(THEME_KEY, JSON.stringify([...set])) : localStorage.removeItem(THEME_KEY); } catch (_) {}
 }
+// « and » : le projet porte tous les thèmes choisis ; « or » : au moins un d'entre eux
+const MODE_KEY = 'prepflow_projects_theme_mode';
+function readThemeMode() {
+  try { return localStorage.getItem(MODE_KEY) === 'or' ? 'or' : 'and'; } catch (_) { return 'and'; }
+}
+function writeThemeMode(m) {
+  try { m === 'or' ? localStorage.setItem(MODE_KEY, 'or') : localStorage.removeItem(MODE_KEY); } catch (_) {}
+}
 
 function sortProjects(list, sort) {
   if (!sort) return list;
@@ -87,10 +95,13 @@ export async function renderProjects(el) {
   const themeList = [...themeMap.values()].sort((a, b) => collator.compare(a.name, b.name));
   // Un thème qui n'existe plus (ou dont les projets sont archivés) est retiré du filtre mémorisé
   const selected = new Set(readThemeFilter().filter(id => themeMap.has(id)));
+  let mode = readThemeMode();
 
   const drawTable = () => {
-    // Filtre « ET » : le projet doit porter tous les thèmes sélectionnés
-    const visible = projects.filter(p => [...selected].every(id => (p.themes || []).some(t => t.id === id)));
+    // « Tous » : le projet porte tous les thèmes sélectionnés ; « Un des » : au moins un
+    const has = (p, id) => (p.themes || []).some(t => t.id === id);
+    const visible = projects.filter(p => !selected.size
+      || (mode === 'or' ? [...selected].some(id => has(p, id)) : [...selected].every(id => has(p, id))));
     const rows = sortProjects(visible, sort);
     const th = c => {
       if (c.sortable === false) return `<th>${c.label}</th>`;
@@ -104,13 +115,21 @@ export async function renderProjects(el) {
     const filterBar = themeList.length ? `
       <div class="theme-filter" role="group" aria-label="Filtrer par thème">
         <span class="theme-label">Thèmes</span>
-        ${themeList.map(t => `<button type="button" class="theme-chip is-btn ${selected.has(t.id) ? 'is-active' : ''}"
+        ${themeList.map(t => `<button type="button" class="theme-chip is-btn ${selected.has(t.id) ? 'is-active' : ''}"${colorAttr(t.color)}
           data-theme-toggle="${t.id}" aria-pressed="${selected.has(t.id)}">${escapeHtml(t.name)}<span class="theme-count">${t.count}</span></button>`).join('')}
+        ${selected.size > 1 ? `<span class="segmented segmented-sm" role="group" aria-label="Combinaison des thèmes">
+          <button type="button" data-mode="and" class="${mode === 'and' ? 'is-active' : ''}" title="Le projet porte tous les thèmes choisis">Tous</button>
+          <button type="button" data-mode="or" class="${mode === 'or' ? 'is-active' : ''}" title="Le projet porte au moins un des thèmes choisis">Au moins un</button>
+        </span>` : ''}
         ${selected.size ? '<button type="button" class="link-btn" id="clear-themes">Effacer le filtre</button>' : ''}
-      </div>` : '';
+      </div>
+      ${selected.size ? `<p class="theme-summary">${visible.length} projet${visible.length > 1 ? 's' : ''}
+        · ${visible.reduce((a, p) => a + p.pieces_count, 0)} pièces
+        · ${formatDuration(visible.reduce((a, p) => a + p.total_time_s, 0)) || '0 min'}
+        · ${formatWeight(visible.reduce((a, p) => a + p.total_weight_g, 0)) || '0 g'}</p>` : ''}` : '';
     body.innerHTML = filterBar + (!rows.length ? `
       <div class="empty-state">
-        <p>Aucun projet ne porte ${selected.size > 1 ? 'tous ces thèmes' : 'ce thème'}.</p>
+        <p>Aucun projet ne porte ${selected.size > 1 && mode === 'and' ? 'tous ces thèmes' : 'ce thème'}.</p>
       </div>` : `
       <div class="table-wrap">
       <table class="list-table">
@@ -159,6 +178,9 @@ export async function renderProjects(el) {
       selected.has(id) ? selected.delete(id) : selected.add(id);
       writeThemeFilter(selected);
       drawTable();
+    }));
+    body.querySelectorAll('[data-mode]').forEach(btn => btn.addEventListener('click', () => {
+      mode = btn.dataset.mode; writeThemeMode(mode); drawTable();
     }));
     body.querySelector('#clear-themes')?.addEventListener('click', () => {
       selected.clear(); writeThemeFilter(selected); drawTable();

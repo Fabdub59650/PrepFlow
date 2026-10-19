@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.17.1 — 19/10/2026
+
+Thèmes de projet : couleurs, gestion, totaux.
+
+- **Couleurs** : chaque thème peut avoir une couleur parmi 9 (rouge, orange, jaune, vert, turquoise, bleu, violet, rose, gris),
+  lisible en mode clair comme en mode sombre ; sans couleur, la pastille reste neutre. Les thèmes actifs du filtre portent une coche
+- **Paramètres › Thèmes** : renommer, changer la couleur, fusionner dans un autre thème (les projets suivent, nom et couleur
+  de la cible conservés), supprimer (les projets sont conservés) et « Supprimer les thèmes sans projet »
+- **Totaux par thème** (Paramètres › Thèmes) : projets, pièces, temps, poids et coût de revient, archivés compris ; un astérisque
+  signale un coût incomplet. Un projet qui a plusieurs thèmes compte dans chacun : les lignes ne s'additionnent pas
+- **Filtre de la liste** : bascule « Tous » / « Au moins un » dès que deux thèmes sont choisis (mémorisée), et une ligne de résumé
+  (projets, pièces, temps, poids) du filtre en cours
+- Changement : un thème qui n'a plus de projet n'est plus supprimé automatiquement (il garde sa couleur) ; il apparaît
+  dans l'autocomplétion jusqu'à sa suppression dans Paramètres › Thèmes
+- API : `PUT /api/themes/:id`, `POST /api/themes/:id/merge`, `POST /api/themes/cleanup`, `DELETE /api/themes/:id`,
+  `GET /api/themes/stats` ; le champ `color` est renvoyé avec les thèmes ; la mise à jour rejoue le schéma (colonne `themes.color`)
+
 ## v1.17.0 — 19/10/2026
 
 Thèmes de projet (Noël, Halloween, Statuettes…).

@@ -4,6 +4,7 @@ import { applyColorMode } from '../theme.js';
 import { escapeHtml } from '../format.js';
 import { openDialog } from '../ui.js';
 import { setUpdateBadge } from '../updates.js';
+import { mountThemesAdmin } from '../themes-admin.js';
 
 const MODES = [
   ['',            'Atelier sombre (par défaut)'],
@@ -67,6 +68,12 @@ export async function renderSettings(el) {
       </div>
     </section>
 
+    <section class="settings-section is-wide" aria-labelledby="themes-title">
+      <h2 class="panel-title" id="themes-title">Thèmes</h2>
+      <p class="panel-sub">Thèmes de projet (Noël, Halloween, Statuettes…) : couleur, renommage, fusion et totaux. On les attribue depuis la page d'un projet.</p>
+      <div id="themes-box"><p class="muted">Lecture…</p></div>
+    </section>
+
     <section class="settings-section" aria-labelledby="version-title">
       <h2 class="panel-title" id="version-title">Version</h2>
       <p class="panel-sub">Comparée au dernier tag publié sur GitHub (Fabdub59650/prepflow).</p>
@@ -115,6 +122,8 @@ export async function renderSettings(el) {
       s[k] = saved[k]; inp.value = String(saved[k]).replace('.', ','); toast('Réglage enregistré');
     } catch (e) { toast(e.message, 'error'); inp.value = String(s[k]).replace('.', ','); }
   }));
+
+  mountThemesAdmin(el.querySelector('#themes-box'));
 
   const stopVersion = initVersionSection(el.querySelector('#version-box'));
   return () => {

@@ -183,6 +183,9 @@ CREATE TABLE IF NOT EXISTS `project_themes` (
   CONSTRAINT `fk_pt_theme`   FOREIGN KEY (`theme_id`)   REFERENCES `themes` (`id`)   ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- v1.17.1 : couleur d'un thème (clé de la palette de l'interface : rouge, bleu…), NULL = neutre
+ALTER TABLE `themes` ADD COLUMN IF NOT EXISTS `color` varchar(20) DEFAULT NULL;
+
 -- v1.16.0 : maintenance des imprimantes
 -- base_hours : heures d'impression déjà faites avant PrepFlow
 ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `base_hours` decimal(8,1) NOT NULL DEFAULT 0;
