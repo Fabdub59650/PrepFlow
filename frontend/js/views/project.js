@@ -211,13 +211,25 @@ function sortParts(rows, sort) {
 function initStickyHead(root, head) {
   const sentinel = root.querySelector('.sticky-sentinel');
   if (!head || !sentinel) return () => {};
+  // Compacter l'en-tête raccourcit la page. Quand elle est à peine plus haute que l'écran, elle devient
+  // plus courte que lui : le défilement disparaît, l'en-tête se redéplie, la page regrandit… et le bas
+  // reste inaccessible. Une hauteur minimale garde toujours de quoi défiler jusqu'au point de compaction.
+  // (l'ancrage de défilement du navigateur compenserait le raccourcissement et ramènerait à 0 : désactivé ici)
+  root.style.overflowAnchor = 'none';
+  const fit = () => {
+    const rootTop = root.getBoundingClientRect().top + window.scrollY;
+    const trigger = sentinel.getBoundingClientRect().top + window.scrollY - 56 + 2;
+    root.style.minHeight = Math.max(0, Math.ceil(window.innerHeight + trigger - rootTop)) + 'px';
+  };
   const io = new IntersectionObserver(([e]) => head.classList.toggle('is-stuck', !e.isIntersecting),
     { rootMargin: '-56px 0px 0px 0px' });
+  window.addEventListener('resize', fit);
+  fit();
   io.observe(sentinel);
   // Hauteur réelle (bordure comprise) mesurée à chaque changement de taille de l'en-tête
   const ro = new ResizeObserver(() => root.style.setProperty('--head-h', head.getBoundingClientRect().height + 'px'));
   ro.observe(head);
-  return () => { io.disconnect(); ro.disconnect(); };
+  return () => { io.disconnect(); ro.disconnect(); window.removeEventListener('resize', fit); };
 }
 
 // Hauteur maximale du tableau : en-tête + 10 lignes + ligne de totaux

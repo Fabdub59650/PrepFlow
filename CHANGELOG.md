@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.18.1 — 19/10/2026
+
+Correctif : bas de page inaccessible.
+
+- Page projet : quand la page n'était que légèrement plus haute que l'écran (cas typique de l'onglet « Coût et prix » sans le détail
+  ouvert), l'en-tête se compactait au défilement, la page devenait plus courte que l'écran, le navigateur revenait en haut,
+  l'en-tête se redéployait… et le bas restait hors d'atteinte. La page garde maintenant toujours de quoi défiler jusqu'au bas,
+  quelle que soit la hauteur de l'écran
+
 ## v1.18.0 — 19/10/2026
 
 Lien source d'un projet (MakerWorld, Printables…).
