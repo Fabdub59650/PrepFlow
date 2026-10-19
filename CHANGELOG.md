@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.17.0 — 19/10/2026
+
+Thèmes de projet (Noël, Halloween, Statuettes…).
+
+- Page projet : rangée **Thèmes** sous le titre ; saisie avec autocomplétion des thèmes existants
+  (Entrée, virgule ou choix dans la liste), croix pour retirer un thème. Plusieurs thèmes par projet
+- Liste des projets : colonne **Thèmes** et pastilles de filtre au-dessus du tableau (avec le nombre de projets) ;
+  un clic sur une pastille, dans le filtre ou dans une ligne, ajoute ou retire le thème. Plusieurs thèmes
+  sélectionnés = le projet doit les porter **tous** ; le filtre est mémorisé dans le navigateur
+- « Noel » et « Noël » sont le même thème (casse et accents ignorés), la première graphie saisie est conservée
+- Un thème qui ne sert plus à aucun projet disparaît de la liste d'autocomplétion
+- API : `GET /api/themes` ; champ `themes` (liste de noms) accepté par `PUT /api/projects/:id` et renvoyé par
+  `GET /api/projects` et `GET /api/projects/:id` ; la mise à jour rejoue le schéma (tables `themes` et `project_themes`)
+
 ## v1.16.0 — 17/10/2026
 
 Maintenance des imprimantes.

@@ -160,7 +160,7 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .page-head + .page-sub { margin-top: 0; }
 .project-head { top: 56px; margin: -24px -24px 18px; padding: 16px 24px 4px; border-bottom: 0.5px solid transparent; }
 .project-head.is-stuck { padding: 8px 24px 6px; border-bottom-color: var(--border); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18); }
-.project-head.is-stuck .back-link, .project-head.is-stuck .project-dates, .project-head.is-stuck .project-notes { display: none; }
+.project-head.is-stuck .back-link, .project-head.is-stuck .project-dates, .project-head.is-stuck .project-notes, .project-head.is-stuck .project-themes { display: none; }
 .project-head.is-stuck .project-title-row { margin: 0; }
 .project-head.is-stuck .project-name { font-size: 24px; }
 .grid-sticky { top: calc(56px + var(--head-h, 0px) - 1px); z-index: 14; padding-top: 7px; margin-top: -7px; }
@@ -632,3 +632,33 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .maint-base input { width: 110px; }
 .maint-actions { display: flex; gap: 8px; margin: 12px 0; }
 .maint-warn { color: var(--warning); }
+
+/* ── Thèmes de projet (v1.17.0) ────────────────────────────────── */
+.theme-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text3); }
+.theme-chip {
+  display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px;
+  font: inherit; font-size: 12px; font-weight: 500; line-height: 1; white-space: nowrap;
+  color: var(--text2); background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 11px;
+}
+.theme-chip.is-btn { cursor: pointer; }
+.theme-chip.is-btn:hover { color: var(--text); border-color: var(--text3); }
+.theme-chip.is-active { color: var(--accent); background: var(--accent-bg); border-color: var(--accent); }
+.theme-count { font-family: var(--font-mono); font-size: 10px; color: var(--text3); }
+.theme-chip.is-active .theme-count { color: inherit; }
+.theme-remove {
+  width: 16px; height: 16px; margin: 0 -4px 0 0; padding: 0; display: inline-grid; place-items: center;
+  font-size: 14px; line-height: 1; color: var(--text3); background: none; border: 0; border-radius: 50%; cursor: pointer;
+}
+.theme-remove:hover { color: var(--danger); background: var(--danger-bg); }
+.project-themes { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 10px; }
+.theme-chips { display: contents; }
+.theme-input {
+  height: 24px; width: 150px; padding: 0 8px; font: inherit; font-size: 12px; color: var(--text);
+  background: transparent; border: 0.5px dashed var(--border2); border-radius: 11px;
+}
+.theme-input:hover, .theme-input:focus { background: var(--bg); border-style: solid; outline: none; }
+.theme-input:focus { border-color: var(--accent); }
+.theme-filter { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin: 0 0 12px; }
+.theme-filter .link-btn { margin-top: 0; margin-left: 4px; }
+.cell-themes { white-space: normal; }
+.cell-themes .theme-chip { margin: 2px 4px 2px 0; }

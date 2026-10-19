@@ -165,6 +165,24 @@ ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `wear_eur_h`   decimal(6,2) DEFA
 ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `margin_pct`      decimal(6,2) DEFAULT NULL;
 ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `min_piece_price` decimal(8,2) DEFAULT NULL;
 
+-- v1.17.0 : thèmes de projet (plusieurs par projet). Nom unique sans tenir compte
+-- de la casse ni des accents (collation unicode_ci) : « Noel » = « Noël ».
+CREATE TABLE IF NOT EXISTS `themes` (
+  `id`   int(11)     NOT NULL AUTO_INCREMENT,
+  `name` varchar(40) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_theme_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `project_themes` (
+  `project_id` int(11) NOT NULL,
+  `theme_id`   int(11) NOT NULL,
+  PRIMARY KEY (`project_id`, `theme_id`),
+  KEY `idx_pt_theme` (`theme_id`),
+  CONSTRAINT `fk_pt_project` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pt_theme`   FOREIGN KEY (`theme_id`)   REFERENCES `themes` (`id`)   ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- v1.16.0 : maintenance des imprimantes
 -- base_hours : heures d'impression déjà faites avant PrepFlow
 ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `base_hours` decimal(8,1) NOT NULL DEFAULT 0;

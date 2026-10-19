@@ -27,6 +27,7 @@ app.get('/api/meta', (req, res) => {
 });
 
 app.use('/api/projects',  require('./routes/projects'));
+app.use('/api/themes',    require('./routes/themes').router);
 app.use('/api/printers',  require('./routes/printers'));
 app.use('/api/filaments', require('./routes/filaments'));
 app.use('/api/settings',  require('./routes/settings'));

@@ -6,6 +6,7 @@ import {
   formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolStock,
 } from '../format.js';
 import { derivePart, summarize } from '../summary.js';
+import { mountThemeEditor } from '../themes.js';
 import { indexRuns, runsToFinish, openStartDialog, openFinishDialog, updateRunsBadge } from '../runs.js';
 
 /* ── Données d'une ligne ───────────────────────────────────────── */
@@ -254,6 +255,7 @@ export async function renderProject(el, id) {
       </div>
       <p class="project-dates">Créé le ${formatDate(project.created_at, { withTime: true })}
         ${project.updated_at && project.updated_at !== project.created_at ? ` · modifié le ${formatDate(project.updated_at, { withTime: true })}` : ''}</p>
+      <div class="project-themes" id="project-themes"></div>
       <details class="project-notes" ${project.notes ? 'open' : ''}>
         <summary>Notes du projet</summary>
         <textarea id="project-notes" rows="3" placeholder="Contexte, contraintes, idées…">${escapeHtml(project.notes || '')}</textarea>
@@ -367,6 +369,7 @@ export async function renderProject(el, id) {
     saveProject({ name: v });
   });
   nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') nameInput.blur(); });
+  mountThemeEditor(el.querySelector('#project-themes'), project);
   el.querySelector('#project-status').addEventListener('change', e => saveProject({ status: e.target.value }));
   el.querySelector('#project-notes').addEventListener('change', e => saveProject({ notes: e.target.value }));
   el.querySelector('#delete-project').addEventListener('click', async () => {

@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { toast, promptDialog } from '../ui.js';
 import { PROJECT_STATUS, formatDuration, formatWeight, formatDate, escapeHtml } from '../format.js';
+import { themeChipsHtml } from '../themes.js';
 
 let showArchived = false;
 
@@ -13,6 +14,7 @@ const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true })
 const COLUMNS = [
   { key: 'code',     label: 'Code',        value: p => p.code, text: true },
   { key: 'name',     label: 'Projet',      value: p => p.name, text: true },
+  { key: 'themes',   label: 'Thèmes',      sortable: false },
   { key: 'status',   label: 'Statut',      value: p => STATUS_ORDER[p.status] },
   { key: 'created',  label: 'Créé le',     value: p => (p.created_at ? new Date(String(p.created_at).replace(' ', 'T')).getTime() : null), num: true },
   { key: 'pieces',   label: 'Pièces',      value: p => p.pieces_count, num: true },
@@ -31,6 +33,18 @@ function readSort() {
 }
 function writeSort(s) {
   try { s ? localStorage.setItem(SORT_KEY, JSON.stringify(s)) : localStorage.removeItem(SORT_KEY); } catch (_) {}
+}
+
+// ── Filtre par thèmes (identifiants, mémorisé dans le navigateur) ──
+const THEME_KEY = 'prepflow_projects_themes';
+function readThemeFilter() {
+  try {
+    const v = JSON.parse(localStorage.getItem(THEME_KEY) || '[]');
+    return Array.isArray(v) ? v.filter(Number.isInteger) : [];
+  } catch (_) { return []; }
+}
+function writeThemeFilter(set) {
+  try { set.size ? localStorage.setItem(THEME_KEY, JSON.stringify([...set])) : localStorage.removeItem(THEME_KEY); } catch (_) {}
 }
 
 function sortProjects(list, sort) {
@@ -64,9 +78,22 @@ export async function renderProjects(el) {
   const body = el.querySelector('#projects-body');
   let sort = readSort();
 
+  // Thèmes présents dans les projets affichés, avec leur nombre de projets
+  const themeMap = new Map();
+  for (const p of projects) for (const t of p.themes || []) {
+    if (!themeMap.has(t.id)) themeMap.set(t.id, { ...t, count: 0 });
+    themeMap.get(t.id).count++;
+  }
+  const themeList = [...themeMap.values()].sort((a, b) => collator.compare(a.name, b.name));
+  // Un thème qui n'existe plus (ou dont les projets sont archivés) est retiré du filtre mémorisé
+  const selected = new Set(readThemeFilter().filter(id => themeMap.has(id)));
+
   const drawTable = () => {
-    const rows = sortProjects(projects, sort);
+    // Filtre « ET » : le projet doit porter tous les thèmes sélectionnés
+    const visible = projects.filter(p => [...selected].every(id => (p.themes || []).some(t => t.id === id)));
+    const rows = sortProjects(visible, sort);
     const th = c => {
+      if (c.sortable === false) return `<th>${c.label}</th>`;
       const active = sort && sort.key === c.key;
       const aria = active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
       const arrow = active ? (sort.dir === 'asc' ? '▲' : '▼') : '';
@@ -74,7 +101,17 @@ export async function renderProjects(el) {
         <button type="button" class="th-sort ${active ? 'is-active' : ''}" data-sort="${c.key}">
           ${c.label}<span class="sort-arrow" aria-hidden="true">${arrow}</span></button></th>`;
     };
-    body.innerHTML = `
+    const filterBar = themeList.length ? `
+      <div class="theme-filter" role="group" aria-label="Filtrer par thème">
+        <span class="theme-label">Thèmes</span>
+        ${themeList.map(t => `<button type="button" class="theme-chip is-btn ${selected.has(t.id) ? 'is-active' : ''}"
+          data-theme-toggle="${t.id}" aria-pressed="${selected.has(t.id)}">${escapeHtml(t.name)}<span class="theme-count">${t.count}</span></button>`).join('')}
+        ${selected.size ? '<button type="button" class="link-btn" id="clear-themes">Effacer le filtre</button>' : ''}
+      </div>` : '';
+    body.innerHTML = filterBar + (!rows.length ? `
+      <div class="empty-state">
+        <p>Aucun projet ne porte ${selected.size > 1 ? 'tous ces thèmes' : 'ce thème'}.</p>
+      </div>` : `
       <div class="table-wrap">
       <table class="list-table">
         <thead><tr>${COLUMNS.map(th).join('')}</tr></thead>
@@ -84,6 +121,7 @@ export async function renderProjects(el) {
           return `<tr data-id="${p.id}">
             <td class="cell-code">${escapeHtml(p.code || '—')}</td>
             <td><a href="#/projet/${p.id}" class="row-link">${escapeHtml(p.name)}</a></td>
+            <td class="cell-themes">${themeChipsHtml(p.themes || [], selected)}</td>
             <td><span class="pill pill-${p.status}">${PROJECT_STATUS[p.status]}</span></td>
             <td class="num" title="${escapeHtml(formatDate(p.created_at, { withTime: true }))}">${formatDate(p.created_at) || '—'}</td>
             <td class="num">${p.pieces_count}</td>
@@ -98,12 +136,11 @@ export async function renderProjects(el) {
         }).join('')}
         </tbody>
       </table>
-      </div>
-      ${sort ? '<button type="button" class="link-btn" id="reset-sort">Revenir à l\'ordre par défaut</button>' : ''}`;
+      </div>`) + (sort ? '<button type="button" class="link-btn" id="reset-sort">Revenir à l\'ordre par défaut</button>' : '');
 
     body.querySelectorAll('tbody tr').forEach(tr => {
       tr.addEventListener('click', e => {
-        if (e.target.closest('a')) return;
+        if (e.target.closest('a, button')) return;
         location.hash = `#/projet/${tr.dataset.id}`;
       });
     });
@@ -117,6 +154,15 @@ export async function renderProjects(el) {
       writeSort(sort);
       drawTable();
     }));
+    body.querySelectorAll('[data-theme-toggle]').forEach(btn => btn.addEventListener('click', () => {
+      const id = Number(btn.dataset.themeToggle);
+      selected.has(id) ? selected.delete(id) : selected.add(id);
+      writeThemeFilter(selected);
+      drawTable();
+    }));
+    body.querySelector('#clear-themes')?.addEventListener('click', () => {
+      selected.clear(); writeThemeFilter(selected); drawTable();
+    });
     body.querySelector('#reset-sort')?.addEventListener('click', () => {
       sort = null; writeSort(null); drawTable();
     });

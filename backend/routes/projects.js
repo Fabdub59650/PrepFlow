@@ -2,6 +2,7 @@ const router = require('express').Router();
 const db = require('../db');
 const { loadParts } = require('./parts');
 const { assignCode, withRetry } = require('../codes');
+const { parseThemeNames, themesByProject, setProjectThemes } = require('./themes');
 
 const STATUSES = ['preparation', 'en_cours', 'termine', 'archive'];
 
@@ -42,6 +43,8 @@ router.get('/', async (req, res) => {
        GROUP BY p.id
        ORDER BY FIELD(p.status,'en_cours','preparation','termine','archive'), p.updated_at DESC`
     );
+    const themes = await themesByProject(rows.map(r => r.id));
+    for (const r of rows) r.themes = themes.get(r.id) || [];
     res.json(rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -66,6 +69,7 @@ router.post('/', async (req, res) => {
       } finally { conn.release(); }
     });
     const [[row]] = await db.query('SELECT * FROM projects WHERE id=?', [id]);
+    row.themes = [];
     res.status(201).json(row);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -76,6 +80,7 @@ router.get('/:id', async (req, res) => {
     const [[project]] = await db.query('SELECT * FROM projects WHERE id=?', [req.params.id]);
     if (!project) return res.status(404).json({ error: 'Projet introuvable' });
     project.parts = await loadParts({ projectId: project.id });
+    project.themes = (await themesByProject([project.id])).get(project.id) || [];
     res.json(project);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -84,6 +89,11 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const sets = [], vals = [];
+    let themeNames = null;
+    if ('themes' in req.body) {
+      try { themeNames = parseThemeNames(req.body.themes); }
+      catch (e) { return res.status(e.status || 400).json({ error: e.message }); }
+    }
     if ('name' in req.body) {
       const name = String(req.body.name || '').trim();
       if (!name) return res.status(400).json({ error: 'Le nom du projet est obligatoire' });
@@ -107,6 +117,8 @@ router.put('/:id', async (req, res) => {
     }
     const [[row]] = await db.query('SELECT * FROM projects WHERE id=?', [req.params.id]);
     if (!row) return res.status(404).json({ error: 'Projet introuvable' });
+    if (themeNames) await setProjectThemes(row.id, themeNames);
+    row.themes = (await themesByProject([row.id])).get(row.id) || [];
     res.json(row);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
