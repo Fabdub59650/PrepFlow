@@ -713,3 +713,11 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .row-ext { color: var(--text3); text-decoration: none; font-size: 12px; }
 .row-ext:hover { color: var(--text); }
 .project-link [hidden] { display: none; }
+
+/* Calibration (Paramètres) */
+.calib-summary { margin: 0 0 12px; font-size: 14px; }
+.calib-table td { vertical-align: middle; }
+.calib-detail td { padding-top: 0; border-bottom: 0.5px solid var(--border); }
+.calib-detail summary { font-size: 12px; color: var(--text3); cursor: pointer; width: max-content; }
+.calib-detail ul { margin: 6px 0 4px; padding-left: 18px; font-size: 12px; color: var(--text2); }
+.calib-detail li.is-skipped { color: var(--text3); }

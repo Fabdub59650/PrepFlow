@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.19.0 — 21/10/2026
+
+Calibration : écart entre le poids prévu et la consommation réellement mesurée (première étape : mesure seule).
+
+- **Paramètres › Calibration** : pour chaque bobine, PrepFlow compare la perte de poids entre deux pesées consécutives de FilaFlow
+  au poids des impressions terminées entre les deux, et en tire un coefficient (ex. × 1,10 = la bobine consomme 10 % de plus que prévu).
+  Détail des pesées consultable par bobine ; aucune saisie manuelle
+- Intervalles écartés automatiquement : impression à cheval sur une pesée, poids en hausse (nouvelle bobine, correction), plus de 45 jours,
+  moins de 20 g prévus, écart aberrant (impression faite hors PrepFlow). La raison est affichée
+- Un coefficient n'est retenu qu'à partir de 3 intervalles et 150 g prévus ; sinon repli sur le même filament (matière + couleur),
+  puis sur la même matière. Plafond d'application prévu : × 0,7 à × 1,3
+- Pour l'instant, **rien n'est appliqué** aux besoins, au stock estimé ni au coût : on regarde d'abord les chiffres réels
+- FilaFlow reste en lecture seule (historique via `GET /api/weighings`) ; API : `GET /api/calibration`
+
 ## v1.18.1 — 19/10/2026
 
 Correctif : bas de page inaccessible.

@@ -144,4 +144,4 @@ function status() {
   return { online: lastOnline, error: lastError, last_sync: lastSyncAt || null };
 }
 
-module.exports = { sync, listFilaments, status };
+module.exports = { sync, listFilaments, status, baseUrl };

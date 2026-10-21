@@ -5,6 +5,7 @@ import { escapeHtml } from '../format.js';
 import { openDialog } from '../ui.js';
 import { setUpdateBadge } from '../updates.js';
 import { mountThemesAdmin } from '../themes-admin.js';
+import { mountCalibration } from '../calibration-admin.js';
 
 const MODES = [
   ['',            'Atelier sombre (par défaut)'],
@@ -68,6 +69,13 @@ export async function renderSettings(el) {
       </div>
     </section>
 
+    <section class="settings-section is-wide" aria-labelledby="calib-title">
+      <h2 class="panel-title" id="calib-title">Calibration</h2>
+      <p class="panel-sub">Écart entre le poids prévu par le slicer et la consommation réellement mesurée : entre deux pesées d'une bobine dans FilaFlow
+        (lues sans rien y modifier), on compare la perte de poids au poids des impressions terminées entre les deux.</p>
+      <div id="calibration-box"><p class="muted">Lecture…</p></div>
+    </section>
+
     <section class="settings-section is-wide" aria-labelledby="themes-title">
       <h2 class="panel-title" id="themes-title">Thèmes</h2>
       <p class="panel-sub">Thèmes de projet (Noël, Halloween, Statuettes…) : couleur, renommage, fusion et totaux. On les attribue depuis la page d'un projet.</p>
@@ -124,6 +132,7 @@ export async function renderSettings(el) {
   }));
 
   mountThemesAdmin(el.querySelector('#themes-box'));
+  mountCalibration(el.querySelector('#calibration-box'));
 
   const stopVersion = initVersionSection(el.querySelector('#version-box'));
   return () => {

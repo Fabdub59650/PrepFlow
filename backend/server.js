@@ -37,6 +37,7 @@ app.use('/api',           require('./routes/parts').router);
 app.use('/api',           require('./routes/runs').router);
 app.use('/api',           require('./routes/cost').router);
 app.use('/api',           require('./routes/maintenance').router);
+app.use('/api',           require('./routes/calibration').router);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Route API inconnue : ' + req.originalUrl }));
 
