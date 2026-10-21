@@ -726,3 +726,49 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .settings-section + .settings-section { margin-top: 4px; }
 .check-row { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 14px; cursor: pointer; }
 .check-row input { width: 16px; height: 16px; }
+
+/* ── Fiche de contrôle (impression A4) ─────────────────────────────
+   La fiche reste « papier » (fond blanc, texte noir) quel que soit le
+   thème de l'écran. Rien n'est imprimé en dehors de .ck-sheet.        */
+.ck-toolbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.ck-toolbar .hint { color: var(--text3); font-size: 12px; }
+.ck-sheet {
+  background: #fff; color: #111; max-width: 210mm; margin: 0 auto; padding: 14mm 12mm;
+  border: 0.5px solid var(--border2); border-radius: var(--radius-lg);
+  font-family: var(--font-body); font-size: 11pt; line-height: 1.35;
+}
+.ck-head { border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 14px; }
+.ck-title { margin: 0 0 6px; font-family: var(--font-display); font-weight: 700; font-size: 26pt; letter-spacing: var(--tracking-title); text-transform: uppercase; line-height: 1; }
+.ck-meta { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.ck-code { font-family: var(--font-mono); font-weight: 500; font-size: 12pt; border: 1px solid #111; padding: 1px 6px; }
+.ck-project { font-size: 14pt; font-weight: 600; }
+.ck-sub { margin: 6px 0 0; font-size: 9.5pt; color: #444; }
+.ck-table { width: 100%; border-collapse: collapse; }
+.ck-table th, .ck-table td { border: 1px solid #555; padding: 5px 7px; vertical-align: middle; text-align: left; }
+.ck-table th { background: #eee; font-family: var(--font-mono); font-weight: 500; font-size: 8.5pt; letter-spacing: var(--tracking-label); text-transform: uppercase; }
+.ck-table tbody tr { height: 11mm; }
+.ck-table .ck-num { width: 9mm; text-align: center; color: #444; }
+.ck-table .ck-qty { width: 20mm; text-align: center; font-weight: 600; font-size: 12pt; }
+.ck-table th.ck-qty { font-size: 8.5pt; font-weight: 500; }
+.ck-table .ck-box { width: 17mm; text-align: center; }
+.ck-table .ck-count { width: 24mm; }
+.ck-table .ck-note { width: 42mm; }
+.ck-file { display: block; font-family: var(--font-mono); font-size: 8pt; color: #555; word-break: break-all; }
+.ck-square { display: inline-block; width: 6mm; height: 6mm; border: 1.5px solid #111; vertical-align: middle; }
+.ck-foot { margin-top: 14px; break-inside: avoid; }
+.ck-totals, .ck-sign { display: flex; gap: 28px; flex-wrap: wrap; align-items: baseline; margin-bottom: 16px; font-size: 11pt; }
+.ck-totals strong { font-size: 13pt; }
+.ck-blank { display: inline-block; width: 28mm; border-bottom: 1px solid #111; height: 1.1em; vertical-align: bottom; }
+.ck-blank-long { width: 60mm; }
+.ck-empty { margin: 24px 0; color: #444; }
+
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  .topbar, .no-print { display: none !important; }
+  html, body { background: #fff !important; }
+  .content { padding: 0 !important; max-width: none !important; margin: 0 !important; }
+  .ck-sheet { max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; }
+  .ck-table thead { display: table-header-group; }       /* en-tête répété sur chaque page */
+  .ck-table tr { break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

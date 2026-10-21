@@ -261,6 +261,7 @@ export async function renderProject(el, id) {
             ${Object.entries(PROJECT_STATUS).map(([k, v]) =>
               `<option value="${k}" ${k === project.status ? 'selected' : ''}>${v}</option>`).join('')}
           </select>
+          <a class="btn" id="open-checklist" href="#/projet/${Number(id)}/controle" title="Fiche à imprimer pour vérifier que toutes les pièces sont présentes">Fiche de contrôle</a>
           <button class="btn" id="refresh-stock" title="Relire le stock dans FilaFlow">Actualiser le stock</button>
           <button class="btn btn-ghost-danger" id="delete-project">Supprimer le projet</button>
         </div>

@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.20.0 — 21/10/2026
+
+Fiche de contrôle imprimable pour vérifier, en fin de projet, que toutes les pièces sont bien là.
+
+- Nouveau bouton **Fiche de contrôle** sur la page projet : ouvre une vue épurée au format A4 (adresse `#/projet/N/controle`), sans menus, prête à imprimer
+- Liste à plat, dans l'ordre du tableau : n°, pièce (avec le nom du fichier STL s'il diffère du nom), quantité attendue, case « Présent », « Qté comptée » et « Remarque » à remplir à la main
+- En-tête avec le code projet, le nom, la date d'édition et le nombre de pièces attendues ; pied de page avec total attendu / total compté, date du contrôle et signature
+- Sur un projet de plusieurs pages, l'en-tête du tableau est répété et aucune ligne n'est coupée entre deux pages
+- Rendu « papier » (fond blanc, texte noir) quel que soit le thème clair ou sombre ; le titre de la page devient le nom proposé pour un enregistrement en PDF
+- Aucun changement de base ni d'API : la fiche lit le projet existant. La version écran (cases à cocher enregistrées) est prévue plus tard
+
 ## v1.19.3 — 21/10/2026
 
 La calibration ignore les pesées suspectes de FilaFlow.
