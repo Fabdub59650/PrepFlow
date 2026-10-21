@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.20.1 — 21/10/2026
+
+Ajustements de la fiche de contrôle après un premier essai sur papier.
+
+- Nouvelle colonne **Couleur** : couleur de la pièce (ou celle de la bobine choisie si la ligne n'en porte pas), avec sa pastille ; une pièce multicolore liste la couleur de chacun de ses filaments
+- Colonne « Qté comptée » supprimée, ainsi que le « Total compté » du pied de page (la case « Présent » suffit) ; la colonne Remarque est plus large
+- Aucun changement de base ni d'API
+
 ## v1.20.0 — 21/10/2026
 
 Fiche de contrôle imprimable pour vérifier, en fin de projet, que toutes les pièces sont bien là.

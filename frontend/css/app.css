@@ -751,8 +751,12 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .ck-table .ck-qty { width: 20mm; text-align: center; font-weight: 600; font-size: 12pt; }
 .ck-table th.ck-qty { font-size: 8.5pt; font-weight: 500; }
 .ck-table .ck-box { width: 17mm; text-align: center; }
-.ck-table .ck-count { width: 24mm; }
-.ck-table .ck-note { width: 42mm; }
+.ck-table .ck-colors { width: 38mm; }
+.ck-table td.ck-colors { font-size: 10pt; }
+.ck-color { display: block; }
+.ck-color .swatch { margin-right: 5px; vertical-align: -1px; }
+.ck-none { color: #888; }
+.ck-table .ck-note { width: 52mm; }
 .ck-file { display: block; font-family: var(--font-mono); font-size: 8pt; color: #555; word-break: break-all; }
 .ck-square { display: inline-block; width: 6mm; height: 6mm; border: 1.5px solid #111; vertical-align: middle; }
 .ck-foot { margin-top: 14px; break-inside: avoid; }
