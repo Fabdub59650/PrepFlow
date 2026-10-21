@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.19.3 — 21/10/2026
+
+La calibration ignore les pesées suspectes de FilaFlow.
+
+- Depuis FilaFlow 1.13, une pesée automatique de la balance jugée inhabituelle (poids qui remonte, sous la tare, baisse brutale) est marquée tant qu'elle n'est pas confirmée dans l'Inventaire. La calibration ne l'utilise plus pour mesurer la consommation réelle ; une fois confirmée dans FilaFlow, la pesée est de nouveau prise en compte
+- Sans effet avec une version de FilaFlow plus ancienne (aucune pesée n'est marquée)
+
 ## v1.19.2 — 21/10/2026
 
 Correctif du coût matière pour les bobines qui ne pèsent pas 1 kg.

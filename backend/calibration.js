@@ -2,6 +2,7 @@
  * calibration.js — Écart entre le poids prévu (Elegoo Slicer) et la consommation réelle (pesées FilaFlow)
  *
  * Lecture seule : l'historique des pesées vient de GET /api/weighings de FilaFlow (jamais d'écriture).
+ * Les pesées marquées « suspectes » par FilaFlow (champ `flag`, tant qu'elles ne sont pas confirmées) sont ignorées.
  *
  * Principe : pour une bobine, entre deux pesées consécutives (poids net N1 puis N2), la consommation
  * mesurée est N1 − N2. On la compare au poids retenu des impressions de PrepFlow terminées dans
@@ -128,8 +129,10 @@ async function fetchWeighings() {
   if (!res.ok) throw new Error(`FilaFlow a répondu ${res.status} sur /api/weighings`);
   const data = await res.json();
   if (!Array.isArray(data)) throw new Error('Réponse FilaFlow inattendue (liste attendue)');
-  cache = { at: Date.now(), weighings: data };
-  return data;
+  // FilaFlow ≥ 1.13 marque `flag` une pesée automatique jugée suspecte et non confirmée : elle n'est pas fiable pour mesurer
+  const usable = data.filter(w => !w.flag);
+  cache = { at: Date.now(), weighings: usable };
+  return usable;
 }
 
 async function compute() {
