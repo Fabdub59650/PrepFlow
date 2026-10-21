@@ -1,7 +1,7 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
 import { toast } from '../ui.js';
-import { PROJECT_STATUS, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock } from '../format.js';
+import { PROJECT_STATUS, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK } from '../format.js';
 import { doneQty } from '../summary.js';
 
 // ── Besoins de filament sur plusieurs projets ─────────────────────
@@ -65,8 +65,8 @@ function compute(projects, mode, marginPct) {
       for (const f of fils) {
         const w = Number(f.weight_g) || 0;
         if (!(w > 0) || !qty) continue;
-        const grams = w * qty * factor;
         const spool = f.filament_id ? store.filamentsById.get(f.filament_id) : null;
+        const grams = w * qty * factor * calibK(spool);
         const material = f.material || (fils.length === 1 ? part.material : null) || spool?.material;
         const color = f.color_name || (fils.length === 1 ? part.color_name : null) || spool?.color_name;
 
@@ -165,7 +165,7 @@ export async function renderNeeds(el) {
       </div>
     </div>
     <p class="page-sub">Filament nécessaire pour les pièces non imprimées des projets cochés, marge de sécurité de
-      <strong>${margin} %</strong> comprise (<a href="#/parametres">modifier</a>), comparé au stock FilaFlow (reste estimé quand des impressions ont suivi la dernière pesée).</p>
+      <strong>${margin} %</strong> comprise (<a href="#/parametres">modifier</a>), comparé au stock FilaFlow (reste estimé quand des impressions ont suivi la dernière pesée). Les poids sont ajustés par la calibration quand elle est activée (<a href="#/parametres">Paramètres › Calibration</a>).</p>
     <div class="needs-layout">
       <aside class="needs-projects" aria-label="Projets pris en compte">
         <div class="needs-quick">

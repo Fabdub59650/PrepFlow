@@ -105,13 +105,16 @@ async function sync({ force = false } = {}) {
 const LIST_SQL = `
   SELECT fc.*,
          COALESCE(u.used_g, 0)     AS used_since_weighing_g,
+         COALESCE(u.used_unc_g, 0) AS used_uncorrected_g,
          COALESCE(u.runs_n, 0)     AS runs_since_weighing,
          COALESCE(rv.reserved_g, 0) AS reserved_g,
          CASE WHEN fc.weight_remaining IS NULL THEN NULL
               ELSE GREATEST(0, fc.weight_remaining - COALESCE(u.used_g, 0)) END AS weight_estimated
   FROM filament_cache fc
   LEFT JOIN (
-    SELECT rf.filament_id, SUM(rf.weight_g) AS used_g, COUNT(DISTINCT r.id) AS runs_n
+    SELECT rf.filament_id, SUM(rf.weight_g) AS used_g, COUNT(DISTINCT r.id) AS runs_n,
+           -- poids jamais corrigé à la main : seul celui-là est une estimation du slicer, donc calibrable
+           SUM(CASE WHEN ABS(rf.weight_g - rf.planned_g * COALESCE(r.progress_pct, 100) / 100) < 0.05 THEN rf.weight_g ELSE 0 END) AS used_unc_g
     FROM print_run_filaments rf
     JOIN print_runs r ON r.id = rf.run_id
     JOIN filament_cache c ON c.id = rf.filament_id
@@ -131,6 +134,16 @@ const LIST_SQL = `
 async function listFilaments({ force = false } = {}) {
   await sync({ force });
   const [rows] = await db.query(LIST_SQL);
+  // Calibration (prévu/réel d'après les pesées) : ajuste la consommation estimée depuis la dernière pesée
+  const k = await require('./calibration').getCoefficients();
+  for (const f of rows) {
+    const c = k.get(f.id);
+    f.calib_k = c === undefined ? null : c;
+    if (c !== undefined && f.weight_remaining !== null) {
+      const used = Number(f.used_since_weighing_g) + (c - 1) * Number(f.used_uncorrected_g);
+      f.weight_estimated = Math.max(0, Math.round((Number(f.weight_remaining) - used) * 100) / 100);
+    }
+  }
   const [[meta]] = await db.query('SELECT MAX(synced_at) AS synced_at FROM filament_cache');
   return {
     online: lastOnline,

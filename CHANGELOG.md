@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.19.1 — 21/10/2026
+
+Calibration appliquée, et page Paramètres en rubriques.
+
+- **Calibration appliquée** (case « Appliquer la calibration… » dans Paramètres › Calibration, cochée par défaut) : le coefficient prévu/réel
+  d'une bobine ajuste le **stock estimé** (consommation depuis la dernière pesée), les **besoins** (page Besoins, onglet Bobines,
+  fenêtre de lancement) et le **coût de revient** (page projet et onglet Coût). Coefficient plafonné entre × 0,7 et × 1,3
+- Seuls les poids jamais corrigés à la main sont ajustés (un poids corrigé est déjà une valeur réelle) ; les poids et temps saisis
+  dans le tableau, eux, restent ceux du slicer
+- La mesure se fait désormais sur le poids du slicer (× % réalisé), indépendamment d'une correction manuelle
+- Si FilaFlow est injoignable, le dernier coefficient connu est conservé (rien ne bloque)
+- **Paramètres en rubriques** : Général (apparence, besoins, coût et prix), Calibration, Thèmes, Version. La rubrique ouverte est
+  mémorisée pendant la session ; navigation aux flèches du clavier
+- API : réglage `calibration_apply` ; `calib_k` renvoyé avec chaque filament
+
 ## v1.19.0 — 21/10/2026
 
 Calibration : écart entre le poids prévu et la consommation réellement mesurée (première étape : mesure seule).

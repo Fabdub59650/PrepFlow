@@ -3,7 +3,7 @@ import { api } from './api.js';
 import { store } from './store.js';
 import { toast, openDialog } from './ui.js';
 import { overdueWarning } from './maintenance.js';
-import { formatDuration, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, RUN_RESULT } from './format.js';
+import { formatDuration, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK, RUN_RESULT } from './format.js';
 
 const round2 = n => Math.round(n * 100) / 100;
 
@@ -112,7 +112,7 @@ export function openStartDialog({ parts, runIdx = new Map(), onDone }) {
           const qty = Math.max(0, parseInt(row.querySelector('[data-qty]').value, 10) || 0);
           for (const f of p.filaments || []) {
             if (!f.filament_id) continue;
-            need.set(f.filament_id, (need.get(f.filament_id) || 0) + (Number(f.weight_g) || 0) * qty);
+            need.set(f.filament_id, (need.get(f.filament_id) || 0) + (Number(f.weight_g) || 0) * qty * calibK(store.filamentsById.get(f.filament_id)));
           }
         }
         body.querySelector('[data-needs]').innerHTML = [...need.entries()].map(([fid, g]) => {

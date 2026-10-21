@@ -15,6 +15,8 @@ const MODES = [
   ['auto-time',   "Selon l'heure"],
 ];
 
+const SET_TABS = [['general', 'Général'], ['calibration', 'Calibration'], ['themes', 'Thèmes'], ['version', 'Version']];
+
 const hours = selected => Array.from({ length: 24 }, (_, h) =>
   `<option value="${h}" ${String(h) === String(selected) ? 'selected' : ''}>${h} h</option>`).join('');
 
@@ -24,6 +26,10 @@ export async function renderSettings(el) {
 
   el.innerHTML = `
     <div class="page-head"><h1 class="page-title">Paramètres</h1></div>
+    <div class="tabs" role="tablist" aria-label="Rubriques des paramètres">
+      ${SET_TABS.map(([k, l]) => `<button type="button" role="tab" class="tab" id="settab-${k}" data-settab="${k}" aria-controls="setpanel-${k}">${l}</button>`).join('')}
+    </div>
+    <div class="tab-panel" role="tabpanel" id="setpanel-general" aria-labelledby="settab-general">
     <section class="settings-section" aria-labelledby="appearance-title">
       <h2 class="panel-title" id="appearance-title">Apparence</h2>
       <p class="panel-sub">Le bouton en haut à droite bascule directement entre clair et sombre, et remplace le mode choisi ici.</p>
@@ -69,24 +75,34 @@ export async function renderSettings(el) {
       </div>
     </section>
 
+    </div>
+
+    <div class="tab-panel" role="tabpanel" id="setpanel-calibration" aria-labelledby="settab-calibration" hidden>
     <section class="settings-section is-wide" aria-labelledby="calib-title">
       <h2 class="panel-title" id="calib-title">Calibration</h2>
       <p class="panel-sub">Écart entre le poids prévu par le slicer et la consommation réellement mesurée : entre deux pesées d'une bobine dans FilaFlow
         (lues sans rien y modifier), on compare la perte de poids au poids des impressions terminées entre les deux.</p>
+      <label class="check-row"><input type="checkbox" id="calib-apply" ${s.calibration_apply === '0' ? '' : 'checked'}>
+        <span>Appliquer la calibration aux besoins, au stock estimé et au coût de revient</span></label>
       <div id="calibration-box"><p class="muted">Lecture…</p></div>
     </section>
+    </div>
 
+    <div class="tab-panel" role="tabpanel" id="setpanel-themes" aria-labelledby="settab-themes" hidden>
     <section class="settings-section is-wide" aria-labelledby="themes-title">
       <h2 class="panel-title" id="themes-title">Thèmes</h2>
       <p class="panel-sub">Thèmes de projet (Noël, Halloween, Statuettes…) : couleur, renommage, fusion et totaux. On les attribue depuis la page d'un projet.</p>
       <div id="themes-box"><p class="muted">Lecture…</p></div>
     </section>
+    </div>
 
+    <div class="tab-panel" role="tabpanel" id="setpanel-version" aria-labelledby="settab-version" hidden>
     <section class="settings-section" aria-labelledby="version-title">
       <h2 class="panel-title" id="version-title">Version</h2>
       <p class="panel-sub">Comparée au dernier tag publié sur GitHub (Fabdub59650/prepflow).</p>
       <div id="version-box" class="version-box"><p class="muted">Lecture…</p></div>
-    </section>`;
+    </section>
+    </div>`;
 
   const modeSel = el.querySelector('#color-mode');
   const fromSel = el.querySelector('#dark-from');
@@ -130,6 +146,38 @@ export async function renderSettings(el) {
       s[k] = saved[k]; inp.value = String(saved[k]).replace('.', ','); toast('Réglage enregistré');
     } catch (e) { toast(e.message, 'error'); inp.value = String(s[k]).replace('.', ','); }
   }));
+
+  // Rubriques : une seule affichée à la fois (mémorisée pour la session)
+  const showSetTab = name => {
+    if (!SET_TABS.some(([k]) => k === name)) name = 'general';
+    for (const [k] of SET_TABS) {
+      const on = k === name;
+      const b = el.querySelector(`#settab-${k}`);
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      b.tabIndex = on ? 0 : -1;
+      el.querySelector(`#setpanel-${k}`).hidden = !on;
+    }
+    try { sessionStorage.setItem('prepflow:settings-tab', name); } catch (_) {}
+  };
+  el.querySelectorAll('[data-settab]').forEach(b => {
+    b.addEventListener('click', () => showSetTab(b.dataset.settab));
+    b.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const i = SET_TABS.findIndex(([k]) => k === b.dataset.settab);
+      const next = SET_TABS[(i + (e.key === 'ArrowRight' ? 1 : SET_TABS.length - 1)) % SET_TABS.length][0];
+      showSetTab(next); el.querySelector(`#settab-${next}`).focus();
+    });
+  });
+  let firstTab = 'general';
+  try { firstTab = sessionStorage.getItem('prepflow:settings-tab') || 'general'; } catch (_) {}
+  showSetTab(firstTab);
+
+  const applyBox = el.querySelector('#calib-apply');
+  applyBox.addEventListener('change', async () => {
+    try { const saved = await api.put('settings', { calibration_apply: applyBox.checked ? '1' : '0' }); s.calibration_apply = saved.calibration_apply; toast('Réglage enregistré'); }
+    catch (e) { toast(e.message, 'error'); applyBox.checked = !applyBox.checked; }
+  });
 
   mountThemesAdmin(el.querySelector('#themes-box'));
   mountCalibration(el.querySelector('#calibration-box'));

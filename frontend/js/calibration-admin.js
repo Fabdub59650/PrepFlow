@@ -42,6 +42,6 @@ export async function mountCalibration(box) {
             ${i.ok ? '' : `<span class="muted">— écarté : ${escapeHtml(i.reason)}</span>`}</li>`).join('')}</ul></details></td></tr>`).join('')}
       </tbody></table></div>
     <p class="panel-sub">Un coefficient n'est retenu qu'à partir de ${th.min_intervals} intervalles et ${formatWeight(th.min_planned_g)} prévus ;
-      sinon on prend celui du même filament (matière + couleur), puis de la même matière. Pour l'instant, la calibration est
-      <b>affichée seulement</b> : elle n'est pas appliquée aux besoins, au stock estimé ni au coût.</p>`;
+      sinon on prend celui du même filament (matière + couleur), puis de la même matière. Le coefficient retenu est plafonné
+      entre ${coefText(th.clamp[0])} et ${coefText(th.clamp[1])}. Seuls les poids jamais corrigés à la main sont ajustés ; la case ci-dessus l'active ou le coupe.</p>`;
 }

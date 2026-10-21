@@ -1,6 +1,6 @@
 // Calculs dérivés d'une pièce et synthèse d'un projet (côté navigateur :
 // la synthèse se met à jour à chaque saisie sans recharger le projet).
-import { spoolStock } from './format.js';
+import { spoolStock, calibK } from './format.js';
 
 /** Pièces réussies d'une ligne (calculées par le serveur à partir des impressions) */
 export function doneQty(part) {
@@ -24,9 +24,10 @@ export function derivePart(part, filamentsById) {
   let cost = 0, costKnown = hasWeight;
   for (const f of fils) {
     if (f.weight_g === null || f.weight_g === undefined) continue;
-    const ppg = pricePerGram(filamentsById.get(f.filament_id));
+    const spoolInfo = filamentsById.get(f.filament_id);
+    const ppg = pricePerGram(spoolInfo);
     if (ppg === null) { costKnown = false; continue; }
-    cost += ppg * Number(f.weight_g) * qty;
+    cost += ppg * Number(f.weight_g) * qty * calibK(spoolInfo);
   }
 
   return {
@@ -107,7 +108,7 @@ export function summarize(parts, filamentsById, printers) {
         });
       }
       const bf = s.byFilament.get(f.filament_id);
-      const wu = Number(f.weight_g) || 0;
+      const wu = (Number(f.weight_g) || 0) * calibK(bf.info);   // calibré : poids du slicer × coefficient prévu/réel
       bf.used_total += wu * qty;
       bf.needed += wu * left;
     }

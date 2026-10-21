@@ -23,7 +23,8 @@ const ts = s => new Date(String(s).replace(' ', 'T')).getTime();
 
 /**
  * weighings : [{ filament_id, net_weight, created_at }]
- * runs      : [{ filament_id, started_at, ended_at, state, result, weight_g }] (une ligne par run et bobine)
+ * runs      : [{ filament_id, started_at, ended_at, state, result, basis_g }] (une ligne par run et bobine)
+ *               basis_g = poids du slicer × % réalisé (indépendant d'une éventuelle correction manuelle du poids)
  * Renvoie { intervals: [...] } avec les intervalles analysés (valides ou écartés, avec la raison).
  */
 function buildIntervals(weighings, runs) {
@@ -45,7 +46,7 @@ function buildIntervals(weighings, runs) {
       const a = list[i], b = list[i + 1];
       const row = { filament_id: fid, from: a.at, to: b.at, measured_g: Math.round((a.net - b.net) * 10) / 10, planned_g: 0, runs: 0, ok: false, reason: null };
       const done = fr.filter(r => r.state === 'termine' && r.result !== 'annule' && r.ts1 !== null && r.ts1 > a.t && r.ts1 <= b.t);
-      row.planned_g = Math.round(done.reduce((s, r) => s + Number(r.weight_g || 0), 0) * 100) / 100;
+      row.planned_g = Math.round(done.reduce((s, r) => s + Number(r.basis_g || 0), 0) * 100) / 100;
       row.runs = done.length;
       // une impression en cours à l'instant d'une pesée fausserait la mesure
       const spans = t => fr.some(r => r.ts0 < t && (r.ts1 === null || r.ts1 > t) && r.result !== 'annule');
@@ -123,7 +124,7 @@ let cache = { at: 0, weighings: null };
 async function fetchWeighings() {
   if (cache.weighings && Date.now() - cache.at < 30_000) return cache.weighings;
   const base = await filaflow.baseUrl();
-  const res = await fetch(`${base}/api/weighings?limit=20000`, { signal: AbortSignal.timeout(8000) });
+  const res = await fetch(`${base}/api/weighings?limit=20000`, { signal: AbortSignal.timeout(4000) });
   if (!res.ok) throw new Error(`FilaFlow a répondu ${res.status} sur /api/weighings`);
   const data = await res.json();
   if (!Array.isArray(data)) throw new Error('Réponse FilaFlow inattendue (liste attendue)');
@@ -135,11 +136,33 @@ async function compute() {
   await filaflow.sync();
   const weighings = await fetchWeighings();
   const [runs] = await db.query(
-    `SELECT rf.filament_id, r.started_at, r.ended_at, r.state, r.result, rf.weight_g
+    `SELECT rf.filament_id, r.started_at, r.ended_at, r.state, r.result,
+            CASE WHEN rf.planned_g > 0 THEN rf.planned_g * COALESCE(r.progress_pct, 100) / 100 ELSE rf.weight_g END AS basis_g
        FROM print_run_filaments rf JOIN print_runs r ON r.id = rf.run_id`);
   const [filaments] = await db.query('SELECT id, name, spool_number, material, color_name, color_hex FROM filament_cache');
   const intervals = buildIntervals(weighings, runs);
   return { ...summarize(intervals, filaments), thresholds: { min_intervals: MIN_INTERVALS, min_planned_g: MIN_PLANNED_G, clamp: CLAMP } };
 }
 
-module.exports = { compute, buildIntervals, summarize, coef };
+/**
+ * Coefficients appliqués aux calculs : Map filament_id → coefficient (plafonné), vide si la calibration est désactivée
+ * (Paramètres) ou si FilaFlow est injoignable et qu'aucun calcul récent n'existe. Calcul mis en cache 5 minutes.
+ */
+let coefCache = { at: 0, map: new Map() };
+async function getCoefficients() {
+  try {
+    const [[row]] = await db.query("SELECT value FROM settings WHERE key_name='calibration_apply'");
+    if (row && row.value === '0') return new Map();
+  } catch (_) {}
+  if (Date.now() - coefCache.at < 5 * 60_000) return coefCache.map;
+  try {
+    const c = await compute();
+    coefCache = { at: Date.now(), map: new Map(c.spools.filter(r => r.k_applied !== null).map(r => [r.filament_id, r.k_applied])) };
+  } catch (e) {
+    // FilaFlow injoignable : on garde le dernier résultat connu (ou rien), sans bloquer les pages
+    coefCache.at = Date.now() - 3 * 60_000;   // nouvel essai dans 2 minutes
+  }
+  return coefCache.map;
+}
+
+module.exports = { compute, getCoefficients, buildIntervals, summarize, coef };

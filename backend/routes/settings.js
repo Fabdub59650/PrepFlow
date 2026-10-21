@@ -21,9 +21,11 @@ const EDITABLE = {
   kwh_price:       v => decimalIn(v, 0, 5),
   margin_pct:      v => decimalIn(v, 0, 1000),
   min_piece_price: v => decimalIn(v, 0, 10000),
+  // Calibration : appliquer le coefficient prévu/réel aux besoins, au stock estimé et au coût (1) ou seulement l'afficher (0)
+  calibration_apply: v => (['0', '1'].includes(String(v)) ? String(v) : null),
 };
 const DEFAULTS = { color_mode: '', dark_from: '20', dark_to: '7', needs_margin: '10',
-  kwh_price: '0.25', margin_pct: '30', min_piece_price: '0' };
+  kwh_price: '0.25', margin_pct: '30', min_piece_price: '0', calibration_apply: '1' };
 
 async function readSettings() {
   const [rows] = await db.query(

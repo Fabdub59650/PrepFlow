@@ -306,7 +306,7 @@ export async function renderProject(el, id) {
       </div>
       <div class="tab-panel" role="tabpanel" id="tab-bobines" aria-labelledby="tabbtn-bobines">
         <h2 class="panel-title">Bobines nécessaires</h2>
-        <p class="panel-sub">Besoin des pièces restant à imprimer, comparé au reste de chaque bobine (estimé « ~ » quand des impressions ont suivi la dernière pesée).</p>
+        <p class="panel-sub">Besoin des pièces restant à imprimer, comparé au reste de chaque bobine (estimé « ~ » quand des impressions ont suivi la dernière pesée). Besoins ajustés par la calibration quand elle est activée (Paramètres).</p>
         <div id="spools"></div>
       </div>
       <div class="tab-panel" role="tabpanel" id="tab-production" aria-labelledby="tabbtn-production" hidden>

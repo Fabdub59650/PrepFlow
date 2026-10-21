@@ -147,6 +147,12 @@ export function weighAge(str) {
  * le reste est estimé (marqué « ~ ») ; sinon c'est le poids pesé dans FilaFlow.
  * value : grammes (null si inconnu) ; text : texte court ; title : explication au survol ; age : date de pesée.
  */
+// Coefficient de calibration (prévu → réel) d'une bobine, 1 si aucun ou si la calibration est désactivée
+export function calibK(f) {
+  const k = Number(f && f.calib_k);
+  return k > 0 ? k : 1;
+}
+
 export function spoolStock(f) {
   if (!f || f.weight_remaining === null || f.weight_remaining === undefined) {
     return { value: null, estimated: false, text: '', title: '', age: '' };
@@ -157,7 +163,8 @@ export function spoolStock(f) {
   if (used > 0 && f.weight_estimated !== null && f.weight_estimated !== undefined) {
     const est = Number(f.weight_estimated);
     return { value: est, estimated: true, text: '~' + formatWeight(est), age,
-      title: `Estimé : ${formatWeight(base)} à la dernière pesée − ${formatWeight(used)} consommés depuis (${age})` };
+      title: `Estimé : ${formatWeight(base)} à la dernière pesée − ${formatWeight(used)} consommés depuis (${age})`
+        + (calibK(f) !== 1 ? `, consommation ajustée par la calibration (× ${String(calibK(f)).replace('.', ',')})` : '') };
   }
   return { value: base, estimated: false, text: formatWeight(base), age, title: `Reste pesé dans FilaFlow (${age})` };
 }

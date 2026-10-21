@@ -40,9 +40,10 @@ async function computeCost(projectId) {
   const ppg = new Map(fc.map(f => [f.id, f.price !== null && Number(f.weight_total) > 0 ? Number(f.price) / Number(f.weight_total) : null]));
   const [pfils] = await db.query('SELECT part_id, filament_id, weight_g FROM part_filaments WHERE part_id IN (?)', [ids]);
   const [runs] = await db.query(
-    `SELECT id, part_id, printer_id, batch_id, quantity, state, result, duration_s FROM print_runs WHERE part_id IN (?)`, [ids]);
+    `SELECT id, part_id, printer_id, batch_id, quantity, state, result, duration_s, progress_pct FROM print_runs WHERE part_id IN (?)`, [ids]);
   const [rfils] = runs.length ? await db.query(
-    'SELECT run_id, filament_id, weight_g FROM print_run_filaments WHERE run_id IN (?)', [runs.map(r => r.id)]) : [[]];
+    'SELECT run_id, filament_id, weight_g, planned_g FROM print_run_filaments WHERE run_id IN (?)', [runs.map(r => r.id)]) : [[]];
+  const kmap = await require('../calibration').getCoefficients();   // calibration prévu/réel par bobine
   const batchSize = new Map();
   for (const r of runs) if (r.batch_id) batchSize.set(r.batch_id, (batchSize.get(r.batch_id) || 0) + 1);
 
@@ -71,7 +72,10 @@ async function computeCost(projectId) {
     for (const r of finished) {
       let mat = 0;
       for (const f of rfils.filter(x => x.run_id === r.id)) {
-        const g = Number(f.weight_g) || 0;
+        let g = Number(f.weight_g) || 0;
+        // seul un poids non corrigé à la main est une estimation du slicer, donc calibrable
+        const uncorrected = Math.abs(g - (Number(f.planned_g) || 0) * (r.progress_pct ?? 100) / 100) < 0.05;
+        if (uncorrected) g *= kmap.get(f.filament_id) || 1;
         const pr = ppg.get(f.filament_id);
         if (pr === null || pr === undefined) { if (g > 0) flags.missing_price = true; continue; }
         mat += g * pr;
@@ -88,7 +92,7 @@ async function computeCost(projectId) {
       const lines = pfils.filter(f => f.part_id === part.id);
       if (!lines.some(f => f.weight_g !== null)) flags.missing_weight = true;
       for (const f of lines) {
-        const g = (Number(f.weight_g) || 0) * planQty;
+        const g = (Number(f.weight_g) || 0) * planQty * (kmap.get(f.filament_id) || 1);
         const pr = f.filament_id === null ? null : ppg.get(f.filament_id);
         if (pr === null || pr === undefined) { if (g > 0) flags.missing_price = true; continue; }
         material += g * pr;
