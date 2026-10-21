@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.19.2 — 21/10/2026
+
+Correctif du coût matière pour les bobines qui ne pèsent pas 1 kg.
+
+- Le prix lu dans FilaFlow est un **prix au kilo** (€/kg) : le coût d'un gramme est désormais prix ÷ 1000, et non plus prix ÷ poids total de la bobine. Les deux calculs étaient identiques pour une bobine de 1 kg ; pour une bobine de 500 g à 30 €/kg, le coût matière était surestimé d'un facteur 2 (coût du projet, coût perdu des impressions ratées, totaux du thème)
+- Aucun changement de base : les coûts se recalculent à l'affichage
+
 ## v1.19.1 — 21/10/2026
 
 Calibration appliquée, et page Paramètres en rubriques.

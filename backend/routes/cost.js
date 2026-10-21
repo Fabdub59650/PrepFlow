@@ -37,7 +37,7 @@ async function computeCost(projectId) {
   const [printers] = await db.query('SELECT id, name, power_w, wear_eur_h FROM printers');
   const prn = new Map(printers.map(p => [p.id, p]));
   const [fc] = await db.query('SELECT id, price, weight_total FROM filament_cache');
-  const ppg = new Map(fc.map(f => [f.id, f.price !== null && Number(f.weight_total) > 0 ? Number(f.price) / Number(f.weight_total) : null]));
+  const ppg = new Map(fc.map(f => [f.id, f.price !== null ? Number(f.price) / 1000 : null]));
   const [pfils] = await db.query('SELECT part_id, filament_id, weight_g FROM part_filaments WHERE part_id IN (?)', [ids]);
   const [runs] = await db.query(
     `SELECT id, part_id, printer_id, batch_id, quantity, state, result, duration_s, progress_pct FROM print_runs WHERE part_id IN (?)`, [ids]);

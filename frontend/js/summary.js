@@ -9,10 +9,10 @@ export function doneQty(part) {
   return part.status === 'imprime' ? qty : 0;
 }
 
-/** Coût d'un gramme de filament : prix de la bobine / poids net de la bobine */
+/** Coût d'un gramme de filament : le prix saisi dans FilaFlow est un prix au kilo (€/kg) */
 export function pricePerGram(f) {
-  if (!f || f.price === null || f.price === undefined || !f.weight_total) return null;
-  return Number(f.price) / Number(f.weight_total);
+  if (!f || f.price === null || f.price === undefined) return null;
+  return Number(f.price) / 1000;
 }
 
 export function derivePart(part, filamentsById) {

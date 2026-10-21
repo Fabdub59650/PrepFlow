@@ -170,7 +170,7 @@ router.get('/runs/waste', async (req, res) => {
       const perLine = [];
       for (const f of lines) {
         const w = Number(f.weight_g) || 0;
-        const ppg = f.price !== null && f.price !== undefined && Number(f.weight_total) > 0 ? Number(f.price) / Number(f.weight_total) : null;
+        const ppg = f.price !== null && f.price !== undefined ? Number(f.price) / 1000 : null;
         if (failed && w > 0 && ppg === null) t.cost_complete = false;
         const c = failed && ppg !== null ? w * ppg : 0;
         cost += c; perLine.push({ f, w, c });
