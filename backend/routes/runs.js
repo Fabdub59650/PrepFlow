@@ -7,7 +7,7 @@
  *   POST   /api/batches/:batchId/finish     terminer d'un coup toutes les impressions d'un lancement groupé
  *   PUT    /api/runs/:id                    corriger notes et poids d'une impression terminée
  *   DELETE /api/runs/:id                    supprimer une impression (erreur de saisie)
- *   GET    /api/runs                        liste (?state=en_cours|termine, ?project_id=, ?part_id=, ?limit=)
+ *   GET    /api/runs                        liste (?state=en_cours|termine, ?project_id=, ?part_id=, ?days=N, ?limit=)
  *   GET    /api/projects/:id/runs           impressions d'un projet
  *   GET    /api/runs/waste                  gâchis : grammes, heures et coût perdus sur les impressions ratées (?days=)
  *
@@ -78,12 +78,14 @@ async function recomputePartStatus(conn, partId) {
 }
 
 // ── Lecture ───────────────────────────────────────────────────
-async function loadRuns({ ids = null, state = null, projectId = null, partId = null, limit = 200 } = {}) {
+async function loadRuns({ ids = null, state = null, projectId = null, partId = null, days = null, limit = 200 } = {}) {
   const where = [], params = [];
   if (ids)       { where.push('r.id IN (?)');      params.push(ids.length ? ids : [0]); }
   if (state)     { where.push('r.state=?');        params.push(state); }
   if (projectId) { where.push('p.project_id=?');   params.push(projectId); }
   if (partId)    { where.push('r.part_id=?');      params.push(partId); }
+  // Période : impressions terminées (ou démarrées, si en cours) depuis N jours
+  if (days)      { where.push('COALESCE(r.ended_at, r.started_at) >= (NOW() - INTERVAL ? DAY)'); params.push(days); }
   const [runs] = await db.query(
     `SELECT r.*, p.name AS part_name, p.file_name, p.quantity AS part_quantity, p.print_time_s,
             p.project_id, pj.code AS project_code, pj.name AS project_name,
@@ -119,6 +121,7 @@ router.get('/runs', async (req, res) => {
       state,
       projectId: parseInt(req.query.project_id, 10) || null,
       partId: parseInt(req.query.part_id, 10) || null,
+      days: Math.min(parseInt(req.query.days, 10) || 0, 36500) || null,
       limit: req.query.limit,
     }));
   } catch (e) { fail(res, e); }

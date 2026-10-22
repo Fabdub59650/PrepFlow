@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.21.0 — 22/10/2026
+
+L'historique de la page Production reste lisible quand il s'allonge.
+
+- Nouveau filtre **Période** : 30 derniers jours (par défaut), 3 mois, 12 mois ou depuis le début ; le choix est mémorisé
+- Nouvelle **recherche** sur la pièce, le fichier, le projet, l'imprimante et les notes (insensible aux accents et à la casse ; plusieurs mots = tous requis)
+- Vue **Liste** : 25 impressions affichées, puis « Afficher N de plus » ; le compteur indique « 25 sur 86 impressions »
+- Vue **Par projet** : un bloc repliable par projet (code, nom, nombre d'impressions dont ratées, temps réel et prévu, filament réel et écart avec le prévu) ; le projet le plus récent est déplié au départ, les autres repliés. Le temps d'un lancement groupé est réparti entre les pièces du plateau, comme dans « Gâchis ». Le choix Liste / Par projet est mémorisé
+- Les filtres Projet et Résultat s'appliquent aux deux vues, avec Corriger et Supprimer inchangés
+- Fin du plafond fixe de 300 impressions : l'historique va jusqu'à 1 000 impressions sur la période choisie (mention affichée si ce maximum est atteint)
+- API : `GET /api/runs` accepte `?days=N` ; aucun changement de base de données
+
 ## v1.20.1 — 21/10/2026
 
 Ajustements de la fiche de contrôle après un premier essai sur papier.
