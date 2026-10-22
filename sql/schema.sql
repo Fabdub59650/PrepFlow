@@ -159,6 +159,11 @@ CREATE TABLE IF NOT EXISTS `print_run_filaments` (
   CONSTRAINT `fk_prf_run` FOREIGN KEY (`run_id`) REFERENCES `print_runs` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- v1.22.0 : relais de bobine. relay = 1 sur les deux lignes d'une impression dont la bobine s'est vidée en cours
+-- d'impression et a été remplacée par une autre : la part de la première est estimée (son reste), pas mesurée ;
+-- ces lignes sont donc écartées de la calibration.
+ALTER TABLE `print_run_filaments` ADD COLUMN IF NOT EXISTS `relay` tinyint(1) NOT NULL DEFAULT 0;
+
 -- v1.15.0 : coût de revient et prix de vente
 ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `power_w`      int(11)      DEFAULT NULL;
 ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `wear_eur_h`   decimal(6,2) DEFAULT NULL;

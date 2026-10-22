@@ -552,6 +552,22 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
   background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius); font-variant-numeric: tabular-nums; }
 .fw input::placeholder { color: var(--text3); }
 
+/* Relais de bobine (fenêtre « Terminer ») */
+.relay { display: grid; gap: 8px; }
+.relay[hidden], .relay-box[hidden] { display: none; }
+.relay-box { display: grid; gap: 8px; padding: 10px 12px; border: 0.5px dashed var(--border2); border-radius: var(--radius); }
+.relay-help { margin: 0; font-size: 12px; color: var(--text3); }
+.relay-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); align-items: center; gap: 8px; font-size: 13px; color: var(--text2); }
+.relay-row .select { width: 100%; min-width: 0; }
+.relay-g { display: inline-flex; align-items: center; gap: 6px; }
+.relay-g input { width: 84px; height: 30px; padding: 0 8px; text-align: right; font: inherit; font-size: 13px; color: var(--text);
+  background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius); font-variant-numeric: tabular-nums; }
+.relay-g input::placeholder { color: var(--text3); }
+.relay-sum { margin: 0; font-size: 12px; color: var(--text2); font-variant-numeric: tabular-nums; }
+.relay-sum.is-bad { color: var(--danger); font-weight: 600; }
+.start-relay-hint { margin-top: 8px; font-size: 12px; color: var(--text3); }
+.start-relay-hint[hidden] { display: none; }
+
 /* Page Production */
 .prod-section { margin-top: 24px; }
 .count-chip { font-family: var(--font-mono); font-size: 13px; color: var(--warning); margin-left: 6px; }
@@ -595,6 +611,7 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
   .start-meta { grid-column: 1 / -1; }
   .fw { grid-template-columns: auto minmax(0, 1fr) 84px auto; }
   .fw-plan { display: none; }
+  .relay-row { grid-template-columns: 1fr; gap: 4px; }
 }
 .tabulator-row .tabulator-cell.col-run { padding: 4px 6px; overflow: visible; }
 

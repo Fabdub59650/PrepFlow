@@ -97,6 +97,7 @@ export function openStartDialog({ parts, runIdx = new Map(), onDone }) {
           }).join('')}
         </div>
         <div class="start-needs" data-needs></div>
+        <p class="start-relay-hint" data-relay-hint hidden>Si une bobine se vide en cours d'impression, utilisez « J'ai changé de bobine » à la fin : la consommation sera répartie entre les deux bobines.</p>
         ${skipped.length ? `<p class="start-skip">Non lancée${skipped.length > 1 ? 's' : ''} (pas de bobine choisie) :
           ${skipped.map(p => escapeHtml(p.name || 'Sans nom')).join(', ')}.</p>` : ''}
         <details class="start-time">
@@ -115,18 +116,21 @@ export function openStartDialog({ parts, runIdx = new Map(), onDone }) {
             need.set(f.filament_id, (need.get(f.filament_id) || 0) + (Number(f.weight_g) || 0) * qty * calibK(store.filamentsById.get(f.filament_id)));
           }
         }
+        let anyShort = false;
         body.querySelector('[data-needs]').innerHTML = [...need.entries()].map(([fid, g]) => {
           const f = store.filamentsById.get(fid);
           const st = spoolStock(f);
           const avail = st.value === null ? null : st.value - (Number(f?.reserved_g) || 0);
           const short = avail !== null && g > avail;
+          if (short) anyShort = true;
           return `<div class="need-line ${short ? 'is-short' : ''}">
             ${swatch(f?.color_hex)}<span class="need-name">${escapeHtml(filamentLabel(f))}</span>
             <span class="need-g">${formatWeight(round2(g)) || '0 g'}</span>
             <span class="need-stock" title="${escapeHtml(st.title)}">${avail === null ? 'stock inconnu'
-              : short ? `manque ${formatWeight(round2(g - avail))} (${st.text} dispo.)` : `${st.text}${st.estimated ? ' estimé' : ''} dispo.`}</span>
+              : short ? `manque ${formatWeight(round2(g - avail))} (${st.text} dispo., ${st.age})` : `${st.text}${st.estimated ? ' estimé' : ''} dispo.`}</span>
           </div>`;
         }).join('');
+        body.querySelector('[data-relay-hint]').hidden = !anyShort;
       };
       body.querySelectorAll('[data-qty]').forEach(i => i.addEventListener('input', drawNeeds));
       drawNeeds();
@@ -188,7 +192,56 @@ export function openFinishDialog({ runs, onDone }) {
             <span>g</span>
           </label>`).join('')}
       </div>
+      <div class="relay" data-relay-wrap>
+        <div><button type="button" class="btn btn-sm" data-relay-toggle>J'ai changé de bobine</button></div>
+        <div class="relay-box" data-relay-box hidden>
+          <p class="relay-help">La bobine vidée prend son reste estimé (modifiable), la nouvelle bobine prend le reste du poids de la pièce.</p>
+          <label class="relay-row"><span>Bobine vidée</span>
+            <select class="select" data-relay-from ${r.filaments.length === 1 ? 'disabled' : ''} aria-label="Bobine vidée">
+              ${r.filaments.map(f => `<option value="${f.filament_id}">${escapeHtml(f.name || filamentLabel(store.filamentsById.get(f.filament_id)))}</option>`).join('')}
+            </select></label>
+          <label class="relay-row"><span>Remplacée par</span>
+            <select class="select" data-relay-to aria-label="Nouvelle bobine"></select></label>
+          <label class="relay-row"><span>Part de la bobine vidée</span>
+            <span class="relay-g"><input type="text" inputmode="decimal" data-relay-g aria-label="Part de la bobine vidée en grammes"> g</span></label>
+          <p class="relay-sum" data-relay-sum></p>
+        </div>
+      </div>
     </div>`;
+
+  // Poids retenu d'une bobine de l'impression d'après la carte : valeur saisie, sinon prévu × % réalisé
+  const lineTotal = (c, run, fid) => {
+    const result = c.querySelector('input[type=radio]:checked').value;
+    const pct = result === 'ok' ? 100 : (parseInt(c.querySelector('[data-pct]').value, 10) || 0);
+    const f = run.filaments.find(x => x.filament_id === fid);
+    const typed = parseWeight(c.querySelector(`.fw[data-fid="${fid}"] [data-w]`).value);
+    return typed !== null && !Number.isNaN(typed) ? typed : round2(Number(f.planned_g) * pct / 100);
+  };
+  // Part de la bobine vidée : valeur saisie, sinon son reste estimé (plafonné au poids de la pièce) ; null si inconnue
+  const relayShare = (c, run) => {
+    const from = +c.querySelector('[data-relay-from]').value;
+    const total = lineTotal(c, run, from);
+    const typed = parseWeight(c.querySelector('[data-relay-g]').value);
+    if (Number.isNaN(typed)) return { from, total, g: NaN };
+    if (typed !== null) return { from, total, g: typed };
+    const st = spoolStock(store.filamentsById.get(from));
+    return { from, total, g: st.value === null ? null : round2(Math.min(st.value, total)) };
+  };
+  // Nouvelle bobine : actives et pas déjà sur l'impression, la même matière puis la même couleur en premier
+  const fillRelayTargets = (c, run) => {
+    const from = store.filamentsById.get(+c.querySelector('[data-relay-from]').value);
+    const rank = f => (from && f.material === from.material ? 0 : 2) + (from && f.color_name === from.color_name ? 0 : 1);
+    const list = store.filaments
+      .filter(f => !f.archived && !run.filaments.some(x => x.filament_id === f.id))
+      .sort((a, b) => rank(a) - rank(b) || String(a.name).localeCompare(String(b.name), 'fr'));
+    const sel = c.querySelector('[data-relay-to]');
+    const keep = sel.value;
+    sel.innerHTML = '<option value="">Choisir…</option>' + list.map(f => {
+      const st = spoolStock(f);
+      return `<option value="${f.id}">${escapeHtml(filamentLabel(f))}${st.value !== null ? ` — ${st.text}` : ''}</option>`;
+    }).join('');
+    if (keep && list.some(f => String(f.id) === keep)) sel.value = keep;
+  };
 
   return openDialog({
     title: many ? `Terminer ${runs.length} impressions` : "Terminer l'impression",
@@ -211,17 +264,49 @@ export function openFinishDialog({ runs, onDone }) {
         const result = c.querySelector('input[type=radio]:checked').value;
         c.querySelector('[data-pct-box]').hidden = result !== 'rate';
         c.querySelector('[data-weights]').hidden = result === 'annule';
+        c.querySelector('[data-relay-wrap]').hidden = result === 'annule';
         const pct = result === 'ok' ? 100 : (parseInt(c.querySelector('[data-pct]').value, 10) || 0);
         const run = runs.find(x => x.id === +c.dataset.id);
         c.querySelectorAll('.fw').forEach(w => {
           const f = run.filaments.find(x => x.filament_id === +w.dataset.fid);
           w.querySelector('[data-w]').placeholder = formatWeight(round2(Number(f.planned_g) * pct / 100)).replace(' g', '') || '0';
         });
+        syncRelay(c, run);
+      };
+      // Relais de bobine : part de la bobine vidée préremplie, et répartition affichée en direct
+      const syncRelay = (c, run) => {
+        const box = c.querySelector('[data-relay-box]');
+        if (box.hidden) return;
+        const { from, total, g } = relayShare(c, run);
+        const gInput = c.querySelector('[data-relay-g]');
+        gInput.placeholder = g === null || Number.isNaN(g) ? '' : formatWeight(Math.min(g, total)).replace(' g', '') || '0';
+        const sum = c.querySelector('[data-relay-sum]');
+        const to = store.filamentsById.get(+c.querySelector('[data-relay-to]').value);
+        const fromName = filamentLabel(store.filamentsById.get(from));
+        sum.classList.remove('is-bad');
+        if (Number.isNaN(g)) sum.textContent = 'Poids non reconnu';
+        else if (g === null) sum.textContent = "Reste de la bobine vidée inconnu : indiquez sa part.";
+        else if (g >= total) {
+          sum.classList.add('is-bad');
+          sum.textContent = `${fromName} couvre déjà ${formatWeight(total) || '0 g'} : pas de relais. Réduisez sa part si elle s'est vidée avant.`;
+        } else if (!to) sum.textContent = 'Choisissez la nouvelle bobine.';
+        else sum.textContent = `${fromName} : ${formatWeight(g) || '0 g'} · ${filamentLabel(to)} : ${formatWeight(round2(total - g)) || '0 g'}`;
       };
       body.querySelectorAll('.finish-run').forEach(c => {
+        const run = runs.find(x => x.id === +c.dataset.id);
+        fillRelayTargets(c, run);
         sync(c);
-        c.addEventListener('change', () => sync(c));
-        c.addEventListener('input', e => { if (e.target.matches('[data-pct]')) sync(c); });
+        c.addEventListener('change', e => {
+          if (e.target.matches('[data-relay-from]')) fillRelayTargets(c, run);
+          sync(c);
+        });
+        c.addEventListener('input', e => { if (e.target.matches('[data-pct], [data-w], [data-relay-g]')) sync(c); });
+        c.querySelector('[data-relay-toggle]').addEventListener('click', ev => {
+          const box = c.querySelector('[data-relay-box]');
+          box.hidden = !box.hidden;
+          ev.currentTarget.textContent = box.hidden ? "J'ai changé de bobine" : 'Annuler le relais';
+          sync(c);
+        });
       });
       body.querySelectorAll('[data-all]').forEach(b => b.addEventListener('click', () => {
         body.querySelectorAll('.finish-run:not(.is-done)').forEach(c => {
@@ -256,6 +341,15 @@ export function openFinishDialog({ runs, onDone }) {
             if (g !== null) weights.push({ filament_id: +w.dataset.fid, weight_g: g });
           }
           if (weights.length) payload.weights = weights;
+          if (!c.querySelector('[data-relay-box]').hidden) {
+            const to = parseInt(c.querySelector('[data-relay-to]').value, 10);
+            if (!to) { toast(`${nameOf(r)} : choisissez la bobine qui a pris le relais`, 'error'); return false; }
+            const { from, total, g } = relayShare(c, r);
+            if (Number.isNaN(g)) { toast(`${nameOf(r)} : poids de la bobine vidée non reconnu`, 'error'); return false; }
+            if (g === null) { toast(`${nameOf(r)} : indiquez la part de la bobine vidée`, 'error'); return false; }
+            if (g >= total) { toast(`${nameOf(r)} : la bobine vidée couvre déjà tout le poids, pas de relais`, 'error'); return false; }
+            payload.relay = { from_filament_id: from, to_filament_id: to, from_g: g };
+          }
         }
         payloads.push({ r, c, payload });
       }

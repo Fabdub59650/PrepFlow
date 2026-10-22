@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.22.0 — 22/10/2026
+
+Relais de bobine : une bobine se vide en cours d'impression et tu la remplaces par une autre.
+
+- Fenêtre **Terminer** : nouveau bouton **J'ai changé de bobine** sur chaque impression (sauf annulée). Tu choisis la nouvelle bobine (même matière puis même couleur en premier), et la **part de la bobine vidée** est préremplie avec son reste estimé (calibration comprise), plafonné au poids de la pièce ; tu peux la modifier
+- La bobine vidée reçoit sa part, la nouvelle bobine reçoit le reste du poids de la pièce (poids prévu réparti de la même façon) ; la répartition s'affiche en direct avant l'enregistrement. Le coût matière se calcule bobine par bobine avec leurs prix
+- Refusé si la part de la bobine vidée couvre déjà tout le poids, ou si la nouvelle bobine est déjà utilisée par la pièce
+- Fenêtre **Lancer** : quand une bobine risque de manquer, la ligne indique aussi l'ancienneté de la dernière pesée, avec un rappel du bouton de relais
+- Historique de la page Production : pastille **relais** sur les impressions concernées ; **Corriger** fonctionne sur les deux bobines comme avant
+- Calibration : les impressions avec relais sont écartées (la part de chaque bobine y est estimée, pas mesurée), mais leur consommation compte bien dans le reste estimé
+- Base : nouvelle colonne `relay` sur `print_run_filaments` (ajoutée par `schema.sql`, rien à faire à la main) ; API : `POST /api/runs/:id/finish` accepte `relay: { from_filament_id, to_filament_id, from_g }` (pas de relais en lot)
+
 ## v1.21.0 — 22/10/2026
 
 L'historique de la page Production reste lisible quand il s'allonge.

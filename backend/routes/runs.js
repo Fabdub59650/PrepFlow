@@ -3,7 +3,9 @@
  * Monté sur /api :
  *   POST   /api/runs/start                  démarrer un lancement (groupé si plusieurs pièces)
  *   POST   /api/parts/:id/runs/start        démarrer une seule pièce
- *   POST   /api/runs/:id/finish             terminer une impression (ok / raté / annulé)
+ *   POST   /api/runs/:id/finish             terminer une impression (ok / raté / annulé) ;
+ *                                           relay: { from_filament_id, to_filament_id, from_g } si la bobine s'est vidée
+ *                                           en cours d'impression et a été remplacée (v1.22.0)
  *   POST   /api/batches/:batchId/finish     terminer d'un coup toutes les impressions d'un lancement groupé
  *   PUT    /api/runs/:id                    corriger notes et poids d'une impression terminée
  *   DELETE /api/runs/:id                    supprimer une impression (erreur de saisie)
@@ -105,7 +107,7 @@ async function loadRuns({ ids = null, state = null, projectId = null, partId = n
      LIMIT ?`, [...params, Math.min(Math.max(parseInt(limit, 10) || 200, 1), 1000)]);
   if (!runs.length) return [];
   const [fils] = await db.query(
-    `SELECT rf.run_id, rf.filament_id, rf.material, rf.color_name, rf.planned_g, rf.weight_g,
+    `SELECT rf.run_id, rf.filament_id, rf.material, rf.color_name, rf.planned_g, rf.weight_g, rf.relay,
             fc.name, fc.spool_number
      FROM print_run_filaments rf LEFT JOIN filament_cache fc ON fc.id = rf.filament_id
      WHERE rf.run_id IN (?) ORDER BY rf.id`, [runs.map(r => r.id)]);
@@ -331,6 +333,44 @@ function cleanWeights(list, rows) {
   return out;
 }
 
+// ── Relais de bobine ──────────────────────────────────────────
+// La bobine `from` s'est vidée en cours d'impression et a été remplacée par `to` : `from` reçoit `from_g`
+// (son reste estimé, modifiable), `to` reçoit le reste du poids de la pièce. Les deux lignes sont marquées
+// relay = 1 : la part de `from` est une estimation, pas une mesure, donc la calibration les écarte.
+function cleanRelay(relay, rows) {
+  if (relay === undefined || relay === null) return null;
+  if (typeof relay !== 'object') throw bad('relay doit être un objet');
+  const from = parseInt(relay.from_filament_id, 10), to = parseInt(relay.to_filament_id, 10);
+  const g = Number(relay.from_g);
+  if (!Number.isFinite(from) || !Number.isFinite(to)) throw bad('Relais : bobines invalides');
+  if (from === to) throw bad('Relais : la nouvelle bobine doit être différente de la bobine vidée');
+  if (!rows.some(r => r.filament_id === from)) throw bad("Relais : la bobine vidée n'appartient pas à cette impression");
+  if (rows.some(r => r.filament_id === to)) throw bad('Relais : cette bobine est déjà utilisée par la pièce');
+  if (relay.from_g === null || relay.from_g === '' || !Number.isFinite(g) || g < 0) throw bad('Relais : poids de la bobine vidée invalide');
+  return { from, to, from_g: round2(g) };
+}
+
+async function applyRelay(conn, runId, rows, finalG, { from, to, from_g }) {
+  const total = finalG.get(from);
+  const shareFrom = Math.min(from_g, total);
+  const shareTo = round2(total - shareFrom);
+  if (shareTo <= 0) {
+    throw bad(`Relais : la bobine vidée couvre déjà les ${total} g de cette pièce, il n'y a pas de relais à enregistrer`);
+  }
+  const [[cached]] = await conn.query('SELECT id, material, color_name FROM filament_cache WHERE id=?', [to]);
+  if (!cached) throw bad('Relais : bobine inconnue');
+  // Le prévu suit la même répartition que le poids retenu
+  const plannedFrom = Number(rows.find(r => r.filament_id === from).planned_g);
+  const plannedShareFrom = total > 0 ? round2(plannedFrom * shareFrom / total) : 0;
+  await conn.query(
+    'UPDATE print_run_filaments SET weight_g=?, planned_g=?, relay=1 WHERE run_id=? AND filament_id=?',
+    [shareFrom, plannedShareFrom, runId, from]);
+  await conn.query(
+    `INSERT INTO print_run_filaments (run_id, filament_id, material, color_name, planned_g, weight_g, relay)
+     VALUES (?, ?, ?, ?, ?, ?, 1)`,
+    [runId, to, cached.material, cached.color_name, round2(plannedFrom - plannedShareFrom), shareTo]);
+}
+
 async function finishRun(conn, runId, body) {
   const [[run]] = await conn.query('SELECT * FROM print_runs WHERE id=? FOR UPDATE', [runId]);
   if (!run) throw missing('Impression introuvable');
@@ -350,12 +390,17 @@ async function finishRun(conn, runId, body) {
 
   const [rows] = await conn.query('SELECT filament_id, planned_g FROM print_run_filaments WHERE run_id=?', [run.id]);
   const overrides = result === 'annule' ? new Map() : cleanWeights(body.weights, rows);
+  if (result === 'annule' && body.relay) throw bad("Pas de relais de bobine sur une impression annulée");
+  const relay = cleanRelay(body.relay, rows);
+  const finalG = new Map();
   for (const r of rows) {
     const g = result === 'annule' ? 0
       : overrides.has(r.filament_id) ? overrides.get(r.filament_id)
       : round2(Number(r.planned_g) * pct / 100);
+    finalG.set(r.filament_id, g);
     await conn.query('UPDATE print_run_filaments SET weight_g=? WHERE run_id=? AND filament_id=?', [g, run.id, r.filament_id]);
   }
+  if (relay) await applyRelay(conn, run.id, rows, finalG, relay);
   const notes = 'notes' in body ? (body.notes && String(body.notes).trim() ? String(body.notes).trim() : null) : run.notes;
   await conn.query(
     `UPDATE print_runs
@@ -376,7 +421,7 @@ router.post('/runs/:id/finish', async (req, res) => {
 // Lancement groupé : même résultat pour toutes les impressions encore en cours du lot
 router.post('/batches/:batchId/finish', async (req, res) => {
   try {
-    const { weights, ...body } = req.body || {};     // pas de poids corrigés en lot : un par impression
+    const { weights, relay, ...body } = req.body || {};     // ni poids corrigés ni relais en lot : un par impression
     const ids = await withTx(async conn => {
       const [runs] = await conn.query(
         "SELECT id FROM print_runs WHERE batch_id=? AND state='en_cours' ORDER BY id FOR UPDATE", [req.params.batchId]);

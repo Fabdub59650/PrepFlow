@@ -114,7 +114,8 @@ const LIST_SQL = `
   LEFT JOIN (
     SELECT rf.filament_id, SUM(rf.weight_g) AS used_g, COUNT(DISTINCT r.id) AS runs_n,
            -- poids jamais corrigé à la main : seul celui-là est une estimation du slicer, donc calibrable
-           SUM(CASE WHEN ABS(rf.weight_g - rf.planned_g * COALESCE(r.progress_pct, 100) / 100) < 0.05 THEN rf.weight_g ELSE 0 END) AS used_unc_g
+           -- (hors relais de bobine : la part de chaque bobine y est estimée à partir de son reste, pas du slicer)
+           SUM(CASE WHEN rf.relay = 0 AND ABS(rf.weight_g - rf.planned_g * COALESCE(r.progress_pct, 100) / 100) < 0.05 THEN rf.weight_g ELSE 0 END) AS used_unc_g
     FROM print_run_filaments rf
     JOIN print_runs r ON r.id = rf.run_id
     JOIN filament_cache c ON c.id = rf.filament_id

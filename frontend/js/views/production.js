@@ -223,7 +223,7 @@ export async function renderProduction(el) {
     return `<tr>
       <td class="nowrap">${formatDate(r.ended_at, { withTime: true })}</td>
       <td><a href="#/projet/${r.project_id}" class="cell-code">${escapeHtml(r.project_code || '')}</a></td>
-      <td>${escapeHtml(r.part_name || 'Sans nom')} × ${r.quantity}${r.batch_id ? ' <span class="tag" title="Lancée avec d’autres pièces sur le même plateau : la durée réelle est celle du plateau">groupé</span>' : ''}</td>
+      <td>${escapeHtml(r.part_name || 'Sans nom')} × ${r.quantity}${r.batch_id ? ' <span class="tag" title="Lancée avec d’autres pièces sur le même plateau : la durée réelle est celle du plateau">groupé</span>' : ''}${r.filaments.some(f => Number(f.relay)) ? ' <span class="tag" title="Une bobine s’est vidée en cours d’impression : la consommation est répartie entre les deux bobines (part de la première estimée)">relais</span>' : ''}</td>
       <td>${escapeHtml(r.printer_name || '—')}</td>
       <td><span class="pill pill-run-${r.result}">${escapeHtml(resultLabel(r))}</span></td>
       <td class="num"><strong>${formatDuration(r.duration_s) || '—'}</strong>${r.planned_time_s ? `<span class="sub-line">prévu ${formatDuration(r.planned_time_s)}</span>` : ''}</td>
