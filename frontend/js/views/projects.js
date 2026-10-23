@@ -2,6 +2,7 @@ import { api } from '../api.js';
 import { toast, promptDialog } from '../ui.js';
 import { PROJECT_STATUS, formatDuration, formatWeight, formatDate, escapeHtml, sourceLink } from '../format.js';
 import { themeChipsHtml, colorAttr } from '../themes.js';
+import { openDuplicateDialog } from '../duplicate.js';
 
 let showArchived = false;
 
@@ -22,6 +23,7 @@ const COLUMNS = [
   { key: 'time',     label: 'Temps total', value: p => p.total_time_s, num: true },
   { key: 'weight',   label: 'Poids total', value: p => p.total_weight_g, num: true },
   { key: 'progress', label: 'Avancement',  value: progress },
+  { key: 'actions',  label: '',            sortable: false },
 ];
 
 function readSort() {
@@ -151,6 +153,8 @@ export async function renderProjects(el) {
             <td><div class="progress" title="${p.pieces_done} / ${p.pieces_count} pièces imprimées">
                   <div class="progress-bar" style="width:${pct}%"></div></div>
                 <span class="progress-label">${p.pieces_done} / ${p.pieces_count}</span></td>
+            <td class="nowrap"><button type="button" class="icon-btn" data-dup="${p.id}" title="Dupliquer ce projet (réimpression)" aria-label="Dupliquer le projet ${escapeHtml(p.name)}">
+              <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="7" y="7" width="9" height="10" rx="1.5"/><path d="M13 7V4.5A1.5 1.5 0 0 0 11.5 3h-6A1.5 1.5 0 0 0 4 4.5v8A1.5 1.5 0 0 0 5.5 14H7"/></svg></button></td>
           </tr>`;
         }).join('')}
         </tbody>
@@ -163,6 +167,10 @@ export async function renderProjects(el) {
         location.hash = `#/projet/${tr.dataset.id}`;
       });
     });
+    body.querySelectorAll('[data-dup]').forEach(btn => btn.addEventListener('click', () => {
+      const p = projects.find(x => x.id === Number(btn.dataset.dup));
+      if (p) openDuplicateDialog({ id: p.id, name: p.name });
+    }));
     body.querySelectorAll('[data-sort]').forEach(btn => btn.addEventListener('click', () => {
       const key = btn.dataset.sort;
       // 1er clic : croissant (décroissant pour l'avancement), 2e clic : inverse

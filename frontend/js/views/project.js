@@ -7,6 +7,7 @@ import {
 } from '../format.js';
 import { derivePart, summarize } from '../summary.js';
 import { mountThemeEditor } from '../themes.js';
+import { openDuplicateDialog } from '../duplicate.js';
 import { indexRuns, runsToFinish, openStartDialog, openFinishDialog, updateRunsBadge } from '../runs.js';
 
 /* ── Données d'une ligne ───────────────────────────────────────── */
@@ -262,6 +263,7 @@ export async function renderProject(el, id) {
               `<option value="${k}" ${k === project.status ? 'selected' : ''}>${v}</option>`).join('')}
           </select>
           <a class="btn" id="open-checklist" href="#/projet/${Number(id)}/controle" title="Fiche à imprimer pour vérifier que toutes les pièces sont présentes">Fiche de contrôle</a>
+          <button class="btn" id="duplicate-project" title="Créer une copie de ce projet pour le réimprimer">Dupliquer</button>
           <button class="btn" id="refresh-stock" title="Relire le stock dans FilaFlow">Actualiser le stock</button>
           <button class="btn btn-ghost-danger" id="delete-project">Supprimer le projet</button>
         </div>
@@ -1275,6 +1277,8 @@ export async function renderProject(el, id) {
     table.recalc();
     refreshSummary();
   }
+
+  el.querySelector('#duplicate-project').addEventListener('click', () => openDuplicateDialog({ id, name: project.name }));
 
   /* Remplacer une bobine par une autre dans tout le projet */
   el.querySelector('#replace-spool').addEventListener('click', () => {

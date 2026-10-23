@@ -3,6 +3,7 @@ const db = require('../db');
 const { loadParts } = require('./parts');
 const { assignCode, withRetry } = require('../codes');
 const { parseThemeNames, themesByProject, setProjectThemes } = require('./themes');
+const { duplicateProject, unassignedGroups, assignSpools } = require('../duplicate');
 
 // Lien source : http(s) uniquement (jamais javascript:, data:…), 500 caractères max
 function cleanSourceUrl(v) {
@@ -85,6 +86,28 @@ router.post('/', async (req, res) => {
     row.themes = [];
     res.status(201).json(row);
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Dupliquer un projet : mêmes pièces, sans historique, imprimante ni bobines choisies (matière et couleur gardées)
+router.post('/:id/duplicate', async (req, res) => {
+  try {
+    const id = await duplicateProject(parseInt(req.params.id, 10), req.body && req.body.name);
+    const [[row]] = await db.query('SELECT * FROM projects WHERE id=?', [id]);
+    row.themes = (await themesByProject([id])).get(id) || [];
+    res.status(201).json({ project: row, groups: await unassignedGroups(id) });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+
+// Choisir des bobines pour les lignes sans bobine : [{ material, color_name, filament_id }]
+router.post('/:id/assign-spools', async (req, res) => {
+  try {
+    const list = Array.isArray(req.body && req.body.assignments) ? req.body.assignments : [];
+    if (!list.length) return res.status(400).json({ error: 'Aucune bobine à affecter' });
+    const [[p]] = await db.query('SELECT id FROM projects WHERE id=?', [req.params.id]);
+    if (!p) return res.status(404).json({ error: 'Projet introuvable' });
+    const lines = await assignSpools(p.id, list);
+    res.json({ lines, groups: await unassignedGroups(p.id) });
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
 });
 
 // Projet complet : en-tête + pièces (avec leurs filaments)

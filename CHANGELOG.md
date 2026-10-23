@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.23.0 — 23/10/2026
+
+Dupliquer un projet pour le réimprimer.
+
+- Bouton **Dupliquer** sur la page d'un projet (à côté de Fiche de contrôle) et icône de copie sur chaque ligne de la liste des projets
+- La copie reçoit un **nouveau code** et le nom « <nom> (copie) », modifiable avant création
+- Copiés : pièces (fichier, quantité, poids, temps, notes, ordre), thèmes, lien source, notes, réglages de marge, et pour chaque pièce la **matière et la couleur** voulues
+- Remises à zéro : toutes les pièces repassent à **Prêt** ; ni l'historique d'impression ni l'avancement ne sont copiés
+- **Non copiés** : l'**imprimante** (elle peut changer entre-temps) et le **choix de bobine**
+- Fenêtre **Choisir les bobines** juste après la copie : pour chaque couleur, une liste des bobines en stock de la même matière et couleur en premier, ou « Plus tard » (Annuler) ; l'affectation se fait aussi plus tard dans le tableau ou avec « Remplacer une bobine »
+- API : `POST /api/projects/:id/duplicate` et `POST /api/projects/:id/assign-spools` ; aucun changement de base de données
+
 ## v1.22.0 — 22/10/2026
 
 Relais de bobine : une bobine se vide en cours d'impression et tu la remplaces par une autre.

@@ -804,3 +804,9 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
   .ck-table tr { break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Dupliquer un projet : choix des bobines */
+.dup-spools { display: grid; gap: 10px; margin-top: 10px; }
+.dup-row { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(0, 2fr); align-items: center; gap: 10px; }
+.dup-row .select { width: 100%; height: 36px; }
+.dup-help { margin-top: 12px; line-height: 1.5; }
