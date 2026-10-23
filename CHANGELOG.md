@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.24.0 — 23/10/2026
+
+Contrôle des pièces à l'écran, sur téléphone, tablette ou PC : plus besoin d'imprimer la fiche.
+
+- Le bouton **Fiche de contrôle** devient **Contrôle des pièces** : une liste à plat, une ligne par pièce (nom, fichier, couleur), avec un compteur **0 / 4**. Un tap sur la ligne la marque **complète** (« tout présent ») ; **−** et **+** servent aux cas partiels (3 sur 4)
+- Trois états : à vérifier (gris), complète (vert), incomplète (orange, avec une **remarque** facultative, ex. « 1 cassée »)
+- Barre de progression fixe en haut (« 7 / 12 lignes · 23 / 30 pièces ») et filtre **Reste à vérifier**
+- Tout est **enregistré au fil de l'eau** : on peut interrompre, reprendre, ou continuer sur un autre appareil
+- **Terminer le contrôle** enregistre la date (confirmation s'il reste des lignes incomplètes) ; **Recommencer** remet tout à zéro ; quand tout est complet, un bouton propose de **marquer le projet terminé** (jamais automatique)
+- La page du projet affiche l'avancement du contrôle à côté du bouton (« 7/12 », « contrôlé »)
+- Chaque projet se contrôle **indépendamment** : une copie (Dupliquer) repart d'un contrôle vierge
+- La **version papier** (A4) reste disponible (bouton « Version papier ») et reprend les lignes déjà contrôlées, les quantités partielles, les remarques et la date
+- L'écran reste allumé pendant le contrôle quand le navigateur le permet
+- Téléphone : la barre de menus du haut ne déborde plus (les menus défilent sur le côté), ce qui rend toute l'application utilisable sur un petit écran
+- Base : colonnes `parts.check_qty`, `parts.check_note` et `projects.check_done_at` (ajoutées par `schema.sql`, rien à faire à la main) ; API : `PUT /api/parts/:id/check`, `POST /api/projects/:id/check/finish` et `/reset`
+
 ## v1.23.0 — 23/10/2026
 
 Dupliquer un projet pour le réimprimer.

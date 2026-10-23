@@ -172,6 +172,11 @@ ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `min_piece_price` decimal(8,2) D
 -- v1.18.0 : lien vers la source du projet (MakerWorld, Printables…)
 ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `source_url` varchar(500) DEFAULT NULL;
 
+-- v1.24.0 : contrôle des pièces à l'écran (quantité comptée, remarque, date de fin de contrôle)
+ALTER TABLE `parts`    ADD COLUMN IF NOT EXISTS `check_qty`     int(11)      DEFAULT NULL;
+ALTER TABLE `parts`    ADD COLUMN IF NOT EXISTS `check_note`    varchar(255) DEFAULT NULL;
+ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `check_done_at` datetime     DEFAULT NULL;
+
 -- v1.17.0 : thèmes de projet (plusieurs par projet). Nom unique sans tenir compte
 -- de la casse ni des accents (collation unicode_ci) : « Noel » = « Noël ».
 CREATE TABLE IF NOT EXISTS `themes` (

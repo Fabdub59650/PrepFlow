@@ -237,6 +237,16 @@ function initStickyHead(root, head) {
 const GRID_ROW_H = 39, GRID_HEADER_H = 36, GRID_FOOTER_H = 40;
 const GRID_MAX_HEIGHT = (GRID_HEADER_H + 10 * GRID_ROW_H + GRID_FOOTER_H + 2) + 'px';
 
+// Pastille d'avancement du contrôle des pièces, à côté du bouton
+function checkBadge(project) {
+  const parts = project.parts || [];
+  if (!parts.length) return '';
+  const done = parts.filter(p => p.check_qty !== null && p.check_qty !== undefined).length;
+  const complete = parts.filter(p => p.check_qty !== null && p.check_qty !== undefined && Math.min(p.check_qty, p.quantity) >= p.quantity).length;
+  if (project.check_done_at) return ` <span class="pill ${complete === parts.length ? 'pill-run-ok' : 'pill-run-rate'}">${complete === parts.length ? 'contrôlé' : complete + '/' + parts.length}</span>`;
+  return done ? ` <span class="pill">${done}/${parts.length}</span>` : '';
+}
+
 export async function renderProject(el, id) {
   const [project, runList] = await Promise.all([
     api.get(`projects/${id}`),
@@ -262,7 +272,7 @@ export async function renderProject(el, id) {
             ${Object.entries(PROJECT_STATUS).map(([k, v]) =>
               `<option value="${k}" ${k === project.status ? 'selected' : ''}>${v}</option>`).join('')}
           </select>
-          <a class="btn" id="open-checklist" href="#/projet/${Number(id)}/controle" title="Fiche à imprimer pour vérifier que toutes les pièces sont présentes">Fiche de contrôle</a>
+          <a class="btn" id="open-checklist" href="#/projet/${Number(id)}/controle" title="Vérifier à l'écran que toutes les pièces sont présentes (fiche papier disponible)">Contrôle des pièces${checkBadge(project)}</a>
           <button class="btn" id="duplicate-project" title="Créer une copie de ce projet pour le réimprimer">Dupliquer</button>
           <button class="btn" id="refresh-stock" title="Relire le stock dans FilaFlow">Actualiser le stock</button>
           <button class="btn btn-ghost-danger" id="delete-project">Supprimer le projet</button>

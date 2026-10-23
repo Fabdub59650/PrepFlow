@@ -453,6 +453,16 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
   .figure:nth-child(n+3) { border-top: 0.5px solid var(--border); }
   .panels { grid-template-columns: 1fr; }
 }
+/* Téléphone : la barre du haut reste sur une ligne ; les menus défilent sur le côté */
+@media (max-width: 700px) {
+  .topbar { gap: 8px; padding: 0 10px; }
+  .brand-name, .ff-status { display: none; }
+  .nav { flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-link { padding: 6px 9px; font-size: 15px; white-space: nowrap; position: relative; }
+  .topbar-end { margin-left: 0; gap: 6px; flex: none; }
+  .topbar-end .btn { padding: 0 8px; font-size: 11px; }
+}
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
@@ -810,3 +820,62 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .dup-row { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(0, 2fr); align-items: center; gap: 10px; }
 .dup-row .select { width: 100%; height: 36px; }
 .dup-help { margin-top: 12px; line-height: 1.5; }
+
+/* ── v1.24.0 : contrôle des pièces à l'écran ── */
+.cs { max-width: 760px; margin: 0 auto; }
+.cs-head { margin-bottom: 14px; }
+.cs-title { font-family: var(--font-display); font-weight: 700; font-size: 28px; letter-spacing: var(--tracking-title); text-transform: uppercase; line-height: 1.05; margin-bottom: 6px; }
+.cs .ck-meta { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.cs .ck-code { font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--border2); color: var(--text2); padding: 1px 6px; }
+.cs-project { font-size: 15px; font-weight: 600; }
+.cs-status { margin-top: 6px; font-size: 13px; color: var(--text3); }
+.cs-status.is-done { color: var(--success); }
+.cs-status.is-warn { color: var(--warning); }
+.cs .ck-empty { color: var(--text3); }
+.cs .ck-file { color: var(--text3); }
+.cs .ck-color { display: inline-flex; align-items: center; margin-right: 10px; font-size: 12.5px; color: var(--text2); }
+.cs .ck-color .swatch { margin-right: 5px; }
+
+.cs-bar { position: sticky; top: 56px; z-index: 12; background: var(--bg); padding: 10px 0 8px; border-bottom: 0.5px solid var(--border); margin-bottom: 12px; }
+.cs-bar-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.cs-filter { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); cursor: pointer; min-height: 32px; }
+.cs-filter input { width: 18px; height: 18px; }
+.cs-meter { height: 6px; border-radius: 3px; background: var(--bg3); margin-top: 8px; overflow: hidden; }
+.cs-meter span { display: block; height: 100%; background: var(--success); transition: width .2s; }
+.cs-warn { display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 500; color: var(--warning); }
+
+.cs-list { list-style: none; display: grid; gap: 8px; }
+.cs-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center;
+  background: var(--bg2); border: 0.5px solid var(--border); border-left: 4px solid var(--border2);
+  border-radius: 8px; padding: 8px 10px;
+}
+.cs-row.is-ok { border-left-color: var(--success); background: var(--success-bg); }
+.cs-row.is-partial { border-left-color: var(--warning); background: var(--warning-bg); }
+.cs-main { display: flex; align-items: center; gap: 12px; text-align: left; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; padding: 4px 0; min-height: 48px; min-width: 0; }
+.cs-tick { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--border2); display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 13px; color: var(--text3); }
+.is-ok .cs-tick { background: var(--success); border-color: var(--success); color: var(--bg); font-size: 18px; font-weight: 700; }
+.is-partial .cs-tick { border-color: var(--warning); color: var(--warning); }
+.cs-info { display: grid; gap: 2px; min-width: 0; }
+.cs-name { font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
+.cs-count { display: inline-flex; align-items: center; gap: 6px; }
+.cs-qty { min-width: 56px; text-align: center; font-size: 15px; font-variant-numeric: tabular-nums; color: var(--text2); }
+.cs-qty strong { font-size: 18px; color: var(--text); }
+.cs-step { width: 44px; height: 44px; border-radius: 8px; border: 0.5px solid var(--border2); background: var(--bg3); color: var(--text); font-size: 22px; line-height: 1; cursor: pointer; }
+.cs-step:disabled { opacity: .35; cursor: default; }
+.cs-notebox { grid-column: 1 / -1; }
+.cs-note { width: 100%; height: 38px; padding: 0 10px; border-radius: 6px; border: 0.5px solid var(--border2); background: var(--bg); color: var(--text); font: inherit; font-size: 14px; }
+.cs-addnote { background: none; border: 0; color: var(--text3); font: inherit; font-size: 12.5px; cursor: pointer; padding: 2px 0; min-height: 28px; }
+.cs-addnote:hover { color: var(--accent); }
+.cs-allok { padding: 20px; text-align: center; color: var(--success); font-weight: 500; }
+.cs-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; padding-bottom: 24px; }
+.cs-actions .btn { min-height: 44px; }
+@media (max-width: 560px) {
+  .cs-title { font-size: 22px; }
+  .cs-bar { top: 56px; }
+  .cs-row { padding: 8px; }
+  .cs-actions .btn { flex: 1 1 100%; }
+}
+/* Papier : une ligne contrôlée à l'écran */
+.ck-square-ok { text-align: center; line-height: 5mm; font-weight: 700; font-size: 11pt; }
+.ck-partial { font-weight: 600; font-size: 10pt; }

@@ -34,6 +34,7 @@ app.use('/api/settings',  require('./routes/settings'));
 app.use('/api/updater',   require('./routes/updater'));
 app.use('/api/needs',     require('./routes/needs'));
 app.use('/api',           require('./routes/parts').router);
+app.use('/api',           require('./routes/check').router);
 app.use('/api',           require('./routes/runs').router);
 app.use('/api',           require('./routes/cost').router);
 app.use('/api',           require('./routes/maintenance').router);
