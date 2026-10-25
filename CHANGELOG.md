@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.27.1 — 25/10/2026
+
+- Atelier : le bouton « Chercher par code » n'apparaît plus dans l'onglet « À contrôler » (liste courte, la recherche n'y sert pas)
+
 ## v1.27.0 — 25/10/2026
 
 - **Atelier : contrôle des pièces à l'écran tactile.** Un onglet **À contrôler** (à côté de « À lancer ») liste les projets dont toutes les pièces sont imprimées et dont le contrôle n'est pas terminé, avec l'avancement (« contrôle en cours · 2 / 5 »). Une fiche plein écran 1024×600 reprend le contrôle du téléphone : un toucher = tout présent, boutons − / + pour les quantités partielles, « Terminer le contrôle » (confirmation si incomplet) ou « Contrôle et projet terminés ». Le contrôle est le même que sur téléphone ou PC : on peut commencer sur l'un et finir sur l'autre ; la remarque se saisit sur téléphone ou PC et s'affiche à l'Atelier

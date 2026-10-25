@@ -309,3 +309,5 @@ body.atelier {
 .atc-qty { min-width: 78px; text-align: center; font-family: var(--font-mono); font-size: 18px; color: var(--text3); }
 .atc-qty strong { font-size: 24px; color: var(--text); }
 .atc-confirm { padding: 18px 16px; font-size: 18px; line-height: 1.4; }
+
+.at-code-btn[hidden] { display: none; }

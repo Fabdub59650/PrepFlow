@@ -796,6 +796,7 @@ function drawReady() {
     b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
   });
   const check = S.tab === 'controler';
+  $('#at-code').hidden = check;                      // la liste « À contrôler » est courte : pas de recherche par code
   const list = (check ? toCheck : S.projects.filter(p => p.todo_parts > 0)).slice(0, 40);
   const sig = JSON.stringify([S.tab, list.map(p => check ? [p.id, p.n_parts, p.check_lines, p.status] : [p.id, p.todo_parts, p.todo_pieces, p.todo_time_s, p.needs_spools, p.status])]);
   if (sig === readySig) return;
