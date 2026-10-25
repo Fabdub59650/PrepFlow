@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.30.1 — 25/10/2026
+
+- **Fenêtre « Terminer l'impression » : n° de la bobine entre parenthèses** à côté de son nom (« PLA Noir (12) »), sur la ligne du poids retenu et dans le choix « Bobine vidée » du relais, pour vérifier plus facilement la bobine
+
 ## v1.30.0 — 25/10/2026
 
 - **Corriger la bobine d'une impression lancée par erreur.** Dans « Corriger l'impression », chaque ligne de filament a maintenant un sélecteur de bobine : la même matière et la même couleur viennent en premier, avec le reste de chaque bobine. Les bobines déjà utilisées par l'impression et les bobines archivées ne sont pas proposées ; un avertissement apparaît si la matière change. L'enregistrement remplace la bobine de la ligne en gardant le poids retenu. Possible sur une impression terminée (historique) comme sur une impression **en cours** (lien « Corriger » sur sa carte, page Production). La consommation, le stock estimé des deux bobines, la calibration et le coût se corrigent seuls. Le résultat, la matière et la couleur du prévu ne changent pas (supprimer et refaire reste la règle pour le résultat). Non proposé sur l'écran Atelier

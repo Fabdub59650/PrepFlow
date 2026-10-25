@@ -186,7 +186,7 @@ export function openFinishDialog({ runs, onDone }) {
         ${r.filaments.map(f => `
           <label class="fw" data-fid="${f.filament_id}">
             ${swatch(store.filamentsById.get(f.filament_id)?.color_hex)}
-            <span class="fw-name">${escapeHtml(f.name || filamentLabel(store.filamentsById.get(f.filament_id)))}</span>
+            <span class="fw-name">${escapeHtml(lineSpool(f))}</span>
             <span class="fw-plan">prévu ${formatWeight(Number(f.planned_g)) || '0 g'}</span>
             <input type="text" inputmode="decimal" data-w aria-label="Poids retenu de ${escapeHtml(f.name || 'la bobine')} en grammes">
             <span>g</span>
@@ -198,7 +198,7 @@ export function openFinishDialog({ runs, onDone }) {
           <p class="relay-help">La bobine vidée prend son reste estimé (modifiable), la nouvelle bobine prend le reste du poids de la pièce.</p>
           <label class="relay-row"><span>Bobine vidée</span>
             <select class="select" data-relay-from ${r.filaments.length === 1 ? 'disabled' : ''} aria-label="Bobine vidée">
-              ${r.filaments.map(f => `<option value="${f.filament_id}">${escapeHtml(f.name || filamentLabel(store.filamentsById.get(f.filament_id)))}</option>`).join('')}
+              ${r.filaments.map(f => `<option value="${f.filament_id}">${escapeHtml(lineSpool(f))}</option>`).join('')}
             </select></label>
           <label class="relay-row"><span>Remplacée par</span>
             <select class="select" data-relay-to aria-label="Nouvelle bobine"></select></label>
@@ -419,6 +419,14 @@ function addMinutes(dt, mins) {
 function fmtLocal(dt) {
   const m = String(dt).match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})/);
   return `${m[3]}/${m[2]}/${m[1]} à ${m[4]}`;
+}
+
+// Nom de la bobine d'une ligne d'impression, avec son n° entre parenthèses
+function lineSpool(f) {
+  const c = store.filamentsById.get(f.filament_id);
+  if (c) return filamentLabel(c);
+  const n = f.spool_number && String(f.spool_number).trim();
+  return (f.name || 'Filament inconnu') + (n ? ` (${n})` : '');
 }
 
 /* ── Corriger une impression (bobines, poids retenus, notes) ────── */
