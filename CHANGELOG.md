@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.29.0 — 25/10/2026
+
+- **Atelier : badge de la bobine quand on passe une puce NFC sur le lecteur.** L'Atelier écoute le flux de lecture de FilaFlow (`/api/nfc/events`, même adresse que PrepFlow) et affiche pendant quelques secondes la bobine reconnue (numéro, nom, couleur), son reste (estimé ou pesé, avec l'ancienneté de la pesée) et, si une impression en cours l'utilise, l'imprimante et le projet (« ▶ En cours sur Neptune 4 Plus · P261001 »). Une puce non liée affiche « Puce non liée à une bobine ». La lecture réveille aussi la veille de la page. Lecture seule : rien n'est écrit dans FilaFlow ni dans PrepFlow, et FilaFlow n'est pas modifié. `?nfc=0` dans l'adresse désactive l'écoute
+
 ## v1.28.0 — 25/10/2026
 
 - **Atelier : maintenance des imprimantes à l'écran tactile.** Un bandeau orange « Maintenance à faire · n tâches dépassées » apparaît en haut de l'Atelier dès qu'une tâche d'une imprimante active est dépassée. Il ouvre la liste par imprimante, avec l'échéance (« dépassée de 12 h ») et un bouton **Fait** (confirmation avant d'enregistrer). Même suivi que la page Imprimantes : la tâche repart de zéro et l'entretien est ajouté à l'historique. Le coût et la note se saisissent sur la page Imprimantes. Aucune modification de base de données ni de serveur

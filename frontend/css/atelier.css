@@ -326,3 +326,17 @@ body.atelier {
 .atm-name { flex: 1; min-width: 0; font-size: 19px; display: grid; gap: 2px; }
 .atm-name small { font-size: 14px; color: var(--warning); }
 .atm-task .at-btn { flex: none; min-width: 110px; }
+
+/* ── Badge de la puce NFC ──────────────────────────────────────── */
+.at-nfc {
+  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 80;
+  width: min(560px, calc(100vw - 24px)); padding: 12px 16px; border-radius: var(--radius-lg);
+  background: var(--bg2); border: 1.5px solid var(--text3); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  display: grid; gap: 4px; cursor: pointer;
+}
+.at-nfc.is-warn { border-color: var(--warning); }
+.at-nfc-title { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: var(--tracking-heading); }
+.at-nfc-title span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.at-nfc-sub { font-size: 18px; color: var(--text2); }
+.at-nfc-sub strong { color: var(--text); font-size: 20px; }
+.at-nfc-use { font-size: 17px; color: var(--success); font-weight: 600; }

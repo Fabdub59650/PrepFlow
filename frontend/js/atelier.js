@@ -939,11 +939,65 @@ document.addEventListener('click', e => {
 }, true);
 ['touchmove', 'wheel', 'keydown'].forEach(ev => document.addEventListener(ev, () => { lastActive = Date.now(); }, { passive: true, capture: true }));
 
+/* ══ Puce NFC : badge de la bobine ═════════════════════════════════ */
+// Lecture seule : FilaFlow diffuse chaque puce lue (flux SSE /api/nfc/events, même adresse que PrepFlow).
+// L'Atelier affiche la bobine reconnue, son reste et l'impression en cours qui l'utilise. Rien n'est écrit.
+
+let badgeEl = null, badgeTimer = null, nfcRetry = 5000;
+
+function hideBadge() {
+  clearTimeout(badgeTimer);
+  if (badgeEl) { badgeEl.remove(); badgeEl = null; }
+}
+function hideBadgeSoon(ms) {
+  clearTimeout(badgeTimer);
+  badgeTimer = setTimeout(hideBadge, ms);
+}
+
+function showBadge(html, tone = '') {
+  hideBadge();
+  badgeEl = h(`<div class="at-nfc ${tone}" role="status">${html}</div>`);
+  badgeEl.addEventListener('click', hideBadge);
+  document.body.appendChild(badgeEl);
+  hideBadgeSoon(20_000);                          // la puce reste souvent sur le lecteur : on garde jusqu'à son retrait
+}
+
+async function onCard({ filament }) {
+  lastActive = Date.now();
+  if (!veille.hidden) veille.hidden = true;       // la lecture réveille la page (sans avaler de toucher)
+  if (!filament) {
+    showBadge('<div class="at-nfc-title">Puce non liée à une bobine</div><div class="at-nfc-sub">Elle se lie dans FilaFlow.</div>', 'is-warn');
+    return;
+  }
+  try { await store.loadFilaments(); } catch (_) {}   // reste à jour (pesée toute récente)
+  const f = store.filamentsById.get(filament.id) || null;
+  const st = f ? spoolStock(f) : null;
+  const uses = S.running.filter(r => (r.filaments || []).some(x => x.filament_id === filament.id));
+  const where = [...new Set(uses.map(r => [r.printer_name, r.project_code].filter(Boolean).join(' · ')))];
+  showBadge(`<div class="at-nfc-title">${swatch((f || filament).color_hex)}<span>${escapeHtml(filamentLabel(f || filament))}</span></div>
+    <div class="at-nfc-sub">${st && st.value !== null
+      ? `Reste <strong>${escapeHtml(st.text)}</strong>${st.estimated ? ' (estimé)' : ''}${st.age ? ` · ${escapeHtml(st.age)}` : ''}`
+      : 'Reste inconnu'}</div>
+    ${where.length ? `<div class="at-nfc-use">▶ En cours sur ${escapeHtml(where.join(', '))}</div>` : ''}`);
+}
+
+function nfcConnect() {
+  if (typeof EventSource === 'undefined' || new URLSearchParams(location.search).get('nfc') === '0') return;
+  let es;
+  try { es = new EventSource('/api/nfc/events'); } catch (_) { return; }
+  es.addEventListener('status', () => { nfcRetry = 5000; });
+  es.addEventListener('card', e => { try { onCard(JSON.parse(e.data)); } catch (_) {} });
+  es.addEventListener('card_removed', () => { if (badgeEl) hideBadgeSoon(4000); });
+  es.addEventListener('bye', () => { es.close(); setTimeout(nfcConnect, 1000); });   // recyclage planifié du flux par le serveur
+  es.onerror = () => { es.close(); setTimeout(nfcConnect, nfcRetry); nfcRetry = Math.min(nfcRetry * 2, 60_000); };
+}
+
 /* ══ Démarrage ═════════════════════════════════════════════════════ */
 
 async function init() {
   initTheme();
   await Promise.all([store.loadPrinters().catch(() => {}), store.loadFilaments().catch(() => {}), refresh()]);
+  nfcConnect();
   setInterval(tickElapsed, 10_000);
   setInterval(() => { if (!document.hidden) refresh({ quiet: true }); }, 12_000);
   setInterval(() => { if (!sheets.length) store.loadFilaments().catch(() => {}); }, 60_000);
