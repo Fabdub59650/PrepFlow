@@ -1,0 +1,8 @@
+#!/bin/sh
+# Session graphique du kiosque (à copier en ~/.xinitrc) : fenêtre unique, écran tactile, aucun curseur.
+DIR="$HOME/prepflow-kiosk"
+xset s off; xset s noblank
+xhost +SI:localuser:"$(id -un)" >/dev/null 2>&1   # permet à screen-watch.sh de piloter l'écran
+openbox &
+"$DIR/screen-watch.sh" &
+exec "$DIR/start-kiosk.sh"

@@ -28,6 +28,7 @@ Accès : **https://filaflow.local/prepflow/**
 - Les pièces marquées « Imprimé » ne comptent plus dans le besoin (la balance les a déjà décomptées)
 - Copie locale du stock : PrepFlow reste utilisable si FilaFlow est arrêté
 - Page Besoins : filament nécessaire sur plusieurs projets, par bobine ou par référence, comparé au stock, export CSV
+- Page Atelier (`atelier.html`) : écran tactile 7" près des imprimantes pour démarrer et terminer les impressions (pavé numérique, choix des bobines, relais, échec en %), veille automatique ; kiosque Raspberry Pi 3 : voir `docs/KIOSQUE-PI3.md`
 - Mode clair / sombre : bouton dans la barre du haut, modes automatiques dans Paramètres › Apparence
 
 ## Architecture
@@ -45,6 +46,8 @@ backend/        server.js, db.js, filaflow.js (lecture du stock), routes/
 frontend/       index.html, css/, js/ (app, store, views/), vendor/tabulator/, fonts/
 sql/schema.sql  schéma idempotent (rejoué à chaque mise à jour)
 nginx/          bloc location /prepflow/
+kiosk/          scripts du kiosque Pi 3 (Chromium plein écran, extinction de l'écran)
+docs/           procédures (KIOSQUE-PI3.md)
 systemd/        prepflow.service
 scripts/        install.sh, patch.sh, nginx_include.py
 ```

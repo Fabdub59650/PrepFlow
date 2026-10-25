@@ -36,6 +36,7 @@ app.use('/api/needs',     require('./routes/needs'));
 app.use('/api',           require('./routes/parts').router);
 app.use('/api',           require('./routes/check').router);
 app.use('/api',           require('./routes/runs').router);
+app.use('/api',           require('./routes/atelier').router);
 app.use('/api',           require('./routes/cost').router);
 app.use('/api',           require('./routes/maintenance').router);
 app.use('/api',           require('./routes/calibration').router);

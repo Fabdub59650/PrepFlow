@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.25.0 — 25/10/2026
+
+Page **Atelier** : lancer et terminer les impressions depuis un écran tactile 7" (Pi 3B+ + Waveshare 1024×600) posé près des imprimantes.
+
+- Nouvelle page `atelier.html` (accès : `https://filaflow.local/prepflow/atelier.html`, lien **Atelier** dans le menu de PrepFlow) : gros boutons (≥ 56 px), aucun tableau, aucun clavier à l'écran, pensée pour 1024×600
+- **En cours** (à gauche) : une carte par impression ou par plateau, avec l'imprimante, le temps écoulé, le temps prévu, le **reste** (ou le dépassement) et une barre de progression ; bouton **Terminer**
+- **À lancer** (à droite) : les projets qui ont encore des pièces prêtes (les plus récents d'abord), avec le nombre de pièces et le temps restant ; recherche par **code** au pavé numérique (P261001 → on tape 261001)
+- **Lancer** : une seule feuille, pièces cochées à gauche (quantité −/+, reste à imprimer proposé), imprimante à droite en gros boutons ; plusieurs pièces cochées = lancement groupé sur le même plateau ; le besoin en filament est comparé au reste estimé de chaque bobine, avec l'alerte « manque » et l'avertissement de maintenance dépassée comme sur le PC
+- Les pièces dont la bobine n'est pas encore choisie (copie d'un projet) affichent un encadré **Bobines à choisir** : une liste de bobines, la même matière et la même couleur d'abord, filtrable par matière, puis le lancement est possible
+- **Terminer** : Réussie / Ratée / Annulée ; une ratée se saisit en pourcentage réalisé (10 · 25 · 50 · 75 · 90 % ou un autre nombre au pavé) ; **J'ai changé de bobine** (relais) avec la part de la bobine vidée préremplie par son reste estimé ; pour un plateau, « Tout réussi » en un tap puis ajustement pièce par pièce
+- **Veille** : après 90 secondes sans toucher, l'écran passe presque noir avec l'heure et l'avancement des impressions ; le premier toucher réveille l'écran **sans rien déclencher** (réglable : `atelier.html?veille=120`, `?veille=0` pour désactiver). La page se recharge toute seule pendant la veille après une mise à jour de PrepFlow
+- La page se met à jour toute seule toutes les 12 secondes : un lancement fait depuis le PC apparaît sur l'écran de l'atelier
+- Aucun changement de base de données ni de règles de calcul : mêmes routes que la page Production (`runs/start`, `runs/:id/finish`, `batches/:id/finish`, `assign-spools`) ; deux routes de lecture ajoutées : `GET /api/atelier` et `GET /api/atelier/projects/:id`
+- Procédure d'installation du Pi 3B+ : `docs/KIOSQUE-PI3.md` et dossier `kiosk/`
+
 ## v1.24.0 — 23/10/2026
 
 Contrôle des pièces à l'écran, sur téléphone, tablette ou PC : plus besoin d'imprimer la fiche.

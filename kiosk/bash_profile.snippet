@@ -1,0 +1,4 @@
+# À ajouter à la fin de ~/.bash_profile sur le Pi 3 : démarre l'interface du kiosque à la connexion automatique sur tty1
+if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
+  exec startx -- -nocursor
+fi
