@@ -16,7 +16,7 @@ function todayFr() {
 
 // Couleur(s) d'une pièce : une seule couleur, ou une par filament pour une pièce multicolore.
 // Ordre de repli : couleur saisie sur la ligne, puis couleur de la bobine choisie dans FilaFlow.
-function partColors(p) {
+export function partColors(p) {
   const fils = p.filaments || [];
   const info = f => (f && f.filament_id != null) ? store.filamentsById.get(f.filament_id) : null;
   const one = (f, fallback) => {

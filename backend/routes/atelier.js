@@ -3,7 +3,7 @@
  * Monté sur /api. Lecture seule : les écritures passent par les routes existantes
  * (POST /api/runs/start, POST /api/runs/:id/finish, POST /api/batches/:id/finish,
  * POST /api/projects/:id/assign-spools), donc le comportement reste identique à la page Production.
- *   GET /api/atelier                impressions en cours + projets (avec ce qui reste à lancer) + version
+ *   GET /api/atelier                impressions en cours + projets (avec ce qui reste à lancer et l'état du contrôle) + version
  *   GET /api/atelier/projects/:id   pièces d'un projet prêtes à lancer + bobines à choisir
  */
 const router = require('express').Router();
@@ -24,13 +24,13 @@ router.get('/atelier', async (req, res) => {
   try {
     const running = await loadRuns({ state: 'en_cours', limit: 200 });
     const [projects] = await db.query(
-      `SELECT id, code, name, status, updated_at FROM projects
+      `SELECT id, code, name, status, updated_at, check_done_at FROM projects
        WHERE status IN ('preparation','en_cours','termine')
        ORDER BY updated_at DESC LIMIT 300`);
-    const todo = new Map(projects.map(p => [p.id, { todo_parts: 0, todo_pieces: 0, todo_time_s: 0, needs_spools: 0 }]));
+    const todo = new Map(projects.map(p => [p.id, { todo_parts: 0, todo_pieces: 0, todo_time_s: 0, needs_spools: 0, n_parts: 0, check_lines: 0, unprinted: 0, n_active: 0 }]));
     if (projects.length) {
       const [parts] = await db.query(
-        `SELECT pt.id, pt.project_id, pt.quantity, pt.status, pt.print_time_s,
+        `SELECT pt.id, pt.project_id, pt.quantity, pt.status, pt.print_time_s, pt.check_qty,
                 ra.n_runs, COALESCE(ra.ok_qty, 0) AS ok_qty, COALESCE(ra.running_qty, 0) AS running_qty,
                 (SELECT COUNT(*) FROM part_filaments f WHERE f.part_id = pt.id AND f.filament_id IS NOT NULL) AS spools,
                 (SELECT COUNT(*) FROM part_filaments f WHERE f.part_id = pt.id AND f.filament_id IS NULL AND COALESCE(f.weight_g, 0) > 0) AS orphans,
@@ -44,6 +44,12 @@ router.get('/atelier', async (req, res) => {
       for (const p of parts) {
         const done = p.n_runs ? Math.min(p.quantity, Number(p.ok_qty)) : (p.status === 'imprime' ? p.quantity : 0);
         const remaining = Math.max(0, p.quantity - done - Number(p.running_qty));
+        const t0 = todo.get(p.project_id);
+        t0.n_parts++;
+        if (p.check_qty !== null && p.check_qty !== undefined) t0.check_lines++;
+        // Pour le contrôle : une pièce à trancher est ignorée ; sinon tout doit être imprimé (et rien en cours)
+        if (p.status !== 'a_trancher') t0.n_active++;
+        if (p.status !== 'a_trancher' && (remaining >= 1 || Number(p.running_qty) > 0)) t0.unprinted++;
         if (p.status === 'a_trancher' || remaining < 1) continue;
         const launchable = isLaunchable(p.spools, p.orphans);
         const needsSpools = !launchable && Number(p.free_lines) > 0;
@@ -58,7 +64,11 @@ router.get('/atelier', async (req, res) => {
     res.json({
       version: VERSION,
       running,
-      projects: projects.map(p => ({ ...p, ...todo.get(p.id) })),
+      projects: projects.map(p => {
+        const { unprinted, n_active, ...t } = todo.get(p.id);
+        // « À contrôler » : toutes les pièces sont imprimées et le contrôle n'est pas terminé
+        return { ...p, ...t, check_todo: n_active > 0 && unprinted === 0 && !p.check_done_at };
+      }),
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

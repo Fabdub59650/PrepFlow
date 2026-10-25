@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.27.0 — 25/10/2026
+
+- **Atelier : contrôle des pièces à l'écran tactile.** Un onglet **À contrôler** (à côté de « À lancer ») liste les projets dont toutes les pièces sont imprimées et dont le contrôle n'est pas terminé, avec l'avancement (« contrôle en cours · 2 / 5 »). Une fiche plein écran 1024×600 reprend le contrôle du téléphone : un toucher = tout présent, boutons − / + pour les quantités partielles, « Terminer le contrôle » (confirmation si incomplet) ou « Contrôle et projet terminés ». Le contrôle est le même que sur téléphone ou PC : on peut commencer sur l'un et finir sur l'autre ; la remarque se saisit sur téléphone ou PC et s'affiche à l'Atelier
+- La recherche par code ouvre directement le contrôle d'un projet qui n'a plus rien à lancer. `GET /api/atelier` renvoie en plus, pour chaque projet, l'état du contrôle (aucune modification de base de données)
+
 ## v1.26.0 — 25/10/2026
 
 - Fenêtre « Terminer » (page Production) : en cas d'oubli, on peut saisir au choix l'**heure de fin** ou la **durée** (heures et minutes) de l'impression. La durée est convertie en heure de fin à partir du début de chaque impression, et la fin enregistrée s'affiche avant de valider. Sans saisie, la fin reste « maintenant »

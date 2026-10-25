@@ -272,3 +272,40 @@ body.atelier {
 .atelier #toasts { left: 50%; right: auto; bottom: auto; top: 64px; transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); }
 .atelier .toast { font-size: 17px; padding: 14px 18px; }
 @media (prefers-reduced-motion: reduce) { .atelier * { transition: none !important; animation: none !important; } }
+
+/* ── Onglets À lancer / À contrôler ────────────────────────────── */
+.at-tabs { flex: none; display: flex; gap: 8px; }
+.at-tab {
+  flex: 1; min-height: 44px; padding: 0 10px; border-radius: var(--radius-lg); border: 1px solid var(--border2);
+  background: transparent; color: var(--text3); cursor: pointer;
+  font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: var(--tracking-heading); text-transform: uppercase;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.at-tab.on { background: var(--bg3); color: var(--text); border-color: var(--text3); }
+.at-tab:active { filter: brightness(1.25); }
+
+/* ── Contrôle des pièces ───────────────────────────────────────── */
+.atc-bar { flex: none; display: flex; align-items: center; gap: 14px; padding: 10px 14px; background: var(--bg2); border-bottom: 0.5px solid var(--border); font-size: 17px; }
+.atc-meter { flex: 1; height: 8px; border-radius: 4px; background: var(--bg3); overflow: hidden; }
+.atc-meter i { display: block; height: 100%; background: var(--success); }
+.atc-list { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 12px; display: grid; gap: 8px; align-content: start; }
+.atc-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: stretch; background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); }
+.atc-row.is-ok { border-color: var(--success); }
+.atc-row.is-partial { border-color: var(--warning); }
+.atc-main { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 12px; background: transparent; border: 0; color: var(--text); text-align: left; cursor: pointer; font: inherit; min-width: 0; }
+.atc-main:active { background: var(--bg3); }
+.atc-tick { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--border2); display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 16px; color: var(--text3); }
+.atc-row.is-ok .atc-tick { background: var(--success); border-color: var(--success); color: var(--bg-deep); font-size: 22px; font-weight: 700; }
+.atc-row.is-partial .atc-tick { border-color: var(--warning); color: var(--warning); }
+.atc-info { display: grid; gap: 2px; min-width: 0; }
+.atc-name { font-size: 19px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atc-colors { display: flex; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--text3); }
+.atc-colors span { display: inline-flex; align-items: center; gap: 5px; }
+.atc-note { font-size: 14px; color: var(--warning); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.atc-count { display: flex; align-items: center; gap: 6px; padding: 6px 8px 6px 0; }
+.atc-step { width: 56px; height: 52px; border-radius: var(--radius-lg); border: 1px solid var(--border2); background: var(--bg3); color: var(--text); font-size: 28px; cursor: pointer; }
+.atc-step:disabled { opacity: 0.3; cursor: default; }
+.atc-step:active:not(:disabled) { filter: brightness(1.25); }
+.atc-qty { min-width: 78px; text-align: center; font-family: var(--font-mono); font-size: 18px; color: var(--text3); }
+.atc-qty strong { font-size: 24px; color: var(--text); }
+.atc-confirm { padding: 18px 16px; font-size: 18px; line-height: 1.4; }

@@ -5,6 +5,7 @@ import { store } from './store.js';
 import { toast } from './ui.js';
 import { initTheme } from './theme.js';
 import { overdueWarning } from './maintenance.js';
+import { partColors } from './views/checklist.js';
 import { formatDuration, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK } from './format.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -20,7 +21,7 @@ const IDLE_S = (() => {
 })();
 const PAGE_LOADED = Date.now();
 
-const S = { running: [], projects: [], loadedAt: Date.now(), version: null, outdated: false, offline: false };
+const S = { tab: 'lancer', running: [], projects: [], loadedAt: Date.now(), version: null, outdated: false, offline: false };
 
 /* ══ Données ═══════════════════════════════════════════════════════ */
 
@@ -145,6 +146,126 @@ function askNumber({ title, unit = '', initial = '', decimal = false, max = null
     sh.onClose(() => resolve(result));
     pad.set(initial, { replaceOnType: true });
   });
+}
+
+/* ══ Contrôle des pièces ═══════════════════════════════════════════ */
+// Même contrôle que sur téléphone (routes PUT parts/:id/check, POST projects/:id/check/finish) : on peut commencer
+// sur l'un et finir sur l'autre. Pas de remarque saisie ici (pas de clavier) : elle est affichée si elle existe.
+
+/** Confirmation à deux boutons. Renvoie true si confirmé. */
+function askConfirm({ title, message, okLabel }) {
+  return new Promise(resolve => {
+    let result = false;
+    const sh = openSheet({ title, small: true });
+    sh.body.innerHTML = `<p class="atc-confirm">${escapeHtml(message)}</p>`;
+    sh.setFoot(`<button type="button" class="at-btn" data-cancel>Annuler</button><button type="button" class="at-btn at-btn-primary" data-ok>${escapeHtml(okLabel)}</button>`);
+    $('[data-cancel]', sh.foot).addEventListener('click', sh.close);
+    $('[data-ok]', sh.foot).addEventListener('click', () => { result = true; sh.close(); });
+    sh.onClose(() => resolve(result));
+  });
+}
+
+async function openCheck(id) {
+  let project;
+  try {
+    [project] = await Promise.all([api.get(`projects/${id}`), store.loadFilaments().catch(() => {})]);
+  } catch (e) { toast(e.message, 'error'); return; }
+  const parts = project.parts || [];
+  const nameOf = p => (p.name || '').trim() || (p.file_name || '').trim() || 'Pièce sans nom';
+  const qtyOf = p => Number(p.quantity) || 0;
+  const stateOf = p => p.check_qty === null || p.check_qty === undefined ? 'pending'
+    : (Math.min(Number(p.check_qty), qtyOf(p)) >= qtyOf(p) ? 'ok' : 'partial');
+  const countOf = p => stateOf(p) === 'pending' ? null : Math.min(Number(p.check_qty), qtyOf(p));
+
+  const sh = openSheet({ title: 'Contrôle', sub: [project.code, project.name].filter(Boolean).join(' · ') });
+  sh.body.innerHTML = `<div class="atc-bar" data-bar></div><div class="atc-list" data-list></div>`;
+  const list = $('[data-list]', sh.body), bar = $('[data-bar]', sh.body);
+  let chain = Promise.resolve();                 // les enregistrements partent dans l'ordre des touchers
+
+  const stats = () => {
+    const total = parts.length;
+    return {
+      total, ok: parts.filter(p => stateOf(p) === 'ok').length,
+      lines: parts.filter(p => stateOf(p) !== 'pending').length,
+      pieces: parts.reduce((n, p) => n + (countOf(p) || 0), 0),
+      totalQty: parts.reduce((n, p) => n + qtyOf(p), 0),
+    };
+  };
+
+  const rowHtml = (p, i) => {
+    const q = qtyOf(p), st = stateOf(p), n = countOf(p);
+    const colors = partColors(p);
+    return `<div class="atc-row is-${st}" data-id="${p.id}">
+      <button type="button" class="atc-main" data-act="toggle" aria-label="${escapeHtml(nameOf(p))} : tout présent">
+        <span class="atc-tick" aria-hidden="true">${st === 'ok' ? '✓' : i + 1}</span>
+        <span class="atc-info">
+          <span class="atc-name">${escapeHtml(nameOf(p))}</span>
+          ${colors.length ? `<span class="atc-colors">${colors.map(c => `<span>${swatch(c.hex)}${escapeHtml(c.name)}</span>`).join('')}</span>` : ''}
+          ${p.check_note ? `<span class="atc-note">${escapeHtml(p.check_note)}</span>` : ''}
+        </span>
+      </button>
+      <div class="atc-count">
+        <button type="button" class="atc-step" data-act="minus" aria-label="Moins une pièce" ${n === null || n <= 0 ? 'disabled' : ''}>−</button>
+        <span class="atc-qty"><strong>${n === null ? '–' : n}</strong> / ${q}</span>
+        <button type="button" class="atc-step" data-act="plus" aria-label="Plus une pièce" ${n !== null && n >= q ? 'disabled' : ''}>+</button>
+      </div>
+    </div>`;
+  };
+
+  const draw = () => {
+    const s = stats();
+    const scroll = list.scrollTop;
+    bar.innerHTML = `<span><strong>${s.lines} / ${s.total}</strong> ${s.total > 1 ? 'lignes' : 'ligne'} · <strong>${s.pieces} / ${s.totalQty}</strong> ${s.totalQty > 1 ? 'pièces' : 'pièce'}</span>
+      <span class="atc-meter"><i style="width:${s.total ? Math.round(s.lines / s.total * 100) : 0}%"></i></span>`;
+    list.innerHTML = parts.length ? parts.map(rowHtml).join('') : '<p class="at-empty">Ce projet ne contient aucune pièce.</p>';
+    list.scrollTop = scroll;
+    const allOk = s.total > 0 && s.ok === s.total;
+    const canClose = allOk && !['termine', 'archive'].includes(project.status);
+    sh.setFoot(`<button type="button" class="at-btn ${canClose ? '' : 'at-btn-primary'}" data-finish>Terminer le contrôle</button>
+      ${canClose ? '<button type="button" class="at-btn at-btn-ok" data-finish-project>Contrôle et projet terminés</button>' : ''}`);
+  };
+
+  // Enregistre une ligne : écran mis à jour tout de suite, annulé si le serveur refuse
+  const save = (part, qty) => {
+    const before = part.check_qty;
+    part.check_qty = qty;
+    draw();
+    chain = chain.then(() => api.put(`parts/${part.id}/check`, { qty, note: part.check_note ?? null })).catch(e => {
+      part.check_qty = before; draw(); toast(e.message, 'error');
+    });
+  };
+
+  list.addEventListener('click', e => {
+    const btn = e.target.closest('[data-act]'), row = e.target.closest('.atc-row');
+    if (!btn || !row || btn.disabled) return;
+    const part = parts.find(p => p.id === +row.dataset.id);
+    if (!part) return;
+    const q = qtyOf(part), st = stateOf(part), cur = countOf(part) || 0;
+    if (btn.dataset.act === 'toggle') save(part, st === 'ok' ? null : q);
+    else if (btn.dataset.act === 'plus') save(part, Math.min(q, cur + 1));
+    else if (btn.dataset.act === 'minus') save(part, Math.max(0, cur - 1));
+  });
+
+  const finish = async withProject => {
+    const s = stats(), open = s.total - s.ok;
+    if (open > 0 && !await askConfirm({
+      title: 'Terminer le contrôle',
+      message: `${open} ${open > 1 ? 'lignes ne sont pas vérifiées ou sont incomplètes' : "ligne n'est pas vérifiée ou est incomplète"}. Terminer quand même le contrôle ?`,
+      okLabel: 'Terminer quand même' })) return;
+    try {
+      await chain;
+      await api.post(`projects/${id}/check/finish`);
+      if (withProject) await api.put(`projects/${id}`, { status: 'termine' });
+      toast(withProject ? 'Contrôle et projet terminés' : 'Contrôle terminé', 'success');
+      sh.close();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+  sh.foot.addEventListener('click', e => {
+    if (e.target.closest('[data-finish-project]')) finish(true);
+    else if (e.target.closest('[data-finish]')) finish(false);
+  });
+  sh.onClose(() => refresh({ quiet: true }));
+  draw();
 }
 
 /* ══ Choix d'une bobine ════════════════════════════════════════════ */
@@ -597,15 +718,28 @@ function openCodeSearch() {
     const b = e.target.closest('[data-project]');
     if (!b) return;
     sh.close();
-    openProject(+b.dataset.project);
+    const p = S.projects.find(x => x.id === +b.dataset.project);
+    if (p && p.check_todo && !(p.todo_parts > 0)) openCheck(p.id); else openProject(+b.dataset.project);
   });
   drawResults('');
 }
 
 /* ══ Écran principal ═══════════════════════════════════════════════ */
 
-function projectButton(p) {
+function projectButton(p, mode = 'lancer') {
   const todo = p.todo_parts > 0;
+  if (mode === 'controler') {
+    const started = p.check_lines > 0;
+    return `<button type="button" class="at-proj" data-check="${p.id}">
+    <span class="at-code">${escapeHtml(p.code || '')}</span>
+    <span class="at-proj-name">${escapeHtml(p.name || '')}</span>
+    <span class="at-proj-meta">
+      <span>${plural(p.n_parts, 'ligne')} à vérifier</span>
+      <span class="at-tag ${started ? 'at-tag-warn' : ''}">${started ? `contrôle en cours · ${p.check_lines} / ${p.n_parts}` : 'pas commencé'}</span>
+      ${p.status === 'termine' ? '<span class="at-tag at-tag-ok">terminé</span>' : ''}
+    </span>
+  </button>`;
+  }
   return `<button type="button" class="at-proj" data-project="${p.id}">
     <span class="at-code">${escapeHtml(p.code || '')}</span>
     <span class="at-proj-name">${escapeHtml(p.name || '')}</span>
@@ -614,6 +748,7 @@ function projectButton(p) {
       ${p.status === 'en_cours' ? '<span class="at-tag at-tag-warn">en cours</span>' : ''}
       ${p.status === 'termine' ? '<span class="at-tag at-tag-ok">terminé</span>' : ''}
       ${p.needs_spools > 0 ? '<span class="at-tag at-tag-warn">bobines à choisir</span>' : ''}
+      ${p.check_todo ? '<span class="at-tag at-tag-warn">contrôle à faire</span>' : ''}
     </span>
   </button>`;
 }
@@ -654,11 +789,19 @@ function drawRunning() {
 
 function drawReady() {
   const box = $('#at-ready');
-  const list = S.projects.filter(p => p.todo_parts > 0).slice(0, 40);
-  const sig = JSON.stringify(list.map(p => [p.id, p.todo_parts, p.todo_pieces, p.todo_time_s, p.needs_spools, p.status]));
+  const toCheck = S.projects.filter(p => p.check_todo);
+  $('#at-check-count').textContent = toCheck.length || '';
+  document.querySelectorAll('.at-tab').forEach(b => {
+    const on = b.dataset.tab === S.tab;
+    b.classList.toggle('on', on); b.setAttribute('aria-selected', on);
+  });
+  const check = S.tab === 'controler';
+  const list = (check ? toCheck : S.projects.filter(p => p.todo_parts > 0)).slice(0, 40);
+  const sig = JSON.stringify([S.tab, list.map(p => check ? [p.id, p.n_parts, p.check_lines, p.status] : [p.id, p.todo_parts, p.todo_pieces, p.todo_time_s, p.needs_spools, p.status])]);
   if (sig === readySig) return;
   readySig = sig;
-  box.innerHTML = list.length ? list.map(projectButton).join('')
+  box.innerHTML = list.length ? list.map(p => projectButton(p, check ? 'controler' : 'lancer')).join('')
+    : check ? `<div class="at-empty"><strong>Rien à contrôler</strong>Un projet apparaît ici quand toutes ses pièces sont imprimées.</div>`
     : `<div class="at-empty"><strong>Rien à lancer</strong>Préparez un projet dans PrepFlow, ou cherchez-le par son code.</div>`;
 }
 
@@ -696,7 +839,16 @@ $('#at-menu').addEventListener('click', () => {
 $('#at-code').addEventListener('click', openCodeSearch);
 $('#at-ready').addEventListener('click', e => {
   const b = e.target.closest('[data-project]');
-  if (b) openProject(+b.dataset.project);
+  if (b) { openProject(+b.dataset.project); return; }
+  const c = e.target.closest('[data-check]');
+  if (c) openCheck(+c.dataset.check);
+});
+document.querySelector('.at-tabs').addEventListener('click', e => {
+  const t = e.target.closest('[data-tab]');
+  if (!t || t.dataset.tab === S.tab) return;
+  S.tab = t.dataset.tab;
+  drawReady();
+  $('#at-ready').scrollTop = 0;
 });
 
 /* ══ Veille ════════════════════════════════════════════════════════ */

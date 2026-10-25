@@ -38,7 +38,10 @@
     <div class="at-scroll" id="at-running"></div>
   </section>
   <section class="at-col at-col-ready" aria-labelledby="at-h-ready">
-    <h2 class="at-h" id="at-h-ready">À lancer</h2>
+    <div class="at-tabs" role="tablist" id="at-h-ready">
+      <button type="button" class="at-tab on" role="tab" aria-selected="true" data-tab="lancer">À lancer</button>
+      <button type="button" class="at-tab" role="tab" aria-selected="false" data-tab="controler">À contrôler <span class="count-chip" id="at-check-count"></span></button>
+    </div>
     <button type="button" class="at-btn at-code-btn" id="at-code">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg>
       Chercher par code
