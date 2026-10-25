@@ -4,7 +4,7 @@ import { api } from './api.js';
 import { store } from './store.js';
 import { toast } from './ui.js';
 import { initTheme } from './theme.js';
-import { overdueWarning } from './maintenance.js';
+import { overdueWarning, dueText } from './maintenance.js';
 import { partColors } from './views/checklist.js';
 import { formatDuration, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK } from './format.js';
 
@@ -21,7 +21,7 @@ const IDLE_S = (() => {
 })();
 const PAGE_LOADED = Date.now();
 
-const S = { tab: 'lancer', running: [], projects: [], loadedAt: Date.now(), version: null, outdated: false, offline: false };
+const S = { tab: 'lancer', maint: null, running: [], projects: [], loadedAt: Date.now(), version: null, outdated: false, offline: false };
 
 /* ══ Données ═══════════════════════════════════════════════════════ */
 
@@ -39,9 +39,54 @@ async function refresh({ quiet = false } = {}) {
     if (!quiet) toast(e.message, 'error');
   }
   $('#at-offline').hidden = !S.offline;
+  if (!S.offline) {                               // maintenance : en cas d'échec on garde l'état précédent
+    try { S.maint = await api.get('maintenance'); } catch (_) {}
+  }
+  drawMaint();
   drawRunning();
   drawReady();
 }
+
+/* ══ Maintenance ═══════════════════════════════════════════════════ */
+
+// Tâches dépassées des imprimantes actives, regroupées par imprimante
+const lateByPrinter = () => (S.maint?.printers || [])
+  .filter(p => p.active)
+  .map(p => ({ ...p, late: p.tasks.filter(t => t.state === 'overdue') }))
+  .filter(p => p.late.length);
+
+function drawMaint() {
+  const b = $('#at-maint');
+  const n = lateByPrinter().reduce((a, p) => a + p.late.length, 0);
+  b.hidden = !n;
+  if (n) b.textContent = `⚠ Maintenance à faire · ${plural(n, 'tâche')} dépassée${n > 1 ? 's' : ''}`;
+}
+
+function openMaint() {
+  const sh = openSheet({ title: 'Maintenance', sub: 'Tâches dépassées' });
+  const draw = () => {
+    const groups = lateByPrinter();
+    if (!groups.length) { sh.close(); return; }
+    sh.body.innerHTML = `<div class="atm-list">${groups.map(g => `<section class="atm-group">
+      <h3 class="atm-printer">${escapeHtml(g.name)}</h3>
+      ${g.late.map(t => `<div class="atm-task"><span class="atm-name">${escapeHtml(t.name)}<small>${escapeHtml(dueText(t))}</small></span>
+        <button type="button" class="at-btn at-btn-ok" data-done="${t.id}" data-printer="${escapeHtml(g.name)}" data-task="${escapeHtml(t.name)}">Fait</button></div>`).join('')}
+    </section>`).join('')}</div>`;
+  };
+  sh.body.addEventListener('click', async e => {
+    const b = e.target.closest('[data-done]');
+    if (!b) return;
+    if (!await askConfirm({ title: 'Maintenance faite', message: `Marquer « ${b.dataset.task} » comme faite sur ${b.dataset.printer} ?`, okLabel: 'Oui, fait' })) return;
+    try {
+      S.maint = await api.post(`maintenance/tasks/${b.dataset.done}/done`, {});
+      toast('Maintenance enregistrée', 'success');
+    } catch (err) { toast(err.message, 'error'); return; }
+    drawMaint();
+    draw();
+  });
+  draw();
+}
+$('#at-maint').addEventListener('click', openMaint);
 
 const elapsedOf = r => (Number(r.elapsed_s) || 0) + (Date.now() - S.loadedAt) / 1000;
 

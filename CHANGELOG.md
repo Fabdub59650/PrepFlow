@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.28.0 — 25/10/2026
+
+- **Atelier : maintenance des imprimantes à l'écran tactile.** Un bandeau orange « Maintenance à faire · n tâches dépassées » apparaît en haut de l'Atelier dès qu'une tâche d'une imprimante active est dépassée. Il ouvre la liste par imprimante, avec l'échéance (« dépassée de 12 h ») et un bouton **Fait** (confirmation avant d'enregistrer). Même suivi que la page Imprimantes : la tâche repart de zéro et l'entretien est ajouté à l'historique. Le coût et la note se saisissent sur la page Imprimantes. Aucune modification de base de données ni de serveur
+
 ## v1.27.1 — 25/10/2026
 
 - Atelier : le bouton « Chercher par code » n'apparaît plus dans l'onglet « À contrôler » (liste courte, la recherche n'y sert pas)

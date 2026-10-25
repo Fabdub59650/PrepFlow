@@ -311,3 +311,18 @@ body.atelier {
 .atc-confirm { padding: 18px 16px; font-size: 18px; line-height: 1.4; }
 
 .at-code-btn[hidden] { display: none; }
+
+/* ── Maintenance à faire ───────────────────────────────────────── */
+.at-maint {
+  flex: none; margin: 8px 12px 0; min-height: 44px; padding: 0 14px; border-radius: var(--radius-lg);
+  border: 1px solid var(--warning); background: var(--warning-bg); color: var(--warning); cursor: pointer;
+  font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: var(--tracking-heading); text-transform: uppercase; text-align: left;
+}
+.at-maint[hidden] { display: none; }
+.at-maint:active { filter: brightness(1.15); }
+.atm-list { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 12px; display: grid; gap: 14px; align-content: start; }
+.atm-printer { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: var(--tracking-heading); text-transform: uppercase; color: var(--text2); margin-bottom: 6px; }
+.atm-task { display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 14px; margin-bottom: 8px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg); }
+.atm-name { flex: 1; min-width: 0; font-size: 19px; display: grid; gap: 2px; }
+.atm-name small { font-size: 14px; color: var(--warning); }
+.atm-task .at-btn { flex: none; min-width: 110px; }
