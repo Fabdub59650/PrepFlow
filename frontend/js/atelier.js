@@ -685,8 +685,6 @@ function tickElapsed() {
 $('#at-menu').addEventListener('click', () => {
   const sh = openSheet({ title: 'Menu', small: true });
   sh.body.innerHTML = `<div class="at-menu-list">
-    <button type="button" class="at-btn" data-go="./">Ouvrir PrepFlow complet</button>
-    <button type="button" class="at-btn" data-go="/">Ouvrir FilaFlow</button>
     <button type="button" class="at-btn" data-go="reload">Recharger la page</button></div>
     <p class="at-ver">PrepFlow ${escapeHtml(S.version ? 'v' + S.version : '')}</p>`;
   sh.body.addEventListener('click', e => {

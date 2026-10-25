@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.25.2 — 25/10/2026
+
+- Atelier : le menu ne propose plus que « Recharger la page » (et la version). Les liens « Ouvrir PrepFlow complet » et « Ouvrir FilaFlow » sont retirés : sur le kiosque, un toucher accidentel y menait sans moyen de revenir
+
 ## v1.25.1 — 25/10/2026
 
 - La page **Atelier** n'a plus de lien dans le menu de PrepFlow : elle est réservée à l'écran tactile du kiosque. Elle reste accessible par son adresse (`https://filaflow.local/prepflow/atelier.html`), par exemple pour dépanner ou tester le kiosque depuis un poste
