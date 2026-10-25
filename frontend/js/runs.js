@@ -254,10 +254,39 @@ export function openFinishDialog({ runs, onDone }) {
           <span class="muted">puis ajustez pièce par pièce si besoin</span></div>` : ''}
         <div class="finish-runs">${runs.map(card).join('')}</div>
         <label class="field"><span>Notes (facultatif)</span><textarea rows="2" data-k="notes" placeholder="Réglage, problème rencontré…"></textarea></label>
-        <details class="start-time">
-          <summary>Heure de fin (si l'impression est déjà terminée)</summary>
+        <details class="start-time" data-end-box>
+          <summary>Heure de fin ou durée (si l'impression est déjà terminée)</summary>
+          <div class="end-mode">
+            <label><input type="radio" name="end-mode" value="heure" checked> Heure de fin</label>
+            <label><input type="radio" name="end-mode" value="duree"> Durée</label>
+          </div>
           <input type="datetime-local" class="select" data-k="ended" aria-label="Heure de fin">
+          <div class="end-dur" data-end-dur hidden>
+            <input type="number" class="select" min="0" max="999" step="1" data-k="dur-h" placeholder="0" aria-label="Heures"> h
+            <input type="number" class="select" min="0" max="59" step="1" data-k="dur-m" placeholder="0" aria-label="Minutes"> min
+          </div>
+          <p class="muted end-hint" data-end-hint hidden></p>
         </details>`;
+      // Heure de fin ou durée : la durée est convertie en heure de fin à partir du début de chaque impression
+      const endBox = body.querySelector('[data-end-box]');
+      const endHint = () => {
+        const h = body.querySelector('[data-end-hint]');
+        const mode = endBox.querySelector('input[name=end-mode]:checked').value;
+        const mins = durationMinutes(body);
+        if (mode !== 'duree' || !mins) { h.hidden = true; return; }
+        const ends = [...new Set(runs.filter(r => !finished.has(r.id)).map(r => addMinutes(r.started_at, mins)))];
+        h.hidden = false;
+        h.textContent = ends.length === 1 ? `Fin enregistrée : ${fmtLocal(ends[0])}` : `Fin enregistrée pour chaque impression : début + ${mins} min`;
+      };
+      endBox.addEventListener('change', e => {
+        if (e.target.name === 'end-mode') {
+          const duree = e.target.value === 'duree';
+          endBox.querySelector('[data-k=ended]').hidden = duree;
+          endBox.querySelector('[data-end-dur]').hidden = !duree;
+        }
+        endHint();
+      });
+      endBox.addEventListener('input', endHint);
 
       // Affichage selon le résultat : % réalisé pour un raté, poids par défaut en grisé, rien pour un annulé
       const sync = c => {
@@ -317,14 +346,16 @@ export function openFinishDialog({ runs, onDone }) {
     },
     async onConfirm(body) {
       const notes = body.querySelector('[data-k=notes]').value.trim();
-      const ended = body.querySelector('[data-k=ended]').value || undefined;
+      const byDuration = body.querySelector('input[name=end-mode]:checked').value === 'duree';
+      const ended = byDuration ? undefined : (body.querySelector('[data-k=ended]').value || undefined);
+      const durMin = byDuration ? durationMinutes(body) : 0;
       // Validation de toutes les cartes avant d'enregistrer la première
       const payloads = [];
       for (const r of runs) {
         if (finished.has(r.id)) continue;
         const c = body.querySelector(`.finish-run[data-id="${r.id}"]`);
         const result = c.querySelector('input[type=radio]:checked').value;
-        const payload = { result, ended_at: ended };
+        const payload = { result, ended_at: durMin ? addMinutes(r.started_at, durMin) : ended };
         if (notes) payload.notes = notes;
         if (result === 'rate') {
           const pct = parseInt(c.querySelector('[data-pct]').value, 10);
@@ -369,6 +400,25 @@ export function openFinishDialog({ runs, onDone }) {
       try { await onDone?.(); } catch (e) { toast(e.message, 'error'); }
     },
   });
+}
+
+/* ── Heure de fin saisie en durée ───────────────────────────────── */
+// Durée saisie (h + min) en minutes, 0 si vide
+function durationMinutes(body) {
+  const h = parseInt(body.querySelector('[data-k=dur-h]').value, 10) || 0;
+  const m = parseInt(body.querySelector('[data-k=dur-m]').value, 10) || 0;
+  return Math.max(0, h * 60 + m);
+}
+// « AAAA-MM-JJ HH:MM:SS » + n minutes, en heure murale (sans fuseau), au format attendu par le serveur
+function addMinutes(dt, mins) {
+  const m = String(dt).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5] + mins));
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+}
+function fmtLocal(dt) {
+  const m = String(dt).match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})/);
+  return `${m[3]}/${m[2]}/${m[1]} à ${m[4]}`;
 }
 
 /* ── Corriger une impression terminée (poids retenus, notes) ────── */

@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.26.0 — 25/10/2026
+
+- Fenêtre « Terminer » (page Production) : en cas d'oubli, on peut saisir au choix l'**heure de fin** ou la **durée** (heures et minutes) de l'impression. La durée est convertie en heure de fin à partir du début de chaque impression, et la fin enregistrée s'affiche avant de valider. Sans saisie, la fin reste « maintenant »
+
 ## v1.25.2 — 25/10/2026
 
 - Atelier : le menu ne propose plus que « Recharger la page » (et la version). Les liens « Ouvrir PrepFlow complet » et « Ouvrir FilaFlow » sont retirés : sur le kiosque, un toucher accidentel y menait sans moyen de revenir
