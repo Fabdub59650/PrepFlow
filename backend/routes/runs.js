@@ -451,6 +451,29 @@ router.put('/runs/:id', async (req, res) => {
           await conn.query('UPDATE print_run_filaments SET weight_g=? WHERE run_id=? AND filament_id=?', [g, run.id, fid]);
         }
       }
+      // Changement de bobine après coup (erreur au lancement) : la consommation suit les lignes, donc le stock
+      // estimé, la calibration et le coût se corrigent seuls. Possible en cours ou après coup.
+      if ('swaps' in b) {
+        if (!Array.isArray(b.swaps)) throw bad('swaps doit être une liste');
+        const [rows] = await conn.query('SELECT filament_id FROM print_run_filaments WHERE run_id=?', [run.id]);
+        const current = new Set(rows.map(r => r.filament_id));
+        const targets = new Set(), todo = [];
+        for (const sw of b.swaps) {
+          const from = parseInt(sw.from_filament_id, 10), to = parseInt(sw.to_filament_id, 10);
+          if (!current.has(from)) throw bad('Bobine à remplacer inconnue pour cette impression');
+          if (from === to) continue;
+          if (current.has(to) || targets.has(to)) throw bad('Cette bobine est déjà utilisée par cette impression');
+          const [[c]] = await conn.query('SELECT id, material, color_name, archived FROM filament_cache WHERE id=?', [to]);
+          if (!c) throw bad('Bobine inconnue');
+          if (c.archived) throw bad('Cette bobine est archivée');
+          targets.add(to);
+          todo.push({ from, to, material: c.material, color_name: c.color_name });
+        }
+        for (const t of todo) {
+          await conn.query('UPDATE print_run_filaments SET filament_id=?, material=?, color_name=? WHERE run_id=? AND filament_id=?',
+            [t.to, t.material, t.color_name, run.id, t.from]);
+        }
+      }
       return run.id;
     });
     res.json((await loadRuns({ ids: [id] }))[0]);

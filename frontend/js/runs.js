@@ -421,30 +421,54 @@ function fmtLocal(dt) {
   return `${m[3]}/${m[2]}/${m[1]} à ${m[4]}`;
 }
 
-/* ── Corriger une impression terminée (poids retenus, notes) ────── */
+/* ── Corriger une impression (bobines, poids retenus, notes) ────── */
 export function openCorrectDialog({ run, onDone }) {
-  const editable = run.result !== 'annule';
+  const finishedRun = run.state === 'termine';
+  const weightsEditable = finishedRun && run.result !== 'annule';
+  const used = new Set(run.filaments.map(f => f.filament_id));
+  // Bobines proposées pour une ligne : actives et pas déjà sur l'impression ; la même matière puis la même couleur en premier
+  const optionsFor = f => {
+    const cur = store.filamentsById.get(f.filament_id);
+    const rank = x => (cur && x.material === cur.material ? 0 : 2) + (cur && x.color_name === cur.color_name ? 0 : 1);
+    const list = store.filaments.filter(x => !x.archived && !used.has(x.id)).sort((a, b) => rank(a) - rank(b) || String(a.name).localeCompare(String(b.name), 'fr'));
+    const label = x => { const st = spoolStock(x); return `${escapeHtml(filamentLabel(x))}${st.value !== null ? ` — ${escapeHtml(st.text)}` : ''}`; };
+    return `<option value="${f.filament_id}" selected>${cur ? label(cur) : escapeHtml(f.name || 'Bobine ' + f.filament_id)}</option>`
+      + list.map(x => `<option value="${x.id}">${label(x)}</option>`).join('');
+  };
   return openDialog({
     title: "Corriger l'impression",
     confirmLabel: 'Enregistrer',
+    wide: true,
     build(body) {
       body.innerHTML = `
         <p class="muted">${escapeHtml(`${run.part_name || 'Sans nom'} × ${run.quantity}`)}${run.project_code ? ' · ' + escapeHtml(run.project_code) : ''}
           · le résultat ne se modifie pas : supprimez l'impression et refaites-la si besoin.</p>
-        ${editable ? `<div class="corr-fils">${run.filaments.map(f => `
-          <label class="fw" data-fid="${f.filament_id}">
-            ${swatch(store.filamentsById.get(f.filament_id)?.color_hex)}
-            <span class="fw-name">${escapeHtml(f.name || filamentLabel(store.filamentsById.get(f.filament_id)))}</span>
-            <span class="fw-plan">prévu ${formatWeight(Number(f.planned_g)) || '0 g'}</span>
-            <input type="text" inputmode="decimal" data-w value="${f.weight_g === null || f.weight_g === undefined ? '' : String(Number(f.weight_g)).replace('.', ',')}"
-              aria-label="Poids retenu de ${escapeHtml(f.name || 'la bobine')} en grammes">
-            <span>g</span>
-          </label>`).join('')}</div>` : ''}
+        <div class="corr-fils">${run.filaments.map(f => `
+          <div class="corr-line" data-fid="${f.filament_id}">
+            <label class="fw ${weightsEditable ? '' : 'fw-nowt'}" data-fid="${f.filament_id}">
+              ${swatch(store.filamentsById.get(f.filament_id)?.color_hex)}
+              <select class="select" data-swap aria-label="Bobine utilisée">${optionsFor(f)}</select>
+              <span class="fw-plan">prévu ${formatWeight(Number(f.planned_g)) || '0 g'}</span>
+              ${weightsEditable ? `<input type="text" inputmode="decimal" data-w value="${f.weight_g === null || f.weight_g === undefined ? '' : String(Number(f.weight_g)).replace('.', ',')}"
+                aria-label="Poids retenu de ${escapeHtml(f.name || 'la bobine')} en grammes"><span>g</span>` : ''}
+            </label>
+            <p class="fw-warn" data-warn hidden></p>
+          </div>`).join('')}</div>
+        <p class="muted corr-hint">Une erreur de bobine au lancement se corrige ici : la consommation suit la bobine choisie, le stock estimé des deux bobines se met à jour.</p>
         <label class="field"><span>Notes</span><textarea rows="3" data-k="notes">${escapeHtml(run.notes || '')}</textarea></label>`;
+      // Avertissement si la matière change
+      body.querySelectorAll('[data-swap]').forEach(sel => sel.addEventListener('change', () => {
+        const line = sel.closest('.corr-line');
+        const from = store.filamentsById.get(+line.dataset.fid), to = store.filamentsById.get(+sel.value);
+        const warn = line.querySelector('[data-warn]');
+        const diff = from && to && +sel.value !== +line.dataset.fid && from.material !== to.material;
+        warn.hidden = !diff;
+        if (diff) warn.textContent = `Attention : la matière change (${from.material || '?'} → ${to.material || '?'}).`;
+      }));
     },
     async onConfirm(body) {
       const payload = { notes: body.querySelector('[data-k=notes]').value.trim() };
-      if (editable) {
+      if (weightsEditable) {
         const weights = [];
         for (const w of body.querySelectorAll('.fw')) {
           const g = parseWeight(w.querySelector('[data-w]').value);
@@ -453,9 +477,15 @@ export function openCorrectDialog({ run, onDone }) {
         }
         if (weights.length) payload.weights = weights;
       }
+      const swaps = [];
+      for (const sel of body.querySelectorAll('[data-swap]')) {
+        const from = +sel.closest('.corr-line').dataset.fid;
+        if (+sel.value !== from) swaps.push({ from_filament_id: from, to_filament_id: +sel.value });
+      }
+      if (swaps.length) payload.swaps = swaps;
       try { await api.put(`runs/${run.id}`, payload); }
       catch (e) { toast(e.message, 'error'); return false; }
-      toast('Impression corrigée');
+      toast(swaps.length ? 'Impression corrigée, bobine changée' : 'Impression corrigée');
       try { await onDone?.(); } catch (e) { toast(e.message, 'error'); }
     },
   });

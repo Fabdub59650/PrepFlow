@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.30.0 — 25/10/2026
+
+- **Corriger la bobine d'une impression lancée par erreur.** Dans « Corriger l'impression », chaque ligne de filament a maintenant un sélecteur de bobine : la même matière et la même couleur viennent en premier, avec le reste de chaque bobine. Les bobines déjà utilisées par l'impression et les bobines archivées ne sont pas proposées ; un avertissement apparaît si la matière change. L'enregistrement remplace la bobine de la ligne en gardant le poids retenu. Possible sur une impression terminée (historique) comme sur une impression **en cours** (lien « Corriger » sur sa carte, page Production). La consommation, le stock estimé des deux bobines, la calibration et le coût se corrigent seuls. Le résultat, la matière et la couleur du prévu ne changent pas (supprimer et refaire reste la règle pour le résultat). Non proposé sur l'écran Atelier
+
 ## v1.29.0 — 25/10/2026
 
 - **Atelier : badge de la bobine quand on passe une puce NFC sur le lecteur.** L'Atelier écoute le flux de lecture de FilaFlow (`/api/nfc/events`, même adresse que PrepFlow) et affiche pendant quelques secondes la bobine reconnue (numéro, nom, couleur), son reste (estimé ou pesé, avec l'ancienneté de la pesée) et, si une impression en cours l'utilise, l'imprimante et le projet (« ▶ En cours sur Neptune 4 Plus · P261001 »). Une puce non liée affiche « Puce non liée à une bobine ». La lecture réveille aussi la veille de la page. Lecture seule : rien n'est écrit dans FilaFlow ni dans PrepFlow, et FilaFlow n'est pas modifié. `?nfc=0` dans l'adresse désactive l'écoute

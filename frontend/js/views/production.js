@@ -164,6 +164,7 @@ export async function renderProduction(el) {
             <span class="run-line-name"><a href="#/projet/${r.project_id}" class="cell-code">${escapeHtml(r.project_code || '')}</a>
               ${escapeHtml(r.part_name || 'Sans nom')} × ${r.quantity}</span>
             <span class="run-line-fils">${r.filaments.map(f => `${swatch(store.filamentsById.get(f.filament_id)?.color_hex)}<span class="muted">${formatWeight(Number(f.planned_g)) || '0 g'}</span>`).join(' ')}</span>
+            <button type="button" class="link-btn" data-correct-run="${r.id}" title="Changer la bobine en cas d'erreur au lancement">Corriger</button>
             ${solo ? '' : `<button type="button" class="link-btn" data-finish-one="${r.id}">Terminer seule</button>`}
           </li>`).join('')}
         </ul>
@@ -181,6 +182,10 @@ export async function renderProduction(el) {
       finish(b.dataset.finish.split(',').map(Number))));
     box.querySelectorAll('[data-finish-one]').forEach(b => b.addEventListener('click', () =>
       finish([+b.dataset.finishOne])));
+    box.querySelectorAll('[data-correct-run]').forEach(b => b.addEventListener('click', () => {
+      const r = active.find(x => x.id === +b.dataset.correctRun);
+      if (r) openCorrectDialog({ run: r, onDone: reloadAll });
+    }));
   }
 
   // Durée écoulée mise à jour sans recharger la page
@@ -229,7 +234,7 @@ export async function renderProduction(el) {
       <td class="num"><strong>${formatDuration(r.duration_s) || '—'}</strong>${r.planned_time_s ? `<span class="sub-line">prévu ${formatDuration(r.planned_time_s)}</span>` : ''}</td>
       <td class="num" title="${escapeHtml(detail)}"><strong>${formatWeight(used) || '0 g'}</strong><span class="sub-line">prévu ${formatWeight(plan) || '0 g'}</span></td>
       <td class="cell-notes">${r.notes ? `<span title="${escapeHtml(r.notes)}">${escapeHtml(r.notes)}</span>` : ''}</td>
-      <td class="nowrap"><button type="button" class="icon-btn" data-correct="${r.id}" title="Corriger les poids ou les notes" aria-label="Corriger cette impression">
+      <td class="nowrap"><button type="button" class="icon-btn" data-correct="${r.id}" title="Corriger les bobines, les poids ou les notes" aria-label="Corriger cette impression">
         <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 16l1-4 8-8 3 3-8 8-4 1z"/></svg></button>
         <button type="button" class="icon-btn icon-btn-danger" data-delete="${r.id}" title="Supprimer cette impression" aria-label="Supprimer cette impression">
         <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg></button></td>
