@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.25.1 — 25/10/2026
+
+- La page **Atelier** n'a plus de lien dans le menu de PrepFlow : elle est réservée à l'écran tactile du kiosque. Elle reste accessible par son adresse (`https://filaflow.local/prepflow/atelier.html`), par exemple pour dépanner ou tester le kiosque depuis un poste
+- Documentation (`docs/KIOSQUE-PI3.md`, README) : précision correspondante
+
 ## v1.25.0 — 25/10/2026
 
 Page **Atelier** : lancer et terminer les impressions depuis un écran tactile 7" (Pi 3B+ + Waveshare 1024×600) posé près des imprimantes.

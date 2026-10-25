@@ -1,6 +1,7 @@
 # Kiosque Atelier — Raspberry Pi 3B+ et écran Waveshare 7" (1024×600)
 
 Le Pi 3 affiche la page **Atelier** de PrepFlow (`https://filaflow.local/prepflow/atelier.html`) en plein écran.
+La page Atelier n'a volontairement pas de lien dans le menu de PrepFlow : on n'y arrive que par son adresse.
 Il ne fait que de l'affichage : tout tourne sur le Pi 4 de FilaFlow/PrepFlow. Si le Pi 3 tombe, rien n'est perdu.
 
 ## Matériel

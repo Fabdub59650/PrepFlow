@@ -28,7 +28,7 @@ Accès : **https://filaflow.local/prepflow/**
 - Les pièces marquées « Imprimé » ne comptent plus dans le besoin (la balance les a déjà décomptées)
 - Copie locale du stock : PrepFlow reste utilisable si FilaFlow est arrêté
 - Page Besoins : filament nécessaire sur plusieurs projets, par bobine ou par référence, comparé au stock, export CSV
-- Page Atelier (`atelier.html`) : écran tactile 7" près des imprimantes pour démarrer et terminer les impressions (pavé numérique, choix des bobines, relais, échec en %), veille automatique ; kiosque Raspberry Pi 3 : voir `docs/KIOSQUE-PI3.md`
+- Page Atelier (`atelier.html`, sans lien dans le menu : réservée au kiosque, accessible par son adresse) : écran tactile 7" près des imprimantes pour démarrer et terminer les impressions (pavé numérique, choix des bobines, relais, échec en %), veille automatique ; kiosque Raspberry Pi 3 : voir `docs/KIOSQUE-PI3.md`
 - Mode clair / sombre : bouton dans la barre du haut, modes automatiques dans Paramètres › Apparence
 
 ## Architecture
