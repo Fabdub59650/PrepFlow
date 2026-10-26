@@ -340,3 +340,8 @@ body.atelier {
 .at-nfc-sub { font-size: 18px; color: var(--text2); }
 .at-nfc-sub strong { color: var(--text); font-size: 20px; }
 .at-nfc-use { font-size: 17px; color: var(--success); font-weight: 600; }
+
+/* v1.31.0 : filtre Prêtes / Toutes dans la fenêtre Lancer */
+.at-view { flex: none; display: flex; gap: 8px; }
+.at-seg { flex: 1; min-height: 44px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg2); color: var(--text2); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.at-seg.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }

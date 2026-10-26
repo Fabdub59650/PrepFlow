@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.31.0 — 26/10/2026
+
+- **Atelier : filtre « Prêtes / Toutes » dans la fenêtre Lancer.** La liste des pièces s'ouvre sur **Prêtes** : les pièces qui ont encore un reste à imprimer, hors « À trancher » (une pièce dont la bobine reste à choisir y figure, grisée, comme avant). **Toutes** ajoute les pièces déjà imprimées (réimpression), en cours à 100 % et à trancher. Si aucune pièce n'est prête, la fenêtre s'ouvre sur Toutes ; le filtre n'apparaît pas quand tout est déjà prêt. « Tout / rien » ne touche que les pièces affichées, et revenir sur Prêtes désélectionne les pièces masquées. Le besoin en filament reste calculé sur la sélection. Aucune modification de base de données ni de serveur
+
 ## v1.30.1 — 25/10/2026
 
 - **Fenêtre « Terminer l'impression » : n° de la bobine entre parenthèses** à côté de son nom (« PLA Noir (12) »), sur la ligne du poids retenu et dans le choix « Bobine vidée » du relais, pour vérifier plus facilement la bobine

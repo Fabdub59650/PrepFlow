@@ -569,6 +569,14 @@ async function openProject(id) {
   const sel = new Set(), qty = new Map(), seen = new Set();
   let printerId = null, maint = null;
   const byId = () => new Map(data.parts.map(p => [p.id, p]));
+  // Filtre de la liste : « Prêtes » (reste à imprimer, hors « À trancher ») par défaut, « Toutes » pour le reste (réimpression…)
+  const isReady = p => p.status !== 'a_trancher' && p.remaining > 0;
+  let view = null;
+  const visibleParts = () => {
+    const ready = data.parts.filter(isReady);
+    if (view === null || (view === 'ready' && !ready.length)) view = ready.length ? 'ready' : 'all';
+    return view === 'ready' ? ready : data.parts;
+  };
 
   // Sélection de départ : les pièces prêtes avec un reste à imprimer ; les pièces devenues lançables ensuite (bobine choisie) s'ajoutent
   const seed = () => {
@@ -590,6 +598,7 @@ async function openProject(id) {
   sh.body.innerHTML = `<div class="at-split">
     <div class="at-pane">
       <div class="at-pane-head"><span data-count></span><button type="button" class="at-link" data-all>Tout / rien</button></div>
+      <div class="at-view" data-view hidden role="group" aria-label="Pièces affichées"></div>
       <div data-banner></div>
       <div class="at-parts" data-parts></div>
     </div>
@@ -619,7 +628,12 @@ async function openProject(id) {
 
   const drawParts = () => {
     const keep = list.scrollTop;
-    list.innerHTML = data.parts.length ? data.parts.map(p => {
+    const shown = visibleParts(), nReady = data.parts.filter(isReady).length;
+    const vb = $('[data-view]', sh.body);
+    vb.hidden = nReady === data.parts.length;
+    vb.innerHTML = `<button type="button" class="at-seg ${view === 'ready' ? 'is-on' : ''}" data-v="ready">Prêtes (${nReady})</button>`
+      + `<button type="button" class="at-seg ${view === 'all' ? 'is-on' : ''}" data-v="all">Toutes (${data.parts.length})</button>`;
+    list.innerHTML = shown.length ? shown.map(p => {
       const dis = !p.launchable;
       const reason = !dis ? '' : p.needs_spools ? 'Bobine à choisir' : 'Filament non renseigné : à compléter sur le PC';
       return `<div class="at-part ${sel.has(p.id) ? 'is-on' : ''} ${dis ? 'is-disabled' : ''}" data-id="${p.id}">
@@ -632,7 +646,7 @@ async function openProject(id) {
       </div>`;
     }).join('') : '<p class="at-empty"><strong>Aucune pièce</strong>Ajoutez les pièces dans PrepFlow, sur le PC.</p>';
     list.scrollTop = keep;
-    $('[data-count]', sh.body).textContent = `${sel.size} sur ${plural(data.parts.length, 'pièce')}`;
+    $('[data-count]', sh.body).textContent = `${sel.size} sur ${plural(shown.length, 'pièce')}`;
   };
 
   const printers = () => store.printers.filter(p => p.active);
@@ -692,8 +706,16 @@ async function openProject(id) {
     afterChange();
   });
   $('[data-all]', sh.body).addEventListener('click', () => {
-    const ready = data.parts.filter(p => p.launchable);
-    if (sel.size >= ready.length) sel.clear(); else ready.forEach(p => sel.add(p.id));
+    const ready = visibleParts().filter(p => p.launchable);
+    if (ready.length && ready.every(p => sel.has(p.id))) ready.forEach(p => sel.delete(p.id)); else ready.forEach(p => sel.add(p.id));
+    afterChange();
+  });
+  $('[data-view]', sh.body).addEventListener('click', e => {
+    const b = e.target.closest('[data-v]');
+    if (!b || b.dataset.v === view) return;
+    view = b.dataset.v;
+    // Revenir sur « Prêtes » : on ne garde pas de sélection invisible
+    if (view === 'ready') for (const p of data.parts) if (!isReady(p)) sel.delete(p.id);
     afterChange();
   });
   $('[data-banner]', sh.body).addEventListener('click', async e => {
