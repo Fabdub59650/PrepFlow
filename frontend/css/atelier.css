@@ -345,3 +345,10 @@ body.atelier {
 .at-view { flex: none; display: flex; gap: 8px; }
 .at-seg { flex: 1; min-height: 44px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg2); color: var(--text2); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
 .at-seg.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* v1.32.0 : bandeaux maintenance + bobines à peser sur une ligne */
+.at-banners { flex: none; display: flex; gap: 8px; margin: 8px 12px 0; }
+.at-banners .at-maint { flex: 1; margin: 0; min-width: 0; }
+.at-weigh { border-color: var(--accent); background: var(--bg2); color: var(--accent); }
+.atm-line { display: flex; align-items: center; gap: 8px; }
+.at-banners[hidden] { display: none; }

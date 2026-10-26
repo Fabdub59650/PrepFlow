@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.32.0 — 26/10/2026
+
+- **Bobines à peser.** Comme le reste d'une bobine est estimé depuis sa dernière pesée, PrepFlow signale maintenant celles à repeser dans FilaFlow : un bandeau « ⚖ n bobines à peser » sur l'Atelier (touche = liste avec la consommation et l'ancienneté de la pesée) et un encadré repliable en haut de la page Production. Une bobine est signalée si elle a servi depuis sa dernière pesée et que l'un des deux seuils est atteint : **150 g consommés** ou **14 jours** depuis la pesée (réglables dans Paramètres › Général › « Bobines à peser », 0 désactive un seuil). Lecture seule : rien n'est écrit dans FilaFlow. Sur l'Atelier, le bandeau partage la ligne avec celui de la maintenance
+- **Cartes « En cours » : n° de bobine.** Chaque ligne affiche le nom de la bobine avec son n° entre parenthèses (« PLA Noir (12) ») avant le poids prévu
+
 ## v1.31.0 — 26/10/2026
 
 - **Atelier : filtre « Prêtes / Toutes » dans la fenêtre Lancer.** La liste des pièces s'ouvre sur **Prêtes** : les pièces qui ont encore un reste à imprimer, hors « À trancher » (une pièce dont la bobine reste à choisir y figure, grisée, comme avant). **Toutes** ajoute les pièces déjà imprimées (réimpression), en cours à 100 % et à trancher. Si aucune pièce n'est prête, la fenêtre s'ouvre sur Toutes ; le filtre n'apparaît pas quand tout est déjà prêt. « Tout / rien » ne touche que les pièces affichées, et revenir sur Prêtes désélectionne les pièces masquées. Le besoin en filament reste calculé sur la sélection. Aucune modification de base de données ni de serveur

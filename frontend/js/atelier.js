@@ -6,7 +6,7 @@ import { toast } from './ui.js';
 import { initTheme } from './theme.js';
 import { overdueWarning, dueText } from './maintenance.js';
 import { partColors } from './views/checklist.js';
-import { formatDuration, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK } from './format.js';
+import { formatDuration, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK, spoolsToWeigh, weighAge } from './format.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const round2 = n => Math.round(n * 100) / 100;
@@ -21,7 +21,7 @@ const IDLE_S = (() => {
 })();
 const PAGE_LOADED = Date.now();
 
-const S = { tab: 'lancer', maint: null, running: [], projects: [], loadedAt: Date.now(), version: null, outdated: false, offline: false };
+const S = { tab: 'lancer', weighCfg: { grams: 150, days: 14 }, maint: null, running: [], projects: [], loadedAt: Date.now(), version: null, outdated: false, offline: false };
 
 /* ══ Données ═══════════════════════════════════════════════════════ */
 
@@ -42,10 +42,41 @@ async function refresh({ quiet = false } = {}) {
   if (!S.offline) {                               // maintenance : en cas d'échec on garde l'état précédent
     try { S.maint = await api.get('maintenance'); } catch (_) {}
   }
+  if (!S.offline) {                               // bobines à peser : seuils (réglages) puis état des bobines
+    try {
+      const st = await api.get('settings');
+      S.weighCfg = { grams: Number(st.weigh_alert_g ?? 150), days: Number(st.weigh_alert_days ?? 14) };
+    } catch (_) {}
+    try { await store.loadFilaments(); } catch (_) {}
+  }
   drawMaint();
+  drawWeigh();
   drawRunning();
   drawReady();
 }
+
+/* ══ Bobines à peser (lecture seule : la pesée se fait dans FilaFlow) ═ */
+
+const toWeigh = () => spoolsToWeigh(store.filaments, S.weighCfg);
+
+const syncBanners = () => { $('#at-banners').hidden = $('#at-maint').hidden && $('#at-weigh').hidden; };
+
+function drawWeigh() {
+  const b = $('#at-weigh'), n = toWeigh().length;
+  b.hidden = !n;
+  syncBanners();
+  if (n) b.textContent = `⚖ ${plural(n, 'bobine')} à peser`;
+}
+
+function openWeigh() {
+  const sh = openSheet({ title: 'Bobines à peser', sub: 'Reste estimé à vérifier' });
+  const list = toWeigh();
+  sh.body.innerHTML = `<div class="atm-list">${list.map(({ filament: f, used }) => `<div class="atm-task">
+      <span class="atm-name"><span class="atm-line">${swatch(f.color_hex)}${escapeHtml(filamentLabel(f))}</span>
+        <small>${escapeHtml(formatWeight(Math.round(used)))} consommés · ${escapeHtml(weighAge(f.last_weighed_at))}</small></span></div>`).join('')}
+    <p class="muted">À peser dans FilaFlow : le reste estimé se remet alors d'aplomb.</p></div>`;
+}
+$('#at-weigh').addEventListener('click', openWeigh);
 
 /* ══ Maintenance ═══════════════════════════════════════════════════ */
 
@@ -59,6 +90,7 @@ function drawMaint() {
   const b = $('#at-maint');
   const n = lateByPrinter().reduce((a, p) => a + p.late.length, 0);
   b.hidden = !n;
+  syncBanners();
   if (n) b.textContent = `⚠ Maintenance à faire · ${plural(n, 'tâche')} dépassée${n > 1 ? 's' : ''}`;
 }
 

@@ -143,6 +143,24 @@ export function weighAge(str) {
 }
 
 /**
+ * Bobines à peser : actives, utilisées depuis leur dernière pesée, et dont la consommation dépasse `grams`
+ * ou dont la pesée date de `days` jours ou plus (0 = critère désactivé). Les plus consommées d'abord.
+ */
+export function spoolsToWeigh(filaments, { grams = 150, days = 14 } = {}) {
+  const out = [];
+  for (const f of filaments || []) {
+    if (f.archived) continue;
+    const used = Number(f.used_since_weighing_g) || 0;
+    if (used <= 0) continue;
+    const t = f.last_weighed_at ? Date.parse(String(f.last_weighed_at).replace(' ', 'T')) : NaN;
+    const age = Number.isNaN(t) ? null : Math.max(0, Math.floor((Date.now() - t) / 86400000));
+    const byGrams = grams > 0 && used >= grams, byDays = days > 0 && (age === null || age >= days);
+    if (byGrams || byDays) out.push({ filament: f, used, age });
+  }
+  return out.sort((a, b) => b.used - a.used);
+}
+
+/**
  * Reste d'une bobine à afficher. Si des impressions ont été faites depuis la dernière pesée,
  * le reste est estimé (marqué « ~ ») ; sinon c'est le poids pesé dans FilaFlow.
  * value : grammes (null si inconnu) ; text : texte court ; title : explication au survol ; age : date de pesée.

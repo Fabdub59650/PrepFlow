@@ -23,9 +23,13 @@ const EDITABLE = {
   min_piece_price: v => decimalIn(v, 0, 10000),
   // Calibration : appliquer le coefficient prévu/réel aux besoins, au stock estimé et au coût (1) ou seulement l'afficher (0)
   calibration_apply: v => (['0', '1'].includes(String(v)) ? String(v) : null),
+  // Bobines à peser : seuils de consommation (g) et d'ancienneté de pesée (jours) depuis la dernière pesée ; 0 = critère désactivé
+  weigh_alert_g:    v => (/^\d{1,4}$/.test(String(v).trim()) && +v <= 5000 ? String(+v) : null),
+  weigh_alert_days: v => (/^\d{1,3}$/.test(String(v).trim()) && +v <= 365 ? String(+v) : null),
 };
 const DEFAULTS = { color_mode: '', dark_from: '20', dark_to: '7', needs_margin: '10',
-  kwh_price: '0.25', margin_pct: '30', min_piece_price: '0', calibration_apply: '1' };
+  kwh_price: '0.25', margin_pct: '30', min_piece_price: '0', calibration_apply: '1',
+  weigh_alert_g: '150', weigh_alert_days: '14' };
 
 async function readSettings() {
   const [rows] = await db.query(

@@ -61,6 +61,18 @@ export async function renderSettings(el) {
       </div>
     </section>
 
+    <section class="settings-section" aria-labelledby="weigh-title">
+      <h2 class="panel-title" id="weigh-title">Bobines à peser</h2>
+      <p class="panel-sub">PrepFlow signale (Atelier et page Production) les bobines à repeser dans FilaFlow, car leur reste estimé s'éloigne de la réalité.
+        Une bobine est signalée dès qu'elle a servi depuis sa dernière pesée et que l'un des deux seuils est atteint. 0 désactive un seuil.</p>
+      <div class="settings-row">
+        <label class="field"><span>Consommation depuis la pesée</span>
+          <span class="input-suffix"><input type="number" min="0" max="5000" step="10" data-weigh="weigh_alert_g" value="${escapeHtml(s.weigh_alert_g ?? '150')}"><span>g</span></span></label>
+        <label class="field"><span>Ancienneté de la pesée</span>
+          <span class="input-suffix"><input type="number" min="0" max="365" step="1" data-weigh="weigh_alert_days" value="${escapeHtml(s.weigh_alert_days ?? '14')}"><span>jours</span></span></label>
+      </div>
+    </section>
+
     <section class="settings-section" aria-labelledby="cost-title">
       <h2 class="panel-title" id="cost-title">Coût et prix de vente</h2>
       <p class="panel-sub">Valeurs par défaut des projets (la marge et le minimum se règlent aussi projet par projet).
@@ -138,6 +150,12 @@ export async function renderSettings(el) {
     try { const saved = await api.put('settings', { needs_margin: String(v) }); s.needs_margin = saved.needs_margin; toast('Réglage enregistré'); }
     catch (e) { toast(e.message, 'error'); }
   });
+
+  el.querySelectorAll('[data-weigh]').forEach(inp => inp.addEventListener('change', async () => {
+    const k = inp.dataset.weigh;
+    try { const saved = await api.put('settings', { [k]: inp.value.trim() }); s[k] = saved[k]; inp.value = saved[k]; toast('Réglage enregistré'); }
+    catch (e) { toast(e.message, 'error'); inp.value = s[k]; }
+  }));
 
   el.querySelectorAll('[data-cost]').forEach(inp => inp.addEventListener('change', async () => {
     const k = inp.dataset.cost;

@@ -2,7 +2,7 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
 import { toast, confirmDialog } from '../ui.js';
-import { RUN_RESULT, formatDuration, formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch } from '../format.js';
+import { RUN_RESULT, formatDuration, formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolsToWeigh, weighAge } from '../format.js';
 import { openFinishDialog, openCorrectDialog, updateRunsBadge } from '../runs.js';
 
 const sum = (list, k) => list.reduce((s, x) => s + (Number(x[k]) || 0), 0);
@@ -22,6 +22,11 @@ export async function renderProduction(el) {
   const filter = { project: '', result: '', search: '', period: store_.get('period', '30'), view: store_.get('view', 'liste') };
   if (!['0', '30', '90', '365'].includes(filter.period)) filter.period = '30';
   if (!['liste', 'projet'].includes(filter.view)) filter.view = 'liste';
+  let weighCfg = { grams: 150, days: 14 };
+  try {
+    const st = await api.get('settings');
+    weighCfg = { grams: Number(st.weigh_alert_g ?? 150), days: Number(st.weigh_alert_days ?? 14) };
+  } catch (_) {}
   let shown = PAGE;
   const openProjects = new Set();   // blocs « Par projet » dépliés par l'utilisateur
   let projectsInit = false;
@@ -39,6 +44,7 @@ export async function renderProduction(el) {
     </div>
     <p class="page-sub">Impressions lancées depuis les projets : en cours, puis historique avec le prévu et le réel.
       Le reste estimé des bobines se déduit de ces impressions depuis la dernière pesée.</p>
+    <div id="weigh-box"></div>
     <section class="prod-section">
       <h2 class="panel-title">En cours <span class="count-chip" id="running-count"></span></h2>
       <div id="running"></div>
@@ -128,6 +134,18 @@ export async function renderProduction(el) {
   el.querySelector('#waste-days').value = String(wasteDays);
   el.querySelector('#waste-days').addEventListener('change', e => { wasteDays = parseInt(e.target.value, 10); drawWaste(); });
 
+  /* ── Bobines à peser (lecture seule : la pesée se fait dans FilaFlow) ─ */
+  function drawWeigh() {
+    const box = el.querySelector('#weigh-box');
+    const list = spoolsToWeigh(store.filaments, weighCfg);
+    if (!list.length) { box.innerHTML = ''; return; }
+    const open = box.querySelector('details')?.open;
+    box.innerHTML = `<details class="weigh-alert" ${open ? 'open' : ''}><summary>Bobines à peser : ${list.length}</summary>
+      <ul>${list.map(({ filament: f, used }) => `<li>${swatch(f.color_hex)}<span class="weigh-name">${escapeHtml(filamentLabel(f))}</span>
+        <span class="muted">${escapeHtml(formatWeight(Math.round(used)))} consommés · ${escapeHtml(weighAge(f.last_weighed_at))}</span></li>`).join('')}</ul>
+      <p class="hint">Le reste affiché est une estimation : une pesée dans FilaFlow la remet d'aplomb.</p></details>`;
+  }
+
   /* ── En cours ─────────────────────────────────────────────────── */
   const elapsedOf = r => (r.elapsed_s || 0) + (Date.now() - loadedAt) / 1000;
 
@@ -163,7 +181,7 @@ export async function renderProduction(el) {
           <li>
             <span class="run-line-name"><a href="#/projet/${r.project_id}" class="cell-code">${escapeHtml(r.project_code || '')}</a>
               ${escapeHtml(r.part_name || 'Sans nom')} × ${r.quantity}</span>
-            <span class="run-line-fils">${r.filaments.map(f => `${swatch(store.filamentsById.get(f.filament_id)?.color_hex)}<span class="muted">${formatWeight(Number(f.planned_g)) || '0 g'}</span>`).join(' ')}</span>
+            <span class="run-line-fils">${r.filaments.map(f => `<span class="run-fil">${swatch(store.filamentsById.get(f.filament_id)?.color_hex)}<span>${escapeHtml(f.name ? f.name + (f.spool_number && String(f.spool_number).trim() ? ` (${String(f.spool_number).trim()})` : '') : filamentLabel(store.filamentsById.get(f.filament_id)))}</span><span class="muted">${formatWeight(Number(f.planned_g)) || '0 g'}</span></span>`).join('')}</span>
             <button type="button" class="link-btn" data-correct-run="${r.id}" title="Changer la bobine en cas d'erreur au lancement">Corriger</button>
             ${solo ? '' : `<button type="button" class="link-btn" data-finish-one="${r.id}">Terminer seule</button>`}
           </li>`).join('')}
@@ -348,12 +366,14 @@ export async function renderProduction(el) {
   async function reloadAll() {
     await load();
     await store.loadFilaments().catch(() => {});
+    drawWeigh();
     drawRunning();
     drawHistory();
     drawWaste();
     updateRunsBadge();
   }
 
+  drawWeigh();
   drawRunning();
   drawHistory();
   drawWaste();
