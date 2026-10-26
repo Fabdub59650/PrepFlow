@@ -1027,11 +1027,13 @@ async function onCard({ filament }) {
   const f = store.filamentsById.get(filament.id) || null;
   const st = f ? spoolStock(f) : null;
   const uses = S.running.filter(r => (r.filaments || []).some(x => x.filament_id === filament.id));
+  const weigh = f ? toWeigh().find(w => w.filament.id === f.id) : null;
   const where = [...new Set(uses.map(r => [r.printer_name, r.project_code].filter(Boolean).join(' · ')))];
   showBadge(`<div class="at-nfc-title">${swatch((f || filament).color_hex)}<span>${escapeHtml(filamentLabel(f || filament))}</span></div>
     <div class="at-nfc-sub">${st && st.value !== null
       ? `Reste <strong>${escapeHtml(st.text)}</strong>${st.estimated ? ' (estimé)' : ''}${st.age ? ` · ${escapeHtml(st.age)}` : ''}`
       : 'Reste inconnu'}</div>
+    ${weigh ? `<div class="at-nfc-weigh">⚖ À peser · ${escapeHtml(formatWeight(Math.round(weigh.used)))} consommés depuis la pesée</div>` : ''}
     ${where.length ? `<div class="at-nfc-use">▶ En cours sur ${escapeHtml(where.join(', '))}</div>` : ''}`);
 }
 

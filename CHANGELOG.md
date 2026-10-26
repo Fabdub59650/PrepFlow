@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.32.1 — 26/10/2026
+
+- **Atelier : « ⚖ À peser » dans le badge de la puce NFC.** Quand la bobine lue fait partie des bobines à peser, le badge l'indique avec la consommation depuis sa dernière pesée (« ⚖ À peser · 210 g consommés depuis la pesée »). Mêmes seuils que le bandeau, lecture seule
+
 ## v1.32.0 — 26/10/2026
 
 - **Bobines à peser.** Comme le reste d'une bobine est estimé depuis sa dernière pesée, PrepFlow signale maintenant celles à repeser dans FilaFlow : un bandeau « ⚖ n bobines à peser » sur l'Atelier (touche = liste avec la consommation et l'ancienneté de la pesée) et un encadré repliable en haut de la page Production. Une bobine est signalée si elle a servi depuis sa dernière pesée et que l'un des deux seuils est atteint : **150 g consommés** ou **14 jours** depuis la pesée (réglables dans Paramètres › Général › « Bobines à peser », 0 désactive un seuil). Lecture seule : rien n'est écrit dans FilaFlow. Sur l'Atelier, le bandeau partage la ligne avec celui de la maintenance
