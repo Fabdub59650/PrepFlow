@@ -1037,12 +1037,34 @@ async function onCard({ filament }) {
     ${where.length ? `<div class="at-nfc-use">▶ En cours sur ${escapeHtml(where.join(', '))}</div>` : ''}`);
 }
 
+// Pesée faite dans FilaFlow (balance ou saisie) : retour immédiat sur l'écart avec le reste estimé
+async function onWeighing(w) {
+  if (!w || w.filament_id === undefined || w.net === undefined) return;
+  lastActive = Date.now();
+  if (!veille.hidden) veille.hidden = true;
+  const before = store.filamentsById.get(w.filament_id);          // état connu avant la pesée
+  const st = before ? spoolStock(before) : null;
+  const net = Number(w.net);
+  const label = filamentLabel(before || { id: w.filament_id, name: w.name, spool_number: w.spool_number });
+  let diff = '';
+  if (st && st.estimated && st.value !== null && Number.isFinite(net)) {
+    const d = Math.round(net - st.value), pct = st.value > 0 ? Math.round(100 * d / st.value) : null;
+    diff = `<div class="at-nfc-sub">Estimé <strong>${escapeHtml(formatWeight(Math.round(st.value)))}</strong> · écart <strong>${d > 0 ? '+' : d < 0 ? '−' : ''}${escapeHtml(formatWeight(Math.abs(d)) || '0 g')}</strong>${pct === null ? '' : ` (${d > 0 ? '+' : d < 0 ? '−' : ''}${Math.abs(pct)} %)`}</div>`;
+  }
+  showBadge(`<div class="at-nfc-title">${swatch(w.color_hex || before?.color_hex)}<span>${escapeHtml(label)}</span></div>
+    <div class="at-nfc-sub">Pesée enregistrée : <strong>${escapeHtml(formatWeight(Math.round(net)) || '0 g')}</strong></div>${diff}`);
+  hideBadgeSoon(10_000);
+  try { await store.loadFilaments(); } catch (_) {}
+  drawWeigh();
+}
+
 function nfcConnect() {
   if (typeof EventSource === 'undefined' || new URLSearchParams(location.search).get('nfc') === '0') return;
   let es;
   try { es = new EventSource('/api/nfc/events'); } catch (_) { return; }
   es.addEventListener('status', () => { nfcRetry = 5000; });
   es.addEventListener('card', e => { try { onCard(JSON.parse(e.data)); } catch (_) {} });
+  es.addEventListener('weighing', e => { try { onWeighing(JSON.parse(e.data)); } catch (_) {} });
   es.addEventListener('card_removed', () => { if (badgeEl) hideBadgeSoon(4000); });
   es.addEventListener('bye', () => { es.close(); setTimeout(nfcConnect, 1000); });   // recyclage planifié du flux par le serveur
   es.onerror = () => { es.close(); setTimeout(nfcConnect, nfcRetry); nfcRetry = Math.min(nfcRetry * 2, 60_000); };

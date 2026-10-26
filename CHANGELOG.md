@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.33.0 — 26/10/2026
+
+- **Atelier : retour immédiat à chaque pesée faite dans FilaFlow.** Quand une bobine est pesée (balance connectée ou saisie manuelle), l'Atelier affiche pendant quelques secondes « Pesée enregistrée : 718 g », avec, si la bobine avait servi depuis sa dernière pesée, le reste estimé et l'écart (« Estimé 742 g · écart −24 g (−3 %) »). La bobine sort aussitôt du bandeau « à peser ». Lecture seule, via le flux d'événements de FilaFlow déjà utilisé pour le badge NFC : rien n'est écrit, FilaFlow n'est pas modifié
+
 ## v1.32.1 — 26/10/2026
 
 - **Atelier : « ⚖ À peser » dans le badge de la puce NFC.** Quand la bobine lue fait partie des bobines à peser, le badge l'indique avec la consommation depuis sa dernière pesée (« ⚖ À peser · 210 g consommés depuis la pesée »). Mêmes seuils que le bandeau, lecture seule
