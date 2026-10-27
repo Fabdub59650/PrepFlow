@@ -133,6 +133,15 @@ function groupRuns(list) {
 }
 
 // Durée prévue d'une impression ou d'un plateau (null si inconnue)
+// Imprimante occupée : texte « occupée · reste 1 h 10 » (ou « occupée »), sinon null
+function busyPrinter(printerId) {
+  const runs = S.running.filter(r => r.printer_id === printerId);
+  if (!runs.length) return null;
+  const batches = groupRuns(runs)[0], planned = plannedOf(batches);
+  const left = planned ? planned - elapsedOf(batches[0]) : null;
+  return left !== null && left > 0 ? `occupée · reste ${formatDuration(left) || '0 min'}` : 'occupée';
+}
+
 const plannedOf = runs => Number(runs.length > 1 ? runs[0].batch_planned_time_s : runs[0].planned_time_s) || null;
 
 const runTitle = runs => runs.length === 1
@@ -623,7 +632,7 @@ async function openProject(id) {
       const map = byId();
       const shared = new Set([...sel].map(i => map.get(i).printer_id));
       const only = shared.size === 1 ? [...shared][0] : null;
-      if (only && store.printers.some(p => p.id === only && p.active)) printerId = only;
+      if (only && store.printers.some(p => p.id === only && p.active) && !busyPrinter(only)) printerId = only;
     }
   };
 
@@ -684,7 +693,10 @@ async function openProject(id) {
   const printers = () => store.printers.filter(p => p.active);
   const drawPrinters = () => {
     $('[data-printers]', sh.body).innerHTML = printers().length
-      ? printers().map(p => `<button type="button" class="at-btn ${p.id === printerId ? 'is-on' : ''}" data-pid="${p.id}">${escapeHtml(p.name)}</button>`).join('')
+      ? printers().map(p => {
+          const busy = busyPrinter(p.id);
+          return `<button type="button" class="at-btn ${p.id === printerId ? 'is-on' : ''} ${busy ? 'is-busy' : ''}" data-pid="${p.id}" ${busy ? 'disabled' : ''}>${escapeHtml(p.name)}${busy ? `<small>${escapeHtml(busy)}</small>` : ''}</button>`;
+        }).join('')
       : '<p class="at-empty">Aucune imprimante active : à régler dans PrepFlow.</p>';
     const box = $('[data-maint]', sh.body);
     const txt = maint && printerId ? overdueWarning(maint, printerId) : '';

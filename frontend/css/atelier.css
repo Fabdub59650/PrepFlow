@@ -353,3 +353,7 @@ body.atelier {
 .atm-line { display: flex; align-items: center; gap: 8px; }
 .at-banners[hidden] { display: none; }
 .at-nfc-weigh { font-size: 17px; color: var(--accent); font-weight: 600; }
+
+/* v1.34.0 : imprimante occupée (un seul travail à la fois) */
+.at-btn.is-busy { opacity: .55; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.at-btn.is-busy small { font-family: var(--font-body); font-size: 13px; font-weight: 400; text-transform: none; letter-spacing: 0; }

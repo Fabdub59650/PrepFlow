@@ -105,6 +105,22 @@ export function openStartDialog({ parts, runIdx = new Map(), onDone }) {
           <input type="datetime-local" class="select" data-k="started" aria-label="Heure de début">
         </details>`;
 
+      // Une imprimante n'a qu'un travail à la fois : celles qui impriment déjà sont grisées (le serveur vérifie aussi)
+      api.get('runs?state=en_cours').then(running => {
+        if (!body.isConnected) return;
+        const sel = body.querySelector('[data-k=printer]');
+        const busyBy = new Map();
+        for (const r of running) if (r.printer_id && !busyBy.has(r.printer_id)) busyBy.set(r.printer_id, r);
+        for (const opt of sel.options) {
+          const r = busyBy.get(+opt.value);
+          if (!r) continue;
+          opt.disabled = true;
+          opt.textContent += ` — occupée (${[r.project_code, r.part_name].filter(Boolean).join(' · ')})`;
+        }
+        if (sel.selectedOptions[0]?.disabled) sel.value = '';
+        sel.dispatchEvent(new Event('change'));
+      }).catch(() => {});
+
       // Besoin en filament par bobine, comparé au reste estimé (moins ce qui est déjà réservé par d'autres impressions)
       const drawNeeds = () => {
         const need = new Map();

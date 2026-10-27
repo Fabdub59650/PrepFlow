@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.34.0 — 27/10/2026
+
+- **Une imprimante n'a qu'un travail à la fois.** Une imprimante qui a déjà une impression en cours (seule ou lancement groupé, un plateau comptant pour un seul travail) n'est plus disponible : le serveur refuse le lancement avec « Neptune 4 Plus est occupée : impression en cours (P261001 · Bras). Terminez-la d'abord. », même si deux lancements arrivent en même temps du PC et du kiosque. Dans la fenêtre de lancement du PC, les imprimantes occupées sont grisées (« — occupée (projet · pièce) ») ; sur l'Atelier, leur bouton est grisé avec « occupée · reste 1 h 10 » (temps prévu restant, quand il est connu). L'imprimante redevient libre dès que l'impression est terminée. Les impressions déjà en cours ne sont pas touchées. Aucune modification de base de données
+
 ## v1.33.0 — 26/10/2026
 
 - **Atelier : retour immédiat à chaque pesée faite dans FilaFlow.** Quand une bobine est pesée (balance connectée ou saisie manuelle), l'Atelier affiche pendant quelques secondes « Pesée enregistrée : 718 g », avec, si la bobine avait servi depuis sa dernière pesée, le reste estimé et l'écart (« Estimé 742 g · écart −24 g (−3 %) »). La bobine sort aussitôt du bandeau « à peser ». Lecture seule, via le flux d'événements de FilaFlow déjà utilisé pour le badge NFC : rien n'est écrit, FilaFlow n'est pas modifié

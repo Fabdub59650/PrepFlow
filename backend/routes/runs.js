@@ -271,9 +271,21 @@ async function startRuns(body) {
       if (shared.size === 1 && parts[0].printer_id !== null) printerId = parts[0].printer_id;
       else throw bad('Choisissez une imprimante');
     }
-    const [[printer]] = await conn.query('SELECT id, active FROM printers WHERE id=?', [printerId]);
+    // Le verrou sur la ligne de l'imprimante sérialise deux lancements simultanés (PC et kiosque)
+    const [[printer]] = await conn.query('SELECT id, name, active FROM printers WHERE id=? FOR UPDATE', [printerId]);
     if (!printer) throw bad('Imprimante inconnue');
     if (!printer.active) throw bad('Cette imprimante est désactivée');
+    // Une imprimante n'a qu'un travail à la fois (impression seule ou lancement groupé)
+    const [busy] = await conn.query(
+      `SELECT r.id, r.batch_id, p.name AS part_name, pr.code AS project_code
+       FROM print_runs r JOIN parts p ON p.id = r.part_id JOIN projects pr ON pr.id = p.project_id
+       WHERE r.printer_id = ? AND r.state = 'en_cours' ORDER BY r.id`, [printerId]);
+    if (busy.length) {
+      const b = busy[0];
+      const what = [b.project_code, b.part_name || 'Sans nom'].filter(Boolean).join(' · ')
+        + (busy.length > 1 ? ` (+${busy.length - 1})` : '');
+      throw conflict(`${printer.name} est occupée : impression en cours (${what}). Terminez-la d'abord.`);
+    }
 
     const batchId = parts.length > 1 ? crypto.randomUUID() : null;
     const created = [];
