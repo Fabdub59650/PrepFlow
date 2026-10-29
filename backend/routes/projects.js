@@ -31,7 +31,8 @@ router.get('/', async (req, res) => {
          COALESCE(SUM(pt.quantity * COALESCE(pt.print_time_s, 0)), 0) AS total_time_s,
          COALESCE(SUM(pt.quantity * COALESCE(w.unit_weight, 0)), 0)   AS total_weight_g,
          COALESCE(MAX(sp.spools_count), 0)                    AS spools_count,
-         MAX(sp.spools_names)                                 AS spools_names
+         MAX(sp.spools_names)                                 AS spools_names,
+         (SELECT version FROM project_photos WHERE project_id = p.id) AS photo_v
        FROM projects p
        LEFT JOIN parts pt ON pt.project_id = p.id
        LEFT JOIN (SELECT part_id, COUNT(*) AS n_runs,
@@ -117,6 +118,8 @@ router.get('/:id', async (req, res) => {
     if (!project) return res.status(404).json({ error: 'Projet introuvable' });
     project.parts = await loadParts({ projectId: project.id });
     project.themes = (await themesByProject([project.id])).get(project.id) || [];
+    const [[ph]] = await db.query('SELECT version FROM project_photos WHERE project_id=?', [project.id]);
+    project.photo_v = ph ? ph.version : null;
     res.json(project);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

@@ -2,6 +2,7 @@ import { api } from '../api.js';
 import { store } from '../store.js';
 import { escapeHtml, swatch, formatDate } from '../format.js';
 import { toast, confirmDialog } from '../ui.js';
+import { photoThumb } from '../photo.js';
 
 // Contrôle des pièces d'un projet en fin de projet. Deux vues :
 //  - à l'écran (#/projet/12/controle) : liste à plat, une ligne par pièce, compteur « 3 / 4 »,
@@ -74,6 +75,7 @@ export async function renderChecklistPaper(el, id) {
     </div>
     <article class="ck-sheet">
       <header class="ck-head">
+        ${photoThumb(project, 'ck-photo')}
         <h1 class="ck-title">Fiche de contrôle</h1>
         <div class="ck-meta">
           ${project.code ? `<span class="ck-code">${escapeHtml(project.code)}</span>` : ''}
@@ -193,6 +195,7 @@ export async function renderChecklist(el, id) {
       </div>
       <section class="cs">
         <header class="cs-head">
+          ${photoThumb(project, 'ck-photo')}
           <h1 class="cs-title">Contrôle des pièces</h1>
           <div class="ck-meta">
             ${project.code ? `<span class="ck-code">${escapeHtml(project.code)}</span>` : ''}

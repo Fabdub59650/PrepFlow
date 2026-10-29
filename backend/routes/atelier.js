@@ -24,7 +24,8 @@ router.get('/atelier', async (req, res) => {
   try {
     const running = await loadRuns({ state: 'en_cours', limit: 200 });
     const [projects] = await db.query(
-      `SELECT id, code, name, status, updated_at, check_done_at FROM projects
+      `SELECT id, code, name, status, updated_at, check_done_at,
+              (SELECT version FROM project_photos WHERE project_id = projects.id) AS photo_v FROM projects
        WHERE status IN ('preparation','en_cours','termine')
        ORDER BY updated_at DESC LIMIT 300`);
     const todo = new Map(projects.map(p => [p.id, { todo_parts: 0, todo_pieces: 0, todo_time_s: 0, needs_spools: 0, n_parts: 0, check_lines: 0, unprinted: 0, n_active: 0 }]));

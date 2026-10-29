@@ -26,6 +26,7 @@ app.get('/api/meta', (req, res) => {
   res.json({ version: VERSION, filaflow: filaflow.status() });
 });
 
+app.use('/api/projects',  require('./routes/photos'));
 app.use('/api/projects',  require('./routes/projects'));
 app.use('/api/themes',    require('./routes/themes').router);
 app.use('/api/printers',  require('./routes/printers'));

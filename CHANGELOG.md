@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.35.0 — 29/10/2026
+
+- **Une image par projet.** Sur la page d'un projet, la pastille « ＋ Image » (à gauche du titre) ouvre une fenêtre pour ajouter une image : **coller une capture** (Ctrl+V), **glisser** une image dans la fenêtre, ou **choisir un fichier**. L'image est réduite par le navigateur (900 px au plus, JPEG ; fond blanc pour les captures transparentes) puis enregistrée **dans la base** : elle suit donc la sauvegarde de la base prepflow, sans rien changer dans FilaFlow. On peut la changer ou la retirer depuis la même pastille. Elle s'affiche en vignette dans la liste des projets, dans les listes « À lancer » et « À contrôler » de l'Atelier, en haut du contrôle des pièces de l'Atelier et dans l'en-tête de la fiche de contrôle (écran et papier). Dupliquer un projet copie son image. Nouvelle table `project_photos` (créée par `patch.sh` et la mise à jour automatique) ; 600 Ko maximum par image après réduction
+
 ## v1.34.0 — 27/10/2026
 
 - **Une imprimante n'a qu'un travail à la fois.** Une imprimante qui a déjà une impression en cours (seule ou lancement groupé, un plateau comptant pour un seul travail) n'est plus disponible : le serveur refuse le lancement avec « Neptune 4 Plus est occupée : impression en cours (P261001 · Bras). Terminez-la d'abord. », même si deux lancements arrivent en même temps du PC et du kiosque. Dans la fenêtre de lancement du PC, les imprimantes occupées sont grisées (« — occupée (projet · pièce) ») ; sur l'Atelier, leur bouton est grisé avec « occupée · reste 1 h 10 » (temps prévu restant, quand il est connu). L'imprimante redevient libre dès que l'impression est terminée. Les impressions déjà en cours ne sont pas touchées. Aucune modification de base de données

@@ -8,6 +8,7 @@ import {
 import { derivePart, summarize } from '../summary.js';
 import { mountThemeEditor } from '../themes.js';
 import { openDuplicateDialog } from '../duplicate.js';
+import { photoUrl, openPhotoDialog } from '../photo.js';
 import { indexRuns, runsToFinish, openStartDialog, openFinishDialog, updateRunsBadge } from '../runs.js';
 
 /* ── Données d'une ligne ───────────────────────────────────────── */
@@ -261,6 +262,7 @@ export async function renderProject(el, id) {
     <div class="project-head">
       <a href="#/" class="back-link">Projets</a>
       <div class="project-title-row">
+        <button type="button" class="proj-photo" id="project-photo" aria-label="Image du projet"></button>
         ${project.code ? `<span class="project-code" title="Code du projet, à utiliser comme nom de dossier">
           <span id="project-code">${escapeHtml(project.code)}</span>
           <button type="button" class="icon-btn" id="copy-code" aria-label="Copier le code ${escapeHtml(project.code)}" title="Copier le code">
@@ -386,6 +388,17 @@ export async function renderProject(el, id) {
     }
     toast(`Code ${code} copié`);
   });
+
+  /* Image du projet (une seule) */
+  const photoBtn = el.querySelector('#project-photo');
+  const drawPhoto = () => {
+    const u = photoUrl(project);
+    photoBtn.innerHTML = u ? `<img src="${u}" alt="Image du projet">` : '<span>＋ Image</span>';
+    photoBtn.classList.toggle('is-empty', !u);
+    photoBtn.title = u ? "Changer ou retirer l'image" : "Ajouter une image (capture du slicer, image du modèle…)";
+  };
+  drawPhoto();
+  photoBtn.addEventListener('click', () => openPhotoDialog({ project, onDone: v => { project.photo_v = v; drawPhoto(); toast(v ? 'Image enregistrée' : 'Image retirée'); } }));
 
   /* En-tête du projet */
   const saveProject = async body => {

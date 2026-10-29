@@ -195,6 +195,18 @@ CREATE TABLE IF NOT EXISTS `project_themes` (
   CONSTRAINT `fk_pt_theme`   FOREIGN KEY (`theme_id`)   REFERENCES `themes` (`id`)   ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- v1.35.0 : image d'un projet (une seule, JPEG réduit par le navigateur). Dans la base : elle suit la sauvegarde de la base prepflow.
+-- version : change à chaque remplacement (sert d'adresse de cache côté navigateur)
+CREATE TABLE IF NOT EXISTS `project_photos` (
+  `project_id` int(11)       NOT NULL,
+  `mime`       varchar(30)   NOT NULL DEFAULT 'image/jpeg',
+  `data`       mediumblob    NOT NULL,
+  `version`    int(11)       NOT NULL DEFAULT 1,
+  `updated_at` timestamp     NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`project_id`),
+  CONSTRAINT `fk_pp_project` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- v1.17.1 : couleur d'un thème (clé de la palette de l'interface : rouge, bleu…), NULL = neutre
 ALTER TABLE `themes` ADD COLUMN IF NOT EXISTS `color` varchar(20) DEFAULT NULL;
 

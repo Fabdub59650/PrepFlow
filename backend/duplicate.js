@@ -39,6 +39,9 @@ async function duplicateProject(srcId, wantedName) {
       const newId = r.insertId;
       await assignCode(newId, conn);
       await conn.query(
+        'INSERT INTO project_photos (project_id, mime, data) SELECT ?, mime, data FROM project_photos WHERE project_id=?',
+        [newId, srcId]);
+      await conn.query(
         'INSERT INTO project_themes (project_id, theme_id) SELECT ?, theme_id FROM project_themes WHERE project_id=?',
         [newId, srcId]);
 

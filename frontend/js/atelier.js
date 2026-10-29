@@ -4,6 +4,7 @@ import { api } from './api.js';
 import { store } from './store.js';
 import { toast } from './ui.js';
 import { initTheme } from './theme.js';
+import { photoThumb } from './photo.js';
 import { overdueWarning, dueText } from './maintenance.js';
 import { partColors } from './views/checklist.js';
 import { formatDuration, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK, spoolsToWeigh, weighAge } from './format.js';
@@ -264,7 +265,7 @@ async function openCheck(id) {
   const countOf = p => stateOf(p) === 'pending' ? null : Math.min(Number(p.check_qty), qtyOf(p));
 
   const sh = openSheet({ title: 'Contrôle', sub: [project.code, project.name].filter(Boolean).join(' · ') });
-  sh.body.innerHTML = `<div class="atc-bar" data-bar></div><div class="atc-list" data-list></div>`;
+  sh.body.innerHTML = `<div class="atc-top">${photoThumb(project, 'at-thumb at-thumb-lg')}<div class="atc-bar" data-bar></div></div><div class="atc-list" data-list></div>`;
   const list = $('[data-list]', sh.body), bar = $('[data-bar]', sh.body);
   let chain = Promise.resolve();                 // les enregistrements partent dans l'ordre des touchers
 
@@ -841,8 +842,8 @@ function projectButton(p, mode = 'lancer') {
   const todo = p.todo_parts > 0;
   if (mode === 'controler') {
     const started = p.check_lines > 0;
-    return `<button type="button" class="at-proj" data-check="${p.id}">
-    <span class="at-code">${escapeHtml(p.code || '')}</span>
+    return `<button type="button" class="at-proj ${p.photo_v ? 'has-thumb' : ''}" data-check="${p.id}">
+    ${photoThumb(p, 'at-thumb')}<span class="at-code">${escapeHtml(p.code || '')}</span>
     <span class="at-proj-name">${escapeHtml(p.name || '')}</span>
     <span class="at-proj-meta">
       <span>${plural(p.n_parts, 'ligne')} à vérifier</span>
@@ -851,8 +852,8 @@ function projectButton(p, mode = 'lancer') {
     </span>
   </button>`;
   }
-  return `<button type="button" class="at-proj" data-project="${p.id}">
-    <span class="at-code">${escapeHtml(p.code || '')}</span>
+  return `<button type="button" class="at-proj ${p.photo_v ? 'has-thumb' : ''}" data-project="${p.id}">
+    ${photoThumb(p, 'at-thumb')}<span class="at-code">${escapeHtml(p.code || '')}</span>
     <span class="at-proj-name">${escapeHtml(p.name || '')}</span>
     <span class="at-proj-meta">
       <span>${todo ? `${plural(p.todo_pieces, 'pièce')} à lancer${Number(p.todo_time_s) ? ' · ' + escapeHtml(formatDuration(Number(p.todo_time_s))) : ''}` : 'rien à lancer'}</span>
