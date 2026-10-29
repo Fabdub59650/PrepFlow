@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.36.1 — 29/10/2026
+
+- **Filtre par statut dans la liste des projets.** Une rangée de boutons « Statut » (Tous · Idée · En préparation · En cours · Terminé) s'affiche au-dessus du filtre par thèmes, chacun avec son nombre de projets. Un seul statut à la fois, « Tous » par défaut ; le choix est mémorisé dans le navigateur. Il se combine avec les thèmes (les compteurs en tiennent compte) et le résumé sous les filtres (projets, pièces, temps, poids) s'applique aussi au statut. Le bouton « Archivé » n'apparaît que lorsque « Afficher les archivés » est coché. Affichage seulement : rien ne change en base
+
 ## v1.36.0 — 29/10/2026
 
 - **Nouveau statut « Idée ».** Un projet peut maintenant être une simple **idée** avant d'entrer **en préparation** : l'ordre est Idée → En préparation → En cours → Terminé → Archivé. **Un projet créé démarre à l'état « Idée »** (pastille grise) ; la copie d'un projet, elle, reste « En préparation ». Dans la liste, les idées se placent après les projets en préparation. Elles **n'apparaissent pas dans l'Atelier** et sont **décochées par défaut dans la page Besoins** (on peut les cocher à la main). Lancer une impression sur une idée la passe automatiquement « En cours », comme pour un projet en préparation. Les projets existants gardent leur statut ; la base est mise à jour par `patch.sh` / la mise à jour automatique

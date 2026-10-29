@@ -58,6 +58,15 @@ function writeThemeMode(m) {
   try { m === 'or' ? localStorage.setItem(MODE_KEY, 'or') : localStorage.removeItem(MODE_KEY); } catch (_) {}
 }
 
+// ── Filtre par statut (un seul à la fois, mémorisé dans le navigateur) ──
+const STATUS_KEY = 'prepflow_projects_status';
+function readStatusFilter() {
+  try { const v = localStorage.getItem(STATUS_KEY); return v && PROJECT_STATUS[v] ? v : ''; } catch (_) { return ''; }
+}
+function writeStatusFilter(v) {
+  try { v ? localStorage.setItem(STATUS_KEY, v) : localStorage.removeItem(STATUS_KEY); } catch (_) {}
+}
+
 function sortProjects(list, sort) {
   if (!sort) return list;
   const col = COLUMNS.find(c => c.key === sort.key);
@@ -99,12 +108,20 @@ export async function renderProjects(el) {
   // Un thème qui n'existe plus (ou dont les projets sont archivés) est retiré du filtre mémorisé
   const selected = new Set(readThemeFilter().filter(id => themeMap.has(id)));
   let mode = readThemeMode();
+  let statusFilter = readStatusFilter();
 
   const drawTable = () => {
     // « Tous » : le projet porte tous les thèmes sélectionnés ; « Un des » : au moins un
     const has = (p, id) => (p.themes || []).some(t => t.id === id);
-    const visible = projects.filter(p => !selected.size
+    const themeVisible = projects.filter(p => !selected.size
       || (mode === 'or' ? [...selected].some(id => has(p, id)) : [...selected].every(id => has(p, id))));
+    // Les compteurs de statut tiennent compte du filtre de thèmes
+    const statusCount = {};
+    for (const p of themeVisible) statusCount[p.status] = (statusCount[p.status] || 0) + 1;
+    // Un statut sans projet (ou archivé non affiché) est ignoré, sans effacer le choix mémorisé
+    const statusKeys = Object.keys(PROJECT_STATUS).filter(k => k !== 'archive' || showArchived);
+    const activeStatus = statusKeys.includes(statusFilter) ? statusFilter : '';
+    const visible = activeStatus ? themeVisible.filter(p => p.status === activeStatus) : themeVisible;
     const rows = sortProjects(visible, sort);
     const th = c => {
       if (c.sortable === false) return `<th>${c.label}</th>`;
@@ -115,7 +132,14 @@ export async function renderProjects(el) {
         <button type="button" class="th-sort ${active ? 'is-active' : ''}" data-sort="${c.key}">
           ${c.label}<span class="sort-arrow" aria-hidden="true">${arrow}</span></button></th>`;
     };
-    const filterBar = themeList.length ? `
+    const statusBar = `
+      <div class="theme-filter" role="group" aria-label="Filtrer par statut">
+        <span class="theme-label">Statut</span>
+        <button type="button" class="theme-chip is-btn ${!activeStatus ? 'is-active' : ''}" data-status="" aria-pressed="${!activeStatus}">Tous<span class="theme-count">${themeVisible.length}</span></button>
+        ${statusKeys.map(k => `<button type="button" class="theme-chip is-btn ${activeStatus === k ? 'is-active' : ''}" data-status="${k}" aria-pressed="${activeStatus === k}">${PROJECT_STATUS[k]}<span class="theme-count">${statusCount[k] || 0}</span></button>`).join('')}
+      </div>`;
+    const filtering = selected.size || activeStatus;
+    const filterBar = statusBar + (themeList.length ? `
       <div class="theme-filter" role="group" aria-label="Filtrer par thème">
         <span class="theme-label">Thèmes</span>
         ${themeList.map(t => `<button type="button" class="theme-chip is-btn ${selected.has(t.id) ? 'is-active' : ''}"${colorAttr(t.color)}
@@ -126,13 +150,14 @@ export async function renderProjects(el) {
         </span>` : ''}
         ${selected.size ? '<button type="button" class="link-btn" id="clear-themes">Effacer le filtre</button>' : ''}
       </div>
-      ${selected.size ? `<p class="theme-summary">${visible.length} projet${visible.length > 1 ? 's' : ''}
+      ` : '') + (filtering ? `<p class="theme-summary">${visible.length} projet${visible.length > 1 ? 's' : ''}
         · ${visible.reduce((a, p) => a + p.pieces_count, 0)} pièces
         · ${formatDuration(visible.reduce((a, p) => a + p.total_time_s, 0)) || '0 min'}
-        · ${formatWeight(visible.reduce((a, p) => a + p.total_weight_g, 0)) || '0 g'}</p>` : ''}` : '';
+        · ${formatWeight(visible.reduce((a, p) => a + p.total_weight_g, 0)) || '0 g'}</p>` : '');
     body.innerHTML = filterBar + (!rows.length ? `
       <div class="empty-state">
-        <p>Aucun projet ne porte ${selected.size > 1 && mode === 'and' ? 'tous ces thèmes' : 'ce thème'}.</p>
+        <p>${activeStatus ? `Aucun projet « ${PROJECT_STATUS[activeStatus]} »${selected.size ? ' avec ' + (selected.size > 1 && mode === 'and' ? 'ces thèmes' : 'ce thème') : ''}.`
+          : `Aucun projet ne porte ${selected.size > 1 && mode === 'and' ? 'tous ces thèmes' : 'ce thème'}.`}</p>
       </div>` : `
       <div class="table-wrap">
       <table class="list-table">
@@ -181,6 +206,9 @@ export async function renderProjects(el) {
         : { key, dir: first };
       writeSort(sort);
       drawTable();
+    }));
+    body.querySelectorAll('[data-status]').forEach(btn => btn.addEventListener('click', () => {
+      statusFilter = btn.dataset.status; writeStatusFilter(statusFilter); drawTable();
     }));
     body.querySelectorAll('[data-theme-toggle]').forEach(btn => btn.addEventListener('click', () => {
       const id = Number(btn.dataset.themeToggle);
