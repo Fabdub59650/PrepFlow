@@ -916,3 +916,6 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .ck-photo { float: right; width: 72px; height: 72px; object-fit: cover; border-radius: 6px; border: 1px solid #999; margin-left: 12px; }
 .cs-head .ck-photo { width: 56px; height: 56px; }
 .project-head.is-stuck .proj-photo { width: 32px; height: 32px; }
+
+/* v1.36.0 : statut Idée */
+.pill-idee { background: var(--bg3); color: var(--text2); }

@@ -9,7 +9,7 @@ let showArchived = false;
 
 // ── Tri par les en-têtes (mémorisé dans le navigateur) ─────────────
 const SORT_KEY = 'prepflow_projects_sort';
-const STATUS_ORDER = { preparation: 0, en_cours: 1, termine: 2, archive: 3 };
+const STATUS_ORDER = { idee: 0, preparation: 1, en_cours: 2, termine: 3, archive: 4 };
 const progress = p => (p.pieces_count ? p.pieces_done / p.pieces_count : null);
 const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
 

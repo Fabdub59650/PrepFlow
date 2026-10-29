@@ -147,7 +147,8 @@ export async function renderNeeds(el) {
 
   // Sélection : mémorisée, sinon tous les projets en préparation et en cours.
   // Les projets passés en Terminé ou Archivé depuis sont retirés de la sélection mémorisée.
-  let selected = new Set(readJSON(SEL_KEY, null) ?? projectsAll.map(p => p.id));
+  // Par défaut, les idées (pas encore décidées) ne comptent pas dans les besoins ; on peut les cocher à la main
+  let selected = new Set(readJSON(SEL_KEY, null) ?? projectsAll.filter(p => p.status !== 'idee').map(p => p.id));
   selected = new Set([...selected].filter(id => projectsAll.some(p => p.id === id)));
   let mode = readJSON(MODE_KEY, 'spool') === 'ref' ? 'ref' : 'spool';
   let last = null;   // dernier calcul (export CSV)

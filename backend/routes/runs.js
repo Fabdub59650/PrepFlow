@@ -305,9 +305,9 @@ async function startRuns(body) {
       await recomputePartStatus(conn, part.id);
       created.push(r.insertId);
     }
-    // Premier lancement d'un projet en préparation : il passe « en cours »
+    // Premier lancement d'un projet à l'état d'idée ou en préparation : il passe « en cours »
     const projectIds = [...new Set(parts.map(p => p.project_id))];
-    await conn.query("UPDATE projects SET status='en_cours' WHERE id IN (?) AND status='preparation'", [projectIds]);
+    await conn.query("UPDATE projects SET status='en_cours' WHERE id IN (?) AND status IN ('idee','preparation')", [projectIds]);
     return created;
   });
   return loadRuns({ ids });

@@ -16,7 +16,7 @@ function cleanSourceUrl(v) {
   return { value: u };
 }
 
-const STATUSES = ['preparation', 'en_cours', 'termine', 'archive'];
+const STATUSES = ['idee', 'preparation', 'en_cours', 'termine', 'archive'];
 
 // Liste des projets avec leurs totaux (temps, poids, avancement)
 router.get('/', async (req, res) => {
@@ -54,7 +54,7 @@ router.get('/', async (req, res) => {
                   GROUP BY p2.project_id) sp ON sp.project_id = p.id
        ${withArchived ? '' : "WHERE p.status <> 'archive'"}
        GROUP BY p.id
-       ORDER BY FIELD(p.status,'en_cours','preparation','termine','archive'), p.updated_at DESC`
+       ORDER BY FIELD(p.status,'en_cours','preparation','idee','termine','archive'), p.updated_at DESC`
     );
     const themes = await themesByProject(rows.map(r => r.id));
     for (const r of rows) r.themes = themes.get(r.id) || [];
@@ -74,7 +74,7 @@ router.post('/', async (req, res) => {
       const conn = await db.getConnection();
       try {
         await conn.beginTransaction();
-        const [r] = await conn.query('INSERT INTO projects (name, notes, source_url) VALUES (?, ?, ?)', [name, req.body.notes || null, srcUrl.value]);
+        const [r] = await conn.query("INSERT INTO projects (name, notes, source_url, status) VALUES (?, ?, ?, 'idee')", [name, req.body.notes || null, srcUrl.value]);
         await assignCode(r.insertId, conn);
         await conn.commit();
         return r.insertId;
