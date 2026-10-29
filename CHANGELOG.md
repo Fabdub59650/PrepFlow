@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.36.2 — 29/10/2026
+
+- **Filtre par statut sur les pièces d'un projet.** Au-dessus du tableau des pièces, une rangée « Statut » (Toutes · À trancher · Prêt · En cours · Imprimé) affiche le nombre de pièces de chaque statut. Un seul statut à la fois ; il se combine avec le filtre par bobine existant (les compteurs en tiennent compte). Les totaux du pied de tableau, « tout sélectionner », la modification en lot et le lancement groupé ne portent que sur les pièces affichées. Le choix est mémorisé **pour chaque projet** dans le navigateur ; « Retirer le filtre » efface bobine et statut ; ajouter une pièce que le filtre masquerait le retire avec un message. Affichage seulement : rien ne change en base
+
 ## v1.36.1 — 29/10/2026
 
 - **Filtre par statut dans la liste des projets.** Une rangée de boutons « Statut » (Tous · Idée · En préparation · En cours · Terminé) s'affiche au-dessus du filtre par thèmes, chacun avec son nombre de projets. Un seul statut à la fois, « Tous » par défaut ; le choix est mémorisé dans le navigateur. Il se combine avec les thèmes (les compteurs en tiennent compte) et le résumé sous les filtres (projets, pièces, temps, poids) s'applique aussi au statut. Le bouton « Archivé » n'apparaît que lorsque « Afficher les archivés » est coché. Affichage seulement : rien ne change en base

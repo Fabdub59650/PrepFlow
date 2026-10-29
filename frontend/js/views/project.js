@@ -309,6 +309,7 @@ export async function renderProject(el, id) {
       <span class="hint" id="grid-hint">Cliquez une cellule pour la modifier, un en-tête pour trier. Temps : « 1h25 », « 45m » ou « 1:25 ». Glissez la poignée pour réordonner.</span>
       <span class="sort-bar" id="sort-bar" hidden></span>
     </div>
+    <div class="theme-filter parts-status-bar" id="status-filter" role="group" aria-label="Filtrer les pièces par statut"></div>
     <div class="bulk-bar" id="bulk-bar" hidden></div>
     </div>
     <div id="parts-grid" class="parts-grid"></div>
@@ -735,7 +736,10 @@ export async function renderProject(el, id) {
       const last = rows[rows.length - 1];
       const part = await api.post(`projects/${id}/parts`, last?.printer_id ? { printer_id: last.printer_id } : {});
       // La nouvelle pièce n'a pas de bobine : un filtre actif la masquerait
-      if (spoolFilter) { setSpoolFilter(''); toast('Filtre retiré pour afficher la nouvelle pièce'); }
+      if (spoolFilter || (statusFilter && statusFilter !== part.status)) {
+        spoolFilter = ''; statusFilter = ''; writeStatusFilter('');
+        applyFilters(); toast('Filtre retiré pour afficher la nouvelle pièce');
+      }
       const row = await table.addRow(toRow(part));
       table.recalc();          // totaux du pied (nombre d'éléments, quantités)
       refreshSummary();
@@ -1160,6 +1164,15 @@ export async function renderProject(el, id) {
   /* ── Filtre par bobine ───────────────────────────────────────── */
   // '' = toutes ; 'none' = pièces sans bobine choisie ; sinon id de bobine. Non mémorisé.
   let spoolFilter = '';
+  // Filtre par statut de pièce : un seul à la fois, mémorisé pour ce projet
+  const STATUS_FILTER_KEY = `prepflow_parts_status_${id}`;
+  const readStatusFilter = () => {
+    try { const v = localStorage.getItem(STATUS_FILTER_KEY); return v && PART_STATUS[v] ? v : ''; } catch (_) { return ''; }
+  };
+  const writeStatusFilter = v => {
+    try { v ? localStorage.setItem(STATUS_FILTER_KEY, v) : localStorage.removeItem(STATUS_FILTER_KEY); } catch (_) {}
+  };
+  let statusFilter = readStatusFilter();
   const usesSpool = (r, f) => f === 'none'
     ? !(r.filaments || []).some(x => x.filament_id)
     : (r.filaments || []).some(x => String(x.filament_id) === f);
@@ -1184,24 +1197,47 @@ export async function renderProject(el, id) {
       + spools.map(s => `<option value="${s.fid}" ${String(s.fid) === spoolFilter ? 'selected' : ''}>${escapeHtml(s.label)} · ${plural(s.n)}</option>`).join('')
       + `<option value="none" ${spoolFilter === 'none' ? 'selected' : ''}>Sans bobine choisie · ${plural(none)}</option>`;
     sel.classList.toggle('is-active', !!spoolFilter);
+    drawStatusFilter();
     drawFilterStatus();
+  }
+
+  function drawStatusFilter() {
+    const box = el.querySelector('#status-filter');
+    if (!box) return;
+    // Les compteurs tiennent compte du filtre par bobine
+    const base = table.getData().filter(r => !spoolFilter || usesSpool(r, spoolFilter));
+    const count = {};
+    for (const r of base) count[r.status] = (count[r.status] || 0) + 1;
+    box.innerHTML = `<span class="theme-label">Statut</span>
+      <button type="button" class="theme-chip is-btn ${!statusFilter ? 'is-active' : ''}" data-pstatus="" aria-pressed="${!statusFilter}">Toutes<span class="theme-count">${base.length}</span></button>`
+      + Object.entries(PART_STATUS).map(([k, label]) =>
+        `<button type="button" class="theme-chip is-btn ${statusFilter === k ? 'is-active' : ''}" data-pstatus="${k}" aria-pressed="${statusFilter === k}">${label}<span class="theme-count">${count[k] || 0}</span></button>`).join('');
   }
 
   function drawFilterStatus() {
     const st = el.querySelector('#filter-status');
     if (!st) return;
-    if (!spoolFilter) { st.hidden = true; st.innerHTML = ''; return; }
+    if (!spoolFilter && !statusFilter) { st.hidden = true; st.innerHTML = ''; return; }
     const shown = table.getRows('active').length, total = table.getRows().length;
     st.hidden = false;
     st.innerHTML = `Filtré : <strong>${shown}</strong> élément${shown > 1 ? 's' : ''} sur ${total}
       <button type="button" class="link-btn" data-filter-clear>Retirer le filtre</button>`;
-    st.querySelector('[data-filter-clear]').addEventListener('click', () => setSpoolFilter(''));
+    st.querySelector('[data-filter-clear]').addEventListener('click', () => {
+      statusFilter = ''; writeStatusFilter('');
+      setSpoolFilter('');
+    });
   }
 
   function setSpoolFilter(value) {
     spoolFilter = value || '';
-    if (spoolFilter) table.setFilter(r => usesSpool(r, spoolFilter));
-    else table.clearFilter();
+    applyFilters();
+  }
+
+  // Bobine et statut se combinent
+  function applyFilters() {
+    if (spoolFilter || statusFilter) {
+      table.setFilter(r => (!spoolFilter || usesSpool(r, spoolFilter)) && (!statusFilter || r.status === statusFilter));
+    } else table.clearFilter();
     // Une pièce masquée ne reste pas sélectionnée : la modification en lot ne doit pas la toucher
     const visible = new Set(table.getRows('active').map(r => r.getData().id));
     [...selectedIds].forEach(sid => { if (!visible.has(sid)) selectedIds.delete(sid); });
@@ -1212,8 +1248,16 @@ export async function renderProject(el, id) {
   }
 
   el.querySelector('#spool-filter').addEventListener('change', e => setSpoolFilter(e.target.value));
-  // Après une modification (bobine changée…), le filtre est réévalué
-  table.on('dataChanged', () => { if (spoolFilter) table.refreshFilter(); });
+  el.querySelector('#status-filter').addEventListener('click', e => {
+    const b = e.target.closest('[data-pstatus]');
+    if (!b) return;
+    statusFilter = b.dataset.pstatus; writeStatusFilter(statusFilter);
+    applyFilters();
+  });
+  // Filtre mémorisé : appliqué dès que le tableau est construit
+  table.on('tableBuilt', () => { if (statusFilter) applyFilters(); });
+  // Après une modification (bobine ou statut changé…), le filtre est réévalué
+  table.on('dataChanged', () => { if (spoolFilter || statusFilter) table.refreshFilter(); });
   table.on('dataFiltered', () => setTimeout(drawFilterStatus, 0));
 
   /* ── Modification en lot ─────────────────────────────────────── */
