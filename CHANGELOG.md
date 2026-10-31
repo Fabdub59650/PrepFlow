@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.37.2 — 31/10/2026
+
+- **Étiquette de boîte : image en haut, QR code plus petit en dessous.** Dans la colonne de droite, l'image du projet passe en haut et occupe toute la place disponible, et le QR code, plus petit (22 à 30 mm selon la hauteur de l'étiquette, toujours lisible : relu à l'impression en 120 × 80 mm), se place en dessous avec son adresse. La colonne est un peu plus large, et la date de création passe sous le nombre de pièces. Affichage seulement
+
 ## v1.37.1 — 31/10/2026
 
 - **Étiquette de boîte : dimensions réglables et mise en page simplifiée.** L'étiquette passe à **128 × 105 mm** par défaut (elle était trop large pour les boîtes) ; largeur (70 à 200 mm) et hauteur (50 à 270 mm) se règlent dans Paramètres › Général › « Étiquettes de boîte » (nouveaux réglages `label_w_mm` et `label_h_mm`). La **liste des pièces disparaît** : l'étiquette affiche le code, le nom, les thèmes, les matières et couleurs, puis le **nombre total de pièces** sous les pastilles de couleur, avec l'image, la date de création et le QR code. Rien ne change en base

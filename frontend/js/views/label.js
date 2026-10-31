@@ -43,7 +43,9 @@ export async function renderLabel(el, id) {
   const url = `${base}#/projet/${Number(project.id)}`;
   // Dimensions (mm), réglables dans Paramètres
   const W = clampInt(settings.label_w_mm, 70, 200, 128), H = clampInt(settings.label_h_mm, 50, 270, 105);
-  const sideW = W >= 120 ? 40 : 32;
+  // Colonne de droite : image en haut (la plus grande possible), QR code plus petit en dessous
+  const sideW = W >= 110 ? 46 : 34;
+  const qrMm = H >= 90 ? 30 : H >= 70 ? 26 : 22;
 
   el.innerHTML = `
     <div class="ck-toolbar no-print">
@@ -51,19 +53,19 @@ export async function renderLabel(el, id) {
       <button type="button" class="btn btn-primary" id="lb-print">Imprimer l'étiquette</button>
       <span class="hint">${W} × ${H} mm sur une feuille A4 : découpez le long du trait pointillé. Dans la fenêtre d'impression, désactivez « En-têtes et pieds de page ». Le QR code ouvre <strong>${escapeHtml(url)}</strong> (adresse et dimensions modifiables dans <a href="#/parametres">Paramètres</a>).</span>
     </div>
-    <article class="lb-card" style="--lb-w:${W}mm;--lb-h:${H}mm;--lb-side:${sideW}mm">
+    <article class="lb-card" style="--lb-w:${W}mm;--lb-h:${H}mm;--lb-side:${sideW}mm;--lb-qr:${qrMm}mm">
       <div class="lb-main">
         ${project.code ? `<div class="lb-code">${escapeHtml(project.code)}</div>` : ''}
         <h1 class="lb-name">${escapeHtml(project.name)}</h1>
         ${(project.themes || []).length ? `<p class="lb-themes">${project.themes.map(t => `<span class="lb-theme">${escapeHtml(t.name)}</span>`).join('')}</p>` : ''}
         ${(seen.size || mats.length) ? `<p class="lb-colors">${mats.length ? `<span class="lb-mat">${escapeHtml(mats.join(' · '))}</span>` : ''}${[...seen.values()].map(c => `<span class="lb-color">${swatch(c.hex)}${escapeHtml(c.name)}</span>`).join('')}</p>` : ''}
         <p class="lb-count"><strong>${total}</strong> pièce${total > 1 ? 's' : ''}</p>
+        <p class="lb-date">Créé le ${formatDate(project.created_at)}</p>
       </div>
       <div class="lb-side">
+        ${photoThumb(project, 'lb-photo')}
         <div class="lb-qr" aria-label="QR code du projet">${qrSvg(url)}</div>
         <p class="lb-url">${escapeHtml(url.replace(/^https?:\/\//, ''))}</p>
-        ${photoThumb(project, 'lb-photo')}
-        <p class="lb-date">Créé le ${formatDate(project.created_at)}</p>
       </div>
     </article>`;
 
