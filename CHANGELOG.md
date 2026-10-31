@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.37.5 — 31/10/2026
+
+- **Page projet : le titre n'est plus coupé.** Depuis l'ajout du bouton « Étiquette de boîte », sur un grand écran la ligne de boutons restait à côté du titre et lui laissait moins de place (le nom était rogné à environ 440 px). Le titre garde maintenant sa largeur (jusqu'à 640 px) et la ligne de boutons passe dessous dès qu'il n'y a pas la place pour les deux. Affichage seulement
+
 ## v1.37.4 — 31/10/2026
 
 - **Étiquette de boîte : un titre long ou beaucoup de couleurs ne se chevauchent plus.** Sur une petite étiquette (120 × 80 mm), un titre long était comprimé puis coupé sous les pastilles de thèmes. Le titre n'est plus jamais comprimé (jusqu'à quatre lignes) et la mise en page **s'ajuste automatiquement** : si le contenu dépasse la hauteur, polices et espacements sont réduits par petits pas (jusqu'à 70 %) jusqu'à ce que tout tienne ; une étiquette qui tient déjà reste identique. Couleurs et thèmes sont un peu plus serrés. **La date de création est supprimée** de l'étiquette. Affichage seulement
