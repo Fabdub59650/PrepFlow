@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.37.1 — 31/10/2026
+
+- **Étiquette de boîte : dimensions réglables et mise en page simplifiée.** L'étiquette passe à **128 × 105 mm** par défaut (elle était trop large pour les boîtes) ; largeur (70 à 200 mm) et hauteur (50 à 270 mm) se règlent dans Paramètres › Général › « Étiquettes de boîte » (nouveaux réglages `label_w_mm` et `label_h_mm`). La **liste des pièces disparaît** : l'étiquette affiche le code, le nom, les thèmes, les matières et couleurs, puis le **nombre total de pièces** sous les pastilles de couleur, avec l'image, la date de création et le QR code. Rien ne change en base
+
 ## v1.37.0 — 31/10/2026
 
 - **Étiquette de boîte avec QR code.** Nouveau bouton « Étiquette de boîte » sur la page d'un projet : une page d'impression au format A6 paysage (14,8 × 10,5 cm, sur une feuille A4 à découper) pour la boîte où l'on range les pièces imprimées avant assemblage. Elle porte le code en gros, le nom, le nombre de pièces et de lignes, les thèmes, les matières et couleurs, l'image du projet, la date de création, la liste des pièces (douze lignes au plus, puis « + N autres ») et un **QR code qui ouvre la page du projet**. Le QR est généré dans la page (bibliothèque libre `qrcode-generator`, MIT, ajoutée dans `frontend/vendor/qrcode/` : aucun service externe, rien à installer). **Paramètres › Général › « QR code des étiquettes de boîte »** : adresse de PrepFlow encodée dans le QR (vide = adresse utilisée dans le navigateur au moment d'imprimer) ; nouveau réglage `qr_base_url`. Rien ne change en base

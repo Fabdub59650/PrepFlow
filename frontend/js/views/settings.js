@@ -74,12 +74,16 @@ export async function renderSettings(el) {
     </section>
 
     <section class="settings-section" aria-labelledby="qr-title">
-      <h2 class="panel-title" id="qr-title">QR code des étiquettes de boîte</h2>
-      <p class="panel-sub">Adresse de PrepFlow écrite dans le QR code des étiquettes (bouton « Étiquette de boîte » d'un projet). Laissez vide pour utiliser l'adresse
+      <h2 class="panel-title" id="qr-title">Étiquettes de boîte</h2>
+      <p class="panel-sub">Dimensions de l'étiquette (par défaut 128 × 105 mm, à découper sur une feuille A4) et adresse de PrepFlow écrite dans son QR code (bouton « Étiquette de boîte » d'un projet). Laissez vide pour utiliser l'adresse
         du navigateur au moment de l'impression. Un QR imprimé ne change plus : fixez ici l'adresse que votre téléphone atteint (par exemple <code>http://192.168.1.145/prepflow/</code>).</p>
       <div class="settings-row">
         <label class="field is-wide"><span>Adresse de PrepFlow</span>
           <input type="text" inputmode="url" id="qr-base" maxlength="200" placeholder="${escapeHtml(location.origin + location.pathname.replace(/[^/]*$/, ''))}" value="${escapeHtml(s.qr_base_url ?? '')}"></label>
+        <label class="field"><span>Largeur de l'étiquette</span>
+          <span class="input-suffix"><input type="number" min="70" max="200" step="1" data-label="label_w_mm" value="${escapeHtml(s.label_w_mm ?? '128')}"><span>mm</span></span></label>
+        <label class="field"><span>Hauteur de l'étiquette</span>
+          <span class="input-suffix"><input type="number" min="50" max="270" step="1" data-label="label_h_mm" value="${escapeHtml(s.label_h_mm ?? '105')}"><span>mm</span></span></label>
       </div>
     </section>
 
@@ -171,6 +175,12 @@ export async function renderSettings(el) {
     try { const saved = await api.put('settings', { qr_base_url: e.target.value.trim() }); s.qr_base_url = saved.qr_base_url; e.target.value = saved.qr_base_url; toast('Réglage enregistré'); }
     catch (err) { toast(err.message, 'error'); e.target.value = s.qr_base_url ?? ''; }
   });
+
+  el.querySelectorAll('[data-label]').forEach(inp => inp.addEventListener('change', async () => {
+    const k = inp.dataset.label;
+    try { const saved = await api.put('settings', { [k]: inp.value.trim() }); s[k] = saved[k]; inp.value = saved[k]; toast('Réglage enregistré'); }
+    catch (e) { toast(e.message, 'error'); inp.value = s[k]; }
+  }));
 
   el.querySelectorAll('[data-cost]').forEach(inp => inp.addEventListener('change', async () => {
     const k = inp.dataset.cost;

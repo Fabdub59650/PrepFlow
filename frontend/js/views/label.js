@@ -5,10 +5,10 @@ import { photoThumb } from '../photo.js';
 import { partColors } from './checklist.js';
 import qrcode from '../../vendor/qrcode/qrcode.mjs';
 
-// Étiquette de boîte (#/projet/12/etiquette) : format A6 paysage (148 × 105 mm) imprimé sur une feuille A4,
-// à découper. Code, nom, image, nombre de pièces, matières/couleurs, liste des pièces et QR code vers le projet.
+// Étiquette de boîte (#/projet/12/etiquette) : 128 × 105 mm par défaut (réglable dans Paramètres), imprimée sur une feuille A4,
+// à découper. Code, nom, thèmes, matières/couleurs, nombre total de pièces, image et QR code vers le projet.
 
-const MAX_LINES = 12;     // au-delà, « + N autres »
+const clampInt = (v, lo, hi, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
 
 /** Adresse de base de PrepFlow pour les QR : réglage Paramètres, sinon adresse utilisée dans le navigateur */
 export function qrBase(settings) {
@@ -23,8 +23,6 @@ function qrSvg(text) {
   qr.make();
   return qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
 }
-
-const partName = p => (p.name || '').trim() || (p.file_name || '').trim() || 'Pièce sans nom';
 
 export async function renderLabel(el, id) {
   const [project, settings] = await Promise.all([api.get(`projects/${id}`), api.get('settings')]);
@@ -43,23 +41,23 @@ export async function renderLabel(el, id) {
 
   const base = qrBase(settings);
   const url = `${base}#/projet/${Number(project.id)}`;
-  const shown = parts.slice(0, MAX_LINES);
-  const more = parts.length - shown.length;
+  // Dimensions (mm), réglables dans Paramètres
+  const W = clampInt(settings.label_w_mm, 70, 200, 128), H = clampInt(settings.label_h_mm, 50, 270, 105);
+  const sideW = W >= 120 ? 40 : 32;
 
   el.innerHTML = `
     <div class="ck-toolbar no-print">
       <a href="#/projet/${Number(id)}" class="back-link">Retour au projet</a>
       <button type="button" class="btn btn-primary" id="lb-print">Imprimer l'étiquette</button>
-      <span class="hint">Format A6 paysage sur une feuille A4 : découpez le long du trait pointillé. Dans la fenêtre d'impression, désactivez « En-têtes et pieds de page ». Le QR code ouvre <strong>${escapeHtml(url)}</strong> (adresse modifiable dans <a href="#/parametres">Paramètres</a>).</span>
+      <span class="hint">${W} × ${H} mm sur une feuille A4 : découpez le long du trait pointillé. Dans la fenêtre d'impression, désactivez « En-têtes et pieds de page ». Le QR code ouvre <strong>${escapeHtml(url)}</strong> (adresse et dimensions modifiables dans <a href="#/parametres">Paramètres</a>).</span>
     </div>
-    <article class="lb-card">
+    <article class="lb-card" style="--lb-w:${W}mm;--lb-h:${H}mm;--lb-side:${sideW}mm">
       <div class="lb-main">
         ${project.code ? `<div class="lb-code">${escapeHtml(project.code)}</div>` : ''}
         <h1 class="lb-name">${escapeHtml(project.name)}</h1>
-        <p class="lb-count"><strong>${total}</strong> pièce${total > 1 ? 's' : ''} · ${parts.length} ligne${parts.length > 1 ? 's' : ''}</p>
         ${(project.themes || []).length ? `<p class="lb-themes">${project.themes.map(t => `<span class="lb-theme">${escapeHtml(t.name)}</span>`).join('')}</p>` : ''}
         ${(seen.size || mats.length) ? `<p class="lb-colors">${mats.length ? `<span class="lb-mat">${escapeHtml(mats.join(' · '))}</span>` : ''}${[...seen.values()].map(c => `<span class="lb-color">${swatch(c.hex)}${escapeHtml(c.name)}</span>`).join('')}</p>` : ''}
-        ${parts.length ? `<ul class="lb-parts">${shown.map(p => `<li><span class="lb-q">${Number(p.quantity) || 0} ×</span> ${escapeHtml(partName(p))}</li>`).join('')}${more > 0 ? `<li class="lb-more">+ ${more} autre${more > 1 ? 's' : ''}</li>` : ''}</ul>` : ''}
+        <p class="lb-count"><strong>${total}</strong> pièce${total > 1 ? 's' : ''}</p>
       </div>
       <div class="lb-side">
         <div class="lb-qr" aria-label="QR code du projet">${qrSvg(url)}</div>
