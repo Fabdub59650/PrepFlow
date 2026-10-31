@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
-import { escapeHtml, swatch, formatDate } from '../format.js';
+import { escapeHtml, swatch } from '../format.js';
 import { photoThumb } from '../photo.js';
 import { partColors } from './checklist.js';
 import qrcode from '../../vendor/qrcode/qrcode.mjs';
@@ -60,7 +60,6 @@ export async function renderLabel(el, id) {
         ${(project.themes || []).length ? `<p class="lb-themes">${project.themes.map(t => `<span class="lb-theme">${escapeHtml(t.name)}</span>`).join('')}</p>` : ''}
         ${(seen.size || mats.length) ? `<p class="lb-colors">${mats.length ? `<span class="lb-mat">${escapeHtml(mats.join(' · '))}</span>` : ''}${[...seen.values()].map(c => `<span class="lb-color">${swatch(c.hex)}${escapeHtml(c.name)}</span>`).join('')}</p>` : ''}
         <p class="lb-count"><strong>${total}</strong> pièce${total > 1 ? 's' : ''}</p>
-        <p class="lb-date">Créé le ${formatDate(project.created_at)}</p>
       </div>
       <div class="lb-side">
         ${photoThumb(project, 'lb-photo')}
@@ -70,5 +69,19 @@ export async function renderLabel(el, id) {
     </article>`;
 
   el.querySelector('#lb-print').addEventListener('click', () => window.print());
+
+  // Ajustement automatique : si le contenu dépasse la hauteur, tout est réduit par petits pas (jusqu'à 70 %)
+  const card = el.querySelector('.lb-card');
+  const main = el.querySelector('.lb-main');
+  const fit = () => {
+    let s = 1;
+    card.style.setProperty('--lb-s', s);
+    while (main.scrollHeight > main.clientHeight + 0.5 && s > 0.7) {
+      s = Math.round((s - 0.04) * 100) / 100;
+      card.style.setProperty('--lb-s', s);
+    }
+  };
+  fit();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit).catch(() => {});
   return () => { document.title = 'PrepFlow'; };
 }

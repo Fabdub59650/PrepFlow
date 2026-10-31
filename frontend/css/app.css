@@ -928,23 +928,22 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
   background: #fff; color: #111; border: 1px dashed #777; overflow: hidden;
   font-family: var(--font-body, sans-serif);
 }
-.lb-main { min-width: 0; display: flex; flex-direction: column; gap: 2mm; overflow: hidden; }
-.lb-code { font-family: var(--font-mono); font-weight: 700; font-size: 30pt; line-height: 1; letter-spacing: .02em; }
-.lb-name { font-size: 15pt; line-height: 1.15; margin: 0; font-weight: 700; overflow-wrap: anywhere; max-height: 2.4em; overflow: hidden; }
-.lb-count { margin: 1mm 0 0; font-size: 14pt; }
-.lb-count strong { font-size: 24pt; line-height: 1; }
-.lb-themes, .lb-colors { margin: 0; display: flex; flex-wrap: wrap; gap: 1mm 3mm; font-size: 9pt; }
-.lb-theme { border: 1px solid #555; border-radius: 10px; padding: 0 6px; }
+.lb-main { min-width: 0; display: flex; flex-direction: column; gap: calc(2mm * var(--lb-s, 1)); overflow: hidden; }
+.lb-main > * { flex-shrink: 0; }
+.lb-code { font-family: var(--font-mono); font-weight: 700; font-size: calc(30pt * var(--lb-s, 1)); line-height: 1; letter-spacing: .02em; }
+.lb-name { font-size: calc(15pt * var(--lb-s, 1)); line-height: 1.15; margin: 0; font-weight: 700; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4; overflow: hidden; }
+.lb-count { margin: 0; font-size: calc(14pt * var(--lb-s, 1)); }
+.lb-count strong { font-size: calc(24pt * var(--lb-s, 1)); line-height: 1; }
+.lb-themes, .lb-colors { margin: 0; display: flex; flex-wrap: wrap; gap: calc(0.8mm * var(--lb-s, 1)) calc(2.5mm * var(--lb-s, 1)); font-size: calc(8.5pt * var(--lb-s, 1)); line-height: 1.25; }
+.lb-theme { border: 1px solid #555; border-radius: 10px; padding: 0 calc(6px * var(--lb-s, 1)); }
 .lb-mat { font-weight: 700; }
-.lb-color { display: inline-flex; align-items: center; gap: 4px; }
+.lb-color { display: inline-flex; align-items: center; gap: 3px; }
 .lb-side { display: flex; flex-direction: column; align-items: center; gap: 2mm; min-width: 0; min-height: 0; overflow: hidden; }
 .lb-qr { width: var(--lb-qr, 26mm); height: var(--lb-qr, 26mm); flex: none; margin-top: auto; }
 .lb-qr svg { width: 100%; height: 100%; display: block; }
 .lb-url { margin: 0; font-size: 6pt; color: #444; text-align: center; overflow-wrap: anywhere; line-height: 1.2; }
 .lb-photo { width: 100%; flex: 1 1 0; min-height: 0; object-fit: contain; }
 .lb-photo + .lb-qr { margin-top: 0; }
-.lb-date { margin: auto 0 0; font-size: 7pt; color: #444; }
-.lb-main .lb-date { padding-top: 1mm; }
 @media print {
   .lb-card { margin: 0; }
 }

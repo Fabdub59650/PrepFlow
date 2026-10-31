@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.37.4 — 31/10/2026
+
+- **Étiquette de boîte : un titre long ou beaucoup de couleurs ne se chevauchent plus.** Sur une petite étiquette (120 × 80 mm), un titre long était comprimé puis coupé sous les pastilles de thèmes. Le titre n'est plus jamais comprimé (jusqu'à quatre lignes) et la mise en page **s'ajuste automatiquement** : si le contenu dépasse la hauteur, polices et espacements sont réduits par petits pas (jusqu'à 70 %) jusqu'à ce que tout tienne ; une étiquette qui tient déjà reste identique. Couleurs et thèmes sont un peu plus serrés. **La date de création est supprimée** de l'étiquette. Affichage seulement
+
 ## v1.37.3 — 31/10/2026
 
 - **Étiquette de boîte : plus de cadre autour de l'image.** Le trait et les coins arrondis autour de l'image du projet sont retirés. Affichage seulement
