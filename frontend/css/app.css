@@ -919,3 +919,4 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 
 /* v1.36.0 : statut Idée */
 .pill-idee { background: var(--bg3); color: var(--text2); }
+.needs-ideas { display: flex; font-size: 12px; margin: 0 0 8px; }

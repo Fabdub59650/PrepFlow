@@ -11,6 +11,7 @@ import { doneQty } from '../summary.js';
 
 const SEL_KEY  = 'prepflow_needs_selection';
 const MODE_KEY = 'prepflow_needs_mode';
+const IDEAS_KEY = 'prepflow_needs_ideas';
 const norm = s => String(s ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr');
 const clean = s => String(s ?? '').trim().replace(/\s+/g, ' ');
 const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
@@ -148,8 +149,12 @@ export async function renderNeeds(el) {
   // Sélection : mémorisée, sinon tous les projets en préparation et en cours.
   // Les projets passés en Terminé ou Archivé depuis sont retirés de la sélection mémorisée.
   // Par défaut, les idées (pas encore décidées) ne comptent pas dans les besoins ; on peut les cocher à la main
+  // Les idées sont masquées par défaut (interrupteur « Afficher les idées », mémorisé) : masquées, elles ne comptent pas
+  const ideasCount = projectsAll.filter(p => p.status === 'idee').length;
+  let showIdeas = ideasCount > 0 && readJSON(IDEAS_KEY, false) === true;
+  const listed = () => projectsAll.filter(p => showIdeas || p.status !== 'idee');
   let selected = new Set(readJSON(SEL_KEY, null) ?? projectsAll.filter(p => p.status !== 'idee').map(p => p.id));
-  selected = new Set([...selected].filter(id => projectsAll.some(p => p.id === id)));
+  selected = new Set([...selected].filter(id => listed().some(p => p.id === id)));
   let mode = readJSON(MODE_KEY, 'spool') === 'ref' ? 'ref' : 'spool';
   let last = null;   // dernier calcul (export CSV)
 
@@ -173,19 +178,30 @@ export async function renderNeeds(el) {
           <button type="button" class="link-btn" data-pick="all">Tous</button>
           <button type="button" class="link-btn" data-pick="none">Aucun</button>
         </div>
-        <div class="needs-list">
-          ${projectsAll.length ? projectsAll.map(p => `
+        ${ideasCount ? `<label class="toggle needs-ideas"><input type="checkbox" id="needs-ideas" ${showIdeas ? 'checked' : ''}> Afficher les idées (${ideasCount})</label>` : ''}
+        <div class="needs-list" id="needs-list"></div>
+        <p class="needs-note" id="needs-note"></p>
+      </aside>
+      <section class="needs-result" id="needs-result" aria-live="polite"></section>
+    </div>`;
+
+  const drawList = () => {
+    const rows = listed();
+    el.querySelector('#needs-list').innerHTML = rows.length ? rows.map(p => `
             <label class="needs-item">
               <input type="checkbox" value="${p.id}" ${selected.has(p.id) ? 'checked' : ''}>
               <span class="cell-code">${escapeHtml(p.code || '')}</span>
               <span class="needs-name">${escapeHtml(p.name)}</span>
               <span class="pill pill-${p.status}">${PROJECT_STATUS[p.status]}</span>
-            </label>`).join('') : '<p class="muted">Aucun projet en préparation ou en cours.</p>'}
-        </div>
-        <p class="needs-note">Projets terminés et archivés non pris en compte</p>
-      </aside>
-      <section class="needs-result" id="needs-result" aria-live="polite"></section>
-    </div>`;
+            </label>`).join('') : '<p class="muted">Aucun projet en préparation ou en cours.</p>';
+    el.querySelector('#needs-note').textContent = 'Projets terminés et archivés non pris en compte'
+      + (ideasCount && !showIdeas ? ' ; idées masquées' : '');
+    el.querySelectorAll('.needs-item input').forEach(cb => cb.addEventListener('change', () => {
+      cb.checked ? selected.add(+cb.value) : selected.delete(+cb.value);
+      refresh().catch(e => toast(e.message, 'error'));
+    }));
+  };
+  drawList();
 
   const result = el.querySelector('#needs-result');
   let cache = new Map();          // projets déjà chargés (id → projet avec pièces)
@@ -300,13 +316,16 @@ export async function renderNeeds(el) {
   }
 
   // Événements
-  el.querySelectorAll('.needs-item input').forEach(cb => cb.addEventListener('change', () => {
-    cb.checked ? selected.add(+cb.value) : selected.delete(+cb.value);
-    refresh().catch(e => toast(e.message, 'error'));
-  }));
+  el.querySelector('#needs-ideas')?.addEventListener('change', e => {
+    showIdeas = e.target.checked; writeJSON(IDEAS_KEY, showIdeas);
+    // Une idée masquée ne reste pas cochée : elle sort de la sélection et du calcul
+    selected = new Set([...selected].filter(id => listed().some(p => p.id === id)));
+    drawList();
+    refresh().catch(err => toast(err.message, 'error'));
+  });
   el.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => {
     const pick = b.dataset.pick;
-    selected = new Set(pick === 'all' ? projectsAll.map(p => p.id) : []);
+    selected = new Set(pick === 'all' ? listed().map(p => p.id) : []);
     el.querySelectorAll('.needs-item input').forEach(cb => { cb.checked = selected.has(+cb.value); });
     refresh().catch(e => toast(e.message, 'error'));
   }));

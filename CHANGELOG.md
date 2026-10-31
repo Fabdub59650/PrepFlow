@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.36.3 — 31/10/2026
+
+- **Besoins : interrupteur « Afficher les idées (N) ».** Au-dessus de la liste des projets, il montre ou masque les projets « Idée ». Désactivé (par défaut), les idées ne sont pas dans la liste et ne comptent pas dans le calcul ; activé, elles apparaissent **décochées** (on en coche une pour tester le stock avant de la passer en préparation). « Tous » coche les projets affichés, masquer les idées les retire de la sélection, et le choix est mémorisé dans le navigateur. L'interrupteur n'apparaît que s'il existe des idées. Affichage seulement : rien ne change en base
+
 ## v1.36.2 — 29/10/2026
 
 - **Filtre par statut sur les pièces d'un projet.** Au-dessus du tableau des pièces, une rangée « Statut » (Toutes · À trancher · Prêt · En cours · Imprimé) affiche le nombre de pièces de chaque statut. Un seul statut à la fois ; il se combine avec le filtre par bobine existant (les compteurs en tiennent compte). Les totaux du pied de tableau, « tout sélectionner », la modification en lot et le lancement groupé ne portent que sur les pièces affichées. Le choix est mémorisé **pour chaque projet** dans le navigateur ; « Retirer le filtre » efface bobine et statut ; ajouter une pièce que le filtre masquerait le retire avec un message. Affichage seulement : rien ne change en base
