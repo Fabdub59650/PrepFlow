@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.37.3 — 31/10/2026
+
+- **Étiquette de boîte : plus de cadre autour de l'image.** Le trait et les coins arrondis autour de l'image du projet sont retirés. Affichage seulement
+
 ## v1.37.2 — 31/10/2026
 
 - **Étiquette de boîte : image en haut, QR code plus petit en dessous.** Dans la colonne de droite, l'image du projet passe en haut et occupe toute la place disponible, et le QR code, plus petit (22 à 30 mm selon la hauteur de l'étiquette, toujours lisible : relu à l'impression en 120 × 80 mm), se place en dessous avec son adresse. La colonne est un peu plus large, et la date de création passe sous le nombre de pièces. Affichage seulement
