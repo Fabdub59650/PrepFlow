@@ -26,10 +26,17 @@ const EDITABLE = {
   // Bobines à peser : seuils de consommation (g) et d'ancienneté de pesée (jours) depuis la dernière pesée ; 0 = critère désactivé
   weigh_alert_g:    v => (/^\d{1,4}$/.test(String(v).trim()) && +v <= 5000 ? String(+v) : null),
   weigh_alert_days: v => (/^\d{1,3}$/.test(String(v).trim()) && +v <= 365 ? String(+v) : null),
+  // Adresse de PrepFlow encodée dans les QR codes des étiquettes de boîte (vide = adresse utilisée dans le navigateur)
+  qr_base_url: v => {
+    const t = String(v).trim();
+    if (!t) return '';
+    if (!/^https?:\/\/[^\s"'<>]{1,190}$/i.test(t)) return null;
+    return t.replace(/#.*$/, '').replace(/\/*$/, '/');
+  },
 };
 const DEFAULTS = { color_mode: '', dark_from: '20', dark_to: '7', needs_margin: '10',
   kwh_price: '0.25', margin_pct: '30', min_piece_price: '0', calibration_apply: '1',
-  weigh_alert_g: '150', weigh_alert_days: '14' };
+  weigh_alert_g: '150', weigh_alert_days: '14', qr_base_url: '' };
 
 async function readSettings() {
   const [rows] = await db.query(

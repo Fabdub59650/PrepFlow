@@ -3,6 +3,7 @@ import { toast } from './ui.js';
 import { renderProjects } from './views/projects.js';
 import { renderProject } from './views/project.js';
 import { renderChecklist, renderChecklistPaper } from './views/checklist.js';
+import { renderLabel } from './views/label.js';
 import { renderPrinters } from './views/printers.js';
 import { renderSettings } from './views/settings.js';
 import { renderNeeds } from './views/needs.js';
@@ -13,12 +14,13 @@ import { store } from './store.js';
 import { initTheme } from './theme.js';
 import { initUpdateBadge } from './updates.js';
 
-// Routes : #/  #/projet/12  #/projet/12/controle  #/projet/12/controle/papier  #/production  #/besoins  #/imprimantes
+// Routes : #/  #/projet/12  #/projet/12/controle  #/projet/12/controle/papier  #/projet/12/etiquette  #/production  #/besoins  #/imprimantes
 const routes = [
   { re: /^#?\/?$/,               view: renderProjects, nav: 'projects' },
   { re: /^#\/projet\/(\d+)$/,    view: renderProject,  nav: 'projects' },
   { re: /^#\/projet\/(\d+)\/controle$/, view: renderChecklist, nav: 'projects' },
   { re: /^#\/projet\/(\d+)\/controle\/papier$/, view: renderChecklistPaper, nav: 'projects' },
+  { re: /^#\/projet\/(\d+)\/etiquette$/, view: renderLabel, nav: 'projects' },
   { re: /^#\/production$/,       view: renderProduction, nav: 'production' },
   { re: /^#\/besoins$/,          view: renderNeeds,    nav: 'needs' },
   { re: /^#\/imprimantes$/,      view: renderPrinters, nav: 'printers' },

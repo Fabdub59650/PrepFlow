@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.37.0 — 31/10/2026
+
+- **Étiquette de boîte avec QR code.** Nouveau bouton « Étiquette de boîte » sur la page d'un projet : une page d'impression au format A6 paysage (14,8 × 10,5 cm, sur une feuille A4 à découper) pour la boîte où l'on range les pièces imprimées avant assemblage. Elle porte le code en gros, le nom, le nombre de pièces et de lignes, les thèmes, les matières et couleurs, l'image du projet, la date de création, la liste des pièces (douze lignes au plus, puis « + N autres ») et un **QR code qui ouvre la page du projet**. Le QR est généré dans la page (bibliothèque libre `qrcode-generator`, MIT, ajoutée dans `frontend/vendor/qrcode/` : aucun service externe, rien à installer). **Paramètres › Général › « QR code des étiquettes de boîte »** : adresse de PrepFlow encodée dans le QR (vide = adresse utilisée dans le navigateur au moment d'imprimer) ; nouveau réglage `qr_base_url`. Rien ne change en base
+
 ## v1.36.3 — 31/10/2026
 
 - **Besoins : interrupteur « Afficher les idées (N) ».** Au-dessus de la liste des projets, il montre ou masque les projets « Idée ». Désactivé (par défaut), les idées ne sont pas dans la liste et ne comptent pas dans le calcul ; activé, elles apparaissent **décochées** (on en coche une pour tester le stock avant de la passer en préparation). « Tous » coche les projets affichés, masquer les idées les retire de la sélection, et le choix est mémorisé dans le navigateur. L'interrupteur n'apparaît que s'il existe des idées. Affichage seulement : rien ne change en base

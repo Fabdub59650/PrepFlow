@@ -275,6 +275,7 @@ export async function renderProject(el, id) {
               `<option value="${k}" ${k === project.status ? 'selected' : ''}>${v}</option>`).join('')}
           </select>
           <a class="btn" id="open-checklist" href="#/projet/${Number(id)}/controle" title="Vérifier à l'écran que toutes les pièces sont présentes (fiche papier disponible)">Contrôle des pièces${checkBadge(project)}</a>
+          <a class="btn" id="open-label" href="#/projet/${Number(id)}/etiquette" title="Imprimer une étiquette pour la boîte de ce projet : code, pièces et QR code">Étiquette de boîte</a>
           <button class="btn" id="duplicate-project" title="Créer une copie de ce projet pour le réimprimer">Dupliquer</button>
           <button class="btn" id="refresh-stock" title="Relire le stock dans FilaFlow">Actualiser le stock</button>
           <button class="btn btn-ghost-danger" id="delete-project">Supprimer le projet</button>
