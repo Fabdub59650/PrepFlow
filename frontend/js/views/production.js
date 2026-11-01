@@ -44,6 +44,11 @@ export async function renderProduction(el) {
     </div>
     <p class="page-sub">Impressions lancées depuis les projets : en cours, puis historique avec le prévu et le réel.
       Le reste estimé des bobines se déduit de ces impressions depuis la dernière pesée.</p>
+    <div class="seg prod-tabs" role="tablist">
+      <button type="button" class="seg-btn" role="tab" data-tab="prints">Impressions</button>
+      <button type="button" class="seg-btn" role="tab" data-tab="stats">Statistiques</button>
+    </div>
+    <div id="tab-prints">
     <div id="weigh-box"></div>
     <section class="prod-section">
       <h2 class="panel-title">En cours <span class="count-chip" id="running-count"></span></h2>
@@ -89,7 +94,100 @@ export async function renderProduction(el) {
         <span class="hint" id="history-count"></span>
       </div>
       <div id="history"></div>
-    </section>`;
+    </section>
+    </div>
+    <div id="tab-stats" hidden>
+      <section class="prod-section">
+        <div class="prod-head">
+          <h2 class="panel-title">Statistiques</h2>
+          <label class="sr-only" for="stats-days">Période</label>
+          <select class="select" id="stats-days">
+            <option value="30">30 derniers jours</option>
+            <option value="90">90 derniers jours</option>
+            <option value="365">12 derniers mois</option>
+            <option value="0">Depuis le début</option>
+          </select>
+        </div>
+        <p class="panel-sub">Activité de vos imprimantes et pièces produites. Un lancement groupé compte pour une seule impression.</p>
+        <div id="stats"></div>
+      </section>
+    </div>`;
+
+  /* ── Statistiques ─────────────────────────────────────────────── */
+  let statsDays = parseInt(store_.get('stats_days', '30'), 10);
+  if (![0, 30, 90, 365].includes(statsDays)) statsDays = 30;
+  let tab = store_.get('tab', 'prints');
+  if (!['prints', 'stats'].includes(tab)) tab = 'prints';
+  const pct = v => String(Math.round(v * 10) / 10).replace('.', ',') + ' %';
+  const weekLabel = k => {
+    const d = new Date(k + 'T00:00:00');
+    const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+    const wk = Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 86400000 + 1) / 7);
+    return `S${wk} · ${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const gapText = (plan, real) => {
+    if (!plan) return '—';
+    const g = Math.round(1000 * (real - plan) / plan) / 10;
+    return (g > 0 ? '+' : '') + String(g).replace('.', ',') + ' %';
+  };
+  async function drawStats() {
+    const box = el.querySelector('#stats');
+    let st;
+    try { st = await api.get(`runs/stats?days=${statsDays}`); }
+    catch (e) { box.innerHTML = `<p class="muted">${escapeHtml(e.message)}</p>`; return; }
+    const t = st.totals;
+    if (!t.prints) { box.innerHTML = '<div class="empty-state"><p class="empty-title">Pas encore de données</p><p>Les impressions terminées de la période apparaîtront ici.</p></div>'; return; }
+    const bars = (rows, val, fmt) => {
+      const max = Math.max(1, ...rows.map(val));
+      return rows.map(g => `<tr><td>${escapeHtml(g.label)}</td><td class="bar-cell"><span class="bar" style="width:${Math.round(100 * val(g) / max)}%"></span></td><td class="num">${fmt(g)}</td></tr>`).join('');
+    };
+    const block = (title, body) => `<div class="waste-block"><h3 class="waste-title">${title}</h3>${body}</div>`;
+    const printersTbl = `<table class="mini-table"><thead><tr><th>Imprimante</th><th class="num">Impr.</th><th class="num">Heures</th><th class="num">Occupation</th><th class="num">Écart</th></tr></thead><tbody>
+      ${st.by_printer.map(g => `<tr><td>${escapeHtml(g.label)}</td><td class="num">${g.prints}</td><td class="num"><strong>${formatDuration(g.seconds) || '—'}</strong></td>
+        <td class="num">${pct(g.load_pct)}</td><td class="num">${gapText(g.plan_s, g.real_s)}</td></tr>`).join('')}</tbody></table>`;
+    const weeks = st.by_week.slice(0, 12);
+    const weeksTbl = `<table class="mini-table"><thead><tr><th>Semaine</th><th></th><th class="num">Pièces</th></tr></thead><tbody>
+      ${bars(weeks.map(g => ({ ...g, label: weekLabel(g.key) })), g => g.pieces, g => `${g.pieces}`)}</tbody></table>`;
+    const themesTbl = st.by_theme.length ? `<table class="mini-table"><thead><tr><th>Thème</th><th></th><th class="num">Pièces</th></tr></thead><tbody>
+      ${bars(st.by_theme.slice(0, 8), g => g.pieces, g => `${g.pieces}`)}</tbody></table>` : '<p class="muted">Aucun thème sur les projets de la période.</p>';
+    const projTbl = `<table class="mini-table"><thead><tr><th>Projet</th><th class="num">Pièces</th><th class="num">Heures</th><th class="num">Écart</th></tr></thead><tbody>
+      ${st.by_project.slice(0, 8).map(g => `<tr><td>${escapeHtml(g.label)}</td><td class="num"><strong>${g.pieces}</strong></td>
+        <td class="num">${formatDuration(g.seconds) || '—'}</td><td class="num">${gapText(g.plan_s, g.real_s)}</td></tr>`).join('')}</tbody></table>`;
+    const avg = t.prints ? Math.round(t.seconds / t.prints) : 0;
+    box.innerHTML = `
+      <div class="figures">
+        <div class="figure"><span class="figure-label">Impressions</span><span class="figure-value">${t.prints}</span>
+          <span class="figure-sub">${t.failed} ratée${t.failed > 1 ? 's' : ''}${t.group_prints ? ` · ${t.group_prints} groupée${t.group_prints > 1 ? 's' : ''}` : ''}</span></div>
+        <div class="figure"><span class="figure-label">Pièces produites</span><span class="figure-value">${t.pieces}</span>
+          <span class="figure-sub">impressions réussies</span></div>
+        <div class="figure"><span class="figure-label">Heures d'impression</span><span class="figure-value">${formatDuration(t.seconds) || '0 min'}</span>
+          <span class="figure-sub">${avg ? 'moyenne ' + formatDuration(avg) + ' par impression' : ''}</span></div>
+        <div class="figure"><span class="figure-label">Écart prévu / réel</span><span class="figure-value">${gapText(t.plan_s, t.real_s)}</span>
+          <span class="figure-sub">${t.timed ? `sur ${t.timed} impression${t.timed > 1 ? 's' : ''} réussie${t.timed > 1 ? 's' : ''}` : 'aucune comparable'}</span></div>
+      </div>
+      <div class="waste-grid">
+        ${block('Par imprimante', printersTbl)}
+        ${block('Pièces par semaine', weeksTbl)}
+        ${block('Pièces par thème', themesTbl)}
+        ${block('Par projet', projTbl)}
+      </div>
+      <p class="hint">Occupation = heures d'impression / durée de la période${st.days ? '' : ' (depuis la première impression)'}. Écart : positif = plus long que prévu.
+        ${t.untimed ? `${t.untimed} impression${t.untimed > 1 ? 's' : ''} réussie${t.untimed > 1 ? 's' : ''} sans temps prévu ou sans durée ne ${t.untimed > 1 ? 'sont' : 'est'} pas dans l'écart.` : ''}
+        L'écart par projet exclut les lancements groupés. Un projet à plusieurs thèmes compte dans chacun.</p>`;
+  }
+  function showTab() {
+    el.querySelector('#tab-prints').hidden = tab !== 'prints';
+    el.querySelector('#tab-stats').hidden = tab !== 'stats';
+    el.querySelectorAll('.prod-tabs .seg-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tab);
+      b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false');
+    });
+    if (tab === 'stats') drawStats();
+  }
+  el.querySelectorAll('.prod-tabs .seg-btn').forEach(b => b.addEventListener('click', () => { tab = b.dataset.tab; store_.set('tab', tab); showTab(); }));
+  el.querySelector('#stats-days').value = String(statsDays);
+  el.querySelector('#stats-days').addEventListener('change', e => { statsDays = parseInt(e.target.value, 10); store_.set('stats_days', statsDays); drawStats(); });
 
   /* ── Gâchis ───────────────────────────────────────────────────── */
   let wasteDays = 90;
@@ -301,7 +399,7 @@ export async function renderProduction(el) {
     drawFilters();
     el.querySelector('#f-period').value = filter.period;
     const se = el.querySelector('#f-search'); if (se.value !== filter.search && document.activeElement !== se) se.value = filter.search;
-    el.querySelectorAll('.seg-btn').forEach(b => {
+    el.querySelectorAll('.seg-btn[data-view]').forEach(b => {
       const on = b.dataset.view === filter.view;
       b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
     });
@@ -359,7 +457,7 @@ export async function renderProduction(el) {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => { filter.search = e.target.value; shown = PAGE; drawHistory(); }, 200);
   });
-  el.querySelectorAll('.seg-btn').forEach(b => b.addEventListener('click', () => {
+  el.querySelectorAll('.seg-btn[data-view]').forEach(b => b.addEventListener('click', () => {
     filter.view = b.dataset.view; store_.set('view', filter.view); drawHistory();
   }));
 
@@ -370,6 +468,7 @@ export async function renderProduction(el) {
     drawRunning();
     drawHistory();
     drawWaste();
+    if (tab === 'stats') drawStats();
     updateRunsBadge();
   }
 
@@ -377,5 +476,6 @@ export async function renderProduction(el) {
   drawRunning();
   drawHistory();
   drawWaste();
+  showTab();
   return () => clearInterval(tick);
 }

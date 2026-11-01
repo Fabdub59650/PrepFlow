@@ -204,6 +204,105 @@ router.get('/runs/waste', async (req, res) => {
   } catch (e) { fail(res, e); }
 });
 
+// ── Statistiques ──────────────────────────────────────────────
+// Impressions terminées (ratées comprises, annulées exclues) de la période.
+// Un lancement groupé (même batch_id) compte pour UNE impression : durée réelle du plateau, temps prévu de toutes
+// ses pièces (null si l'une n'a pas de temps prévu). Les pièces produites ne comptent que les impressions réussies.
+// L'écart prévu/réel ne porte que sur les impressions réussies qui ont les deux durées.
+function weekStart(str) {
+  const d = new Date(String(str).replace(' ', 'T'));
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));          // lundi
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+router.get('/runs/stats', async (req, res) => {
+  try {
+    const days = Math.max(0, Math.min(parseInt(req.query.days, 10) || 0, 36500));
+    const [rows] = await db.query(
+      `SELECT r.id, r.result, r.batch_id, r.quantity, r.duration_s, r.started_at, r.ended_at, r.printer_id,
+              p.project_id, p.print_time_s, pj.code AS project_code, pj.name AS project_name, prn.name AS printer_name
+       FROM print_runs r
+       JOIN parts p ON p.id = r.part_id
+       JOIN projects pj ON pj.id = p.project_id
+       LEFT JOIN printers prn ON prn.id = r.printer_id
+       WHERE r.state='termine' AND r.result IN ('ok','rate')
+         ${days ? 'AND r.ended_at >= DATE_SUB(NOW(), INTERVAL ? DAY)' : ''}
+       ORDER BY r.ended_at, r.id`, days ? [days] : []);
+    const [themeRows] = await db.query(
+      'SELECT pt.project_id, t.id, t.name FROM project_themes pt JOIN themes t ON t.id = pt.theme_id');
+    const themesOf = new Map();
+    for (const t of themeRows) { if (!themesOf.has(t.project_id)) themesOf.set(t.project_id, []); themesOf.get(t.project_id).push(t); }
+
+    // Regroupement en « impressions » (un lancement groupé = une impression)
+    const units = new Map();
+    for (const r of rows) {
+      const key = r.batch_id || `run-${r.id}`;
+      if (!units.has(key)) units.set(key, { key, batch: !!r.batch_id, rows: [] });
+      units.get(key).rows.push(r);
+    }
+    const list = [...units.values()].map(u => {
+      const first = u.rows[0];
+      const failed = u.rows.some(r => r.result === 'rate');
+      const planParts = u.rows.map(r => (r.print_time_s === null || r.print_time_s === undefined) ? null : Number(r.print_time_s) * r.quantity);
+      const plan = planParts.every(v => v !== null) ? planParts.reduce((a, v) => a + v, 0) : null;
+      const real = first.duration_s === null || first.duration_s === undefined ? null : Number(first.duration_s);
+      return { ...u, failed, plan, real, printer_id: first.printer_id, printer_name: first.printer_name,
+               ended_at: first.ended_at, started_at: first.started_at,
+               pieces: failed ? 0 : u.rows.reduce((a, r) => a + r.quantity, 0) };
+    });
+
+    const totals = { prints: list.length, failed: list.filter(u => u.failed).length, pieces: 0, seconds: 0,
+                     timed: 0, untimed: 0, plan_s: 0, real_s: 0, group_prints: list.filter(u => u.batch).length };
+    const byPrinter = new Map(), byWeek = new Map(), byTheme = new Map(), byProject = new Map();
+    const bump = (map, key, label, add) => {
+      if (!map.has(key)) map.set(key, { key, label, prints: 0, failed: 0, pieces: 0, seconds: 0, plan_s: 0, real_s: 0, timed: 0 });
+      const g = map.get(key);
+      for (const [k, v] of Object.entries(add)) g[k] += v;
+    };
+    for (const u of list) {
+      const secs = u.real || 0;
+      const compared = !u.failed && u.real !== null && u.plan !== null && u.plan > 0;
+      const add = { prints: 1, failed: u.failed ? 1 : 0, pieces: u.pieces, seconds: secs,
+                    plan_s: compared ? u.plan : 0, real_s: compared ? u.real : 0, timed: compared ? 1 : 0 };
+      totals.pieces += u.pieces; totals.seconds += secs;
+      if (!u.failed) { if (compared) { totals.timed++; totals.plan_s += u.plan; totals.real_s += u.real; } else totals.untimed++; }
+      bump(byPrinter, u.printer_id ?? 0, u.printer_name || 'Sans imprimante', add);
+      bump(byWeek, weekStart(u.ended_at), weekStart(u.ended_at), add);
+      // Projet(s) et thèmes : un lancement groupé répartit ses pièces entre les projets de ses lignes
+      for (const r of u.rows) {
+        const pieces = u.failed ? 0 : r.quantity;
+        const share = u.rows.length > 1 ? secs / u.rows.length : secs;
+        const lab = `${r.project_code ? r.project_code + ' · ' : ''}${r.project_name}`;
+        const padd = { prints: u.rows.length > 1 ? 1 / u.rows.length : 1, failed: u.failed ? (u.rows.length > 1 ? 1 / u.rows.length : 1) : 0,
+                       pieces, seconds: share, plan_s: 0, real_s: 0, timed: 0 };
+        bump(byProject, r.project_id, lab, padd);
+        for (const t of themesOf.get(r.project_id) || []) bump(byTheme, t.id, t.name, { ...padd });
+      }
+    }
+    // Écart par projet : uniquement sur les impressions simples comparables (le plateau groupé mélange les projets)
+    for (const u of list) {
+      if (u.batch || u.failed || u.real === null || u.plan === null || !(u.plan > 0)) continue;
+      const g = byProject.get(u.rows[0].project_id);
+      if (g) { g.plan_s += u.plan; g.real_s += u.real; g.timed += 1; }
+    }
+    const span = days || Math.max(1, Math.ceil((Date.now() - new Date(String(rows[0]?.ended_at || new Date()).replace(' ', 'T'))) / 86400000));
+    const finish = m => [...m.values()].map(g => ({ ...g, prints: Math.round(g.prints * 100) / 100, failed: Math.round(g.failed * 100) / 100,
+      seconds: Math.round(g.seconds), plan_s: Math.round(g.plan_s), real_s: Math.round(g.real_s) }));
+    const printers = finish(byPrinter).map(g => ({ ...g, load_pct: Math.round(1000 * g.seconds / (span * 86400)) / 10 }))
+      .sort((a, b) => b.seconds - a.seconds);
+    res.json({
+      days, span_days: span,
+      totals: { ...totals, seconds: Math.round(totals.seconds), plan_s: Math.round(totals.plan_s), real_s: Math.round(totals.real_s) },
+      by_printer: printers,
+      by_week: finish(byWeek).sort((a, b) => b.key.localeCompare(a.key)),
+      by_theme: finish(byTheme).sort((a, b) => b.pieces - a.pieces || a.label.localeCompare(b.label, 'fr')),
+      by_project: finish(byProject).sort((a, b) => b.pieces - a.pieces || b.seconds - a.seconds),
+    });
+  } catch (e) { fail(res, e); }
+});
+
 router.get('/projects/:id/runs', async (req, res) => {
   try {
     res.json(await loadRuns({ projectId: parseInt(req.params.id, 10), limit: req.query.limit }));
