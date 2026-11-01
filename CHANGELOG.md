@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.39.0 — 01/11/2026
+
+- **Statistiques : évolution par semaine et détail au clic.** Trois petits graphiques en barres, une barre par semaine (les semaines sans impression comptent), montrent l'évolution des **heures d'impression**, de l'**écart prévu / réel** (les semaines plus courtes que prévu descendent sous la ligne) et du **taux d'impressions ratées**, sur 26 semaines au plus ; le survol d'une barre donne le détail. **Cliquer sur une ligne** des tableaux (imprimante, semaine, thème, projet) ouvre la liste des impressions qui composent le chiffre : date, pièces (lien vers le projet), imprimante, prévu, réel, écart, résultat, avec le nombre d'impressions, les heures et l'écart de la sélection. Affichage seulement, aucune donnée modifiée
+
 ## v1.38.1 — 01/11/2026
 
 - **Statistiques : « Par imprimante » affiche la part des heures au lieu de l'occupation.** L'occupation sur 24 h dépendait surtout des habitudes d'usage et n'apprenait rien. La colonne « Part des heures » donne, avec une barre, la part de chaque imprimante dans le total des heures d'impression de la période (le total fait 100 %). Les colonnes Impr., Heures et Écart ne changent pas. Les chiffres du tableau ne passent plus à la ligne. Affichage seulement

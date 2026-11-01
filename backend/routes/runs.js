@@ -222,7 +222,7 @@ router.get('/runs/stats', async (req, res) => {
     const days = Math.max(0, Math.min(parseInt(req.query.days, 10) || 0, 36500));
     const [rows] = await db.query(
       `SELECT r.id, r.result, r.batch_id, r.quantity, r.duration_s, r.started_at, r.ended_at, r.printer_id,
-              p.project_id, p.print_time_s, pj.code AS project_code, pj.name AS project_name, prn.name AS printer_name
+              p.project_id, p.name AS part_name, p.print_time_s, pj.code AS project_code, pj.name AS project_name, prn.name AS printer_name
        FROM print_runs r
        JOIN parts p ON p.id = r.part_id
        JOIN projects pj ON pj.id = p.project_id
@@ -294,8 +294,16 @@ router.get('/runs/stats', async (req, res) => {
     const secTotal = printersAll.reduce((n, g) => n + g.seconds, 0);
     const printers = printersAll.map(g => ({ ...g, share_pct: secTotal ? Math.round(1000 * g.seconds / secTotal) / 10 : 0 }))
       .sort((a, b) => b.seconds - a.seconds);
+    // Détail : une ligne par impression (pour le clic sur un tableau et les courbes d'évolution)
+    const detail = list.map(u => ({
+      key: u.key, batch: u.batch, failed: u.failed, ended_at: u.ended_at, started_at: u.started_at,
+      printer_id: u.printer_id ?? 0, printer_name: u.printer_name || 'Sans imprimante',
+      plan_s: u.plan, real_s: u.real, pieces: u.pieces,
+      parts: u.rows.map(r => ({ project_id: r.project_id, project: `${r.project_code ? r.project_code + ' · ' : ''}${r.project_name}`,
+        part: r.part_name || '', quantity: r.quantity, theme_ids: (themesOf.get(r.project_id) || []).map(t => t.id) })),
+    })).sort((a, b) => String(b.ended_at).localeCompare(String(a.ended_at)));
     res.json({
-      days, span_days: span,
+      days, span_days: span, units: detail,
       totals: { ...totals, seconds: Math.round(totals.seconds), plan_s: Math.round(totals.plan_s), real_s: Math.round(totals.real_s) },
       by_printer: printers,
       by_week: finish(byWeek).sort((a, b) => b.key.localeCompare(a.key)),

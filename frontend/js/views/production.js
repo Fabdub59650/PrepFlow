@@ -1,7 +1,7 @@
 // Page Production : impressions en cours et historique
 import { api } from '../api.js';
 import { store } from '../store.js';
-import { toast, confirmDialog } from '../ui.js';
+import { toast, confirmDialog, openDialog } from '../ui.js';
 import { RUN_RESULT, formatDuration, formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolsToWeigh, weighAge } from '../format.js';
 import { openFinishDialog, openCorrectDialog, updateRunsBadge } from '../runs.js';
 
@@ -131,28 +131,129 @@ export async function renderProduction(el) {
     const g = Math.round(1000 * (real - plan) / plan) / 10;
     return (g > 0 ? '+' : '') + String(g).replace('.', ',') + ' %';
   };
+  const mondayOf = str => {
+    const d = new Date(String(str).replace(' ', 'T'));
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    const z = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+  };
+  const nextWeek = key => {
+    const d = new Date(key + 'T12:00:00'); d.setDate(d.getDate() + 7);
+    const z = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+  };
+  // Série hebdomadaire continue (semaines sans impression comprises), 26 semaines au plus
+  function weeklySeries(units) {
+    if (!units.length) return [];
+    const map = new Map();
+    for (const u of units) {
+      const k = mondayOf(u.ended_at);
+      if (!map.has(k)) map.set(k, { key: k, prints: 0, failed: 0, seconds: 0, plan_s: 0, real_s: 0, timed: 0 });
+      const w = map.get(k);
+      w.prints++; if (u.failed) w.failed++;
+      w.seconds += u.real_s || 0;
+      if (!u.failed && u.real_s !== null && u.plan_s !== null && u.plan_s > 0) { w.plan_s += u.plan_s; w.real_s += u.real_s; w.timed++; }
+    }
+    const keys = [...map.keys()].sort();
+    const out = [];
+    for (let k = keys[0]; k <= keys[keys.length - 1]; k = nextWeek(k)) out.push(map.get(k) || { key: k, prints: 0, failed: 0, seconds: 0, plan_s: 0, real_s: 0, timed: 0 });
+    return out.slice(-26);
+  }
+  // Barres SVG ; vals[i] = nombre ou null (pas de barre) ; les valeurs négatives descendent sous la ligne zéro
+  function barSvg(vals, tips, cls) {
+    const W = 300, H = 96, n = vals.length;
+    const real = vals.filter(v => v !== null);
+    const lo = Math.min(0, ...real), hi = Math.max(0, ...real, lo === 0 ? 0.0001 : 0);
+    const y = v => H * (hi - v) / (hi - lo);
+    const step = W / n, bw = Math.max(2, Math.min(28, step * 0.7));
+    const bars = vals.map((v, i) => {
+      const x = i * step + (step - bw) / 2;
+      if (v === null) return `<rect x="${x.toFixed(1)}" y="${(H - 1).toFixed(1)}" width="${bw.toFixed(1)}" height="1" class="evo-none"><title>${escapeHtml(tips[i])}</title></rect>`;
+      const y0 = y(0), y1 = y(v), top = Math.min(y0, y1), h = Math.max(1, Math.abs(y1 - y0));
+      return `<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" class="${v < 0 ? 'evo-neg' : cls}"><title>${escapeHtml(tips[i])}</title></rect>`;
+    }).join('');
+    const zero = lo < 0 ? `<line x1="0" x2="${W}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" class="evo-zero"/>` : '';
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="evo-svg" role="img">${zero}${bars}</svg>`;
+  }
+  function evolutionHtml(units) {
+    const weeks = weeklySeries(units);
+    if (!weeks.length) return '';
+    const lab = w => weekLabel(w.key);
+    const hours = weeks.map(w => w.seconds ? Math.round(w.seconds / 36) / 100 : 0);
+    const gaps = weeks.map(w => w.timed && w.plan_s ? Math.round(1000 * (w.real_s - w.plan_s) / w.plan_s) / 10 : null);
+    const fails = weeks.map(w => w.prints ? Math.round(1000 * w.failed / w.prints) / 10 : 0);
+    const fr = v => String(v).replace('.', ',');
+    const card = (title, svg, sub) => `<div class="evo-card"><div class="evo-title">${title}</div>${svg}
+      <div class="evo-axis"><span>${escapeHtml(lab(weeks[0]))}</span><span>${weeks.length > 1 ? escapeHtml(lab(weeks[weeks.length - 1])) : ''}</span></div>
+      <div class="evo-sub">${sub}</div></div>`;
+    const maxH = Math.max(...hours);
+    const realGaps = gaps.filter(v => v !== null);
+    return `<div class="evo-grid">
+      ${card('Heures d\'impression', barSvg(hours, weeks.map((w, i) => `${lab(w)} : ${fr(hours[i])} h · ${w.prints} impression${w.prints > 1 ? 's' : ''}`), 'evo-bar'),
+        `pic : ${fr(maxH)} h par semaine`)}
+      ${card('Écart prévu / réel (%)', barSvg(gaps, weeks.map((w, i) => `${lab(w)} : ${gaps[i] === null ? 'pas de comparaison' : (gaps[i] > 0 ? '+' : '') + fr(gaps[i]) + ' %'}`), 'evo-bar'),
+        realGaps.length ? `dernière semaine comparable : ${(realGaps[realGaps.length - 1] > 0 ? '+' : '') + fr(realGaps[realGaps.length - 1])} %` : 'aucune semaine comparable')}
+      ${card('Impressions ratées (%)', barSvg(fails, weeks.map((w, i) => `${lab(w)} : ${w.failed} ratée${w.failed > 1 ? 's' : ''} sur ${w.prints} (${fr(fails[i])} %)`), 'evo-fail'),
+        `pic : ${fr(Math.max(...fails))} % · total ${weeks.reduce((n, w) => n + w.failed, 0)} sur ${weeks.reduce((n, w) => n + w.prints, 0)}`)}
+    </div>`;
+  }
+  // Détail d'une ligne de tableau : liste des impressions qui la composent
+  function openDrill(kind, id, label, units) {
+    const match = {
+      printer: u => String(u.printer_id) === String(id),
+      project: u => u.parts.some(q => String(q.project_id) === String(id)),
+      theme: u => u.parts.some(q => q.theme_ids.some(t => String(t) === String(id))),
+      week: u => mondayOf(u.ended_at) === id,
+    }[kind];
+    const rows = units.filter(match);
+    const secs = rows.reduce((n, u) => n + (u.real_s || 0), 0);
+    const cmp = rows.filter(u => !u.failed && u.real_s !== null && u.plan_s !== null && u.plan_s > 0);
+    const gap = cmp.length ? gapText(cmp.reduce((n, u) => n + u.plan_s, 0), cmp.reduce((n, u) => n + u.real_s, 0)) : '—';
+    const MAX = 200;
+    const dlg = openDialog({
+      title: label, wide: true,
+      build(body) {
+        body.innerHTML = `<p class="muted">${rows.length} impression${rows.length > 1 ? 's' : ''} · ${formatDuration(secs) || '0 min'} · écart ${gap}${rows.length > MAX ? ` · les ${MAX} plus récentes sont affichées` : ''}</p>
+          <div class="drill-scroll"><table class="mini-table drill-table"><thead><tr><th>Date</th><th>Pièces</th><th>Imprimante</th><th class="num">Prévu</th><th class="num">Réel</th><th class="num">Écart</th><th>Résultat</th></tr></thead><tbody>
+          ${rows.slice(0, MAX).map(u => `<tr>
+            <td>${escapeHtml(formatDate(u.ended_at))}</td>
+            <td>${u.parts.map(q => `<div><a href="#/projet/${q.project_id}" class="cell-code" data-close>${escapeHtml(q.project.split(' · ')[0])}</a> ${escapeHtml(q.part || 'Sans nom')} × ${q.quantity}</div>`).join('')}${u.batch ? '<span class="muted">lancement groupé</span>' : ''}</td>
+            <td>${escapeHtml(u.printer_name)}</td>
+            <td class="num">${u.plan_s !== null ? formatDuration(u.plan_s) : '—'}</td>
+            <td class="num">${u.real_s !== null ? formatDuration(u.real_s) : '—'}</td>
+            <td class="num">${!u.failed && u.plan_s > 0 && u.real_s !== null ? gapText(u.plan_s, u.real_s) : '—'}</td>
+            <td>${u.failed ? '<span class="drill-fail">Ratée</span>' : 'Réussie'}</td></tr>`).join('')}</tbody></table></div>`;
+        body.addEventListener('click', e => { if (e.target.closest('[data-close]')) dlg.querySelector('[data-cancel]').click(); });
+      },
+    });
+    dlg.querySelector('[type=submit]').style.display = 'none';
+    dlg.querySelector('[data-cancel]').textContent = 'Fermer';
+  }
+  let statsUnits = [];
   async function drawStats() {
     const box = el.querySelector('#stats');
     let st;
     try { st = await api.get(`runs/stats?days=${statsDays}`); }
     catch (e) { box.innerHTML = `<p class="muted">${escapeHtml(e.message)}</p>`; return; }
+    statsUnits = st.units || [];
     const t = st.totals;
     if (!t.prints) { box.innerHTML = '<div class="empty-state"><p class="empty-title">Pas encore de données</p><p>Les impressions terminées de la période apparaîtront ici.</p></div>'; return; }
-    const bars = (rows, val, fmt) => {
+    const bars = (kind, rows, val, fmt) => {
       const max = Math.max(1, ...rows.map(val));
-      return rows.map(g => `<tr><td>${escapeHtml(g.label)}</td><td class="bar-cell"><span class="bar" style="width:${Math.round(100 * val(g) / max)}%"></span></td><td class="num">${fmt(g)}</td></tr>`).join('');
+      return rows.map(g => `<tr class="drill" tabindex="0" data-drill="${kind}" data-id="${escapeHtml(String(g.key))}" data-label="${escapeHtml(g.label)}"><td>${escapeHtml(g.label)}</td><td class="bar-cell"><span class="bar" style="width:${Math.round(100 * val(g) / max)}%"></span></td><td class="num">${fmt(g)}</td></tr>`).join('');
     };
     const block = (title, body) => `<div class="waste-block"><h3 class="waste-title">${title}</h3>${body}</div>`;
     const printersTbl = `<table class="mini-table"><thead><tr><th>Imprimante</th><th class="num">Impr.</th><th class="num">Heures</th><th colspan="2">Part des heures</th><th class="num">Écart</th></tr></thead><tbody>
-      ${st.by_printer.map(g => `<tr><td>${escapeHtml(g.label)}</td><td class="num">${g.prints}</td><td class="num"><strong>${formatDuration(g.seconds) || '—'}</strong></td>
+      ${st.by_printer.map(g => `<tr class="drill" tabindex="0" data-drill="printer" data-id="${g.key}" data-label="${escapeHtml(g.label)}"><td>${escapeHtml(g.label)}</td><td class="num">${g.prints}</td><td class="num"><strong>${formatDuration(g.seconds) || '—'}</strong></td>
         <td class="bar-cell"><span class="bar" style="width:${Math.round(g.share_pct)}%"></span></td><td class="num">${pct(g.share_pct)}</td><td class="num">${gapText(g.plan_s, g.real_s)}</td></tr>`).join('')}</tbody></table>`;
     const weeks = st.by_week.slice(0, 12);
     const weeksTbl = `<table class="mini-table"><thead><tr><th>Semaine</th><th></th><th class="num">Pièces</th></tr></thead><tbody>
-      ${bars(weeks.map(g => ({ ...g, label: weekLabel(g.key) })), g => g.pieces, g => `${g.pieces}`)}</tbody></table>`;
+      ${bars('week', weeks.map(g => ({ ...g, label: weekLabel(g.key) })), g => g.pieces, g => `${g.pieces}`)}</tbody></table>`;
     const themesTbl = st.by_theme.length ? `<table class="mini-table"><thead><tr><th>Thème</th><th></th><th class="num">Pièces</th></tr></thead><tbody>
-      ${bars(st.by_theme.slice(0, 8), g => g.pieces, g => `${g.pieces}`)}</tbody></table>` : '<p class="muted">Aucun thème sur les projets de la période.</p>';
+      ${bars('theme', st.by_theme.slice(0, 8), g => g.pieces, g => `${g.pieces}`)}</tbody></table>` : '<p class="muted">Aucun thème sur les projets de la période.</p>';
     const projTbl = `<table class="mini-table"><thead><tr><th>Projet</th><th class="num">Pièces</th><th class="num">Heures</th><th class="num">Écart</th></tr></thead><tbody>
-      ${st.by_project.slice(0, 8).map(g => `<tr><td>${escapeHtml(g.label)}</td><td class="num"><strong>${g.pieces}</strong></td>
+      ${st.by_project.slice(0, 8).map(g => `<tr class="drill" tabindex="0" data-drill="project" data-id="${g.key}" data-label="${escapeHtml(g.label)}"><td>${escapeHtml(g.label)}</td><td class="num"><strong>${g.pieces}</strong></td>
         <td class="num">${formatDuration(g.seconds) || '—'}</td><td class="num">${gapText(g.plan_s, g.real_s)}</td></tr>`).join('')}</tbody></table>`;
     const avg = t.prints ? Math.round(t.seconds / t.prints) : 0;
     box.innerHTML = `
@@ -166,6 +267,7 @@ export async function renderProduction(el) {
         <div class="figure"><span class="figure-label">Écart prévu / réel</span><span class="figure-value">${gapText(t.plan_s, t.real_s)}</span>
           <span class="figure-sub">${t.timed ? `sur ${t.timed} impression${t.timed > 1 ? 's' : ''} réussie${t.timed > 1 ? 's' : ''}` : 'aucune comparable'}</span></div>
       </div>
+      <div class="waste-block evo-wrap"><h3 class="waste-title">Évolution par semaine</h3>${evolutionHtml(statsUnits)}</div>
       <div class="waste-grid">
         ${block('Par imprimante', printersTbl)}
         ${block('Pièces par semaine', weeksTbl)}
@@ -174,7 +276,12 @@ export async function renderProduction(el) {
       </div>
       <p class="hint">Part des heures = heures de l'imprimante / heures de toutes les imprimantes. Écart : positif = plus long que prévu.
         ${t.untimed ? `${t.untimed} impression${t.untimed > 1 ? 's' : ''} réussie${t.untimed > 1 ? 's' : ''} sans temps prévu ou sans durée ne ${t.untimed > 1 ? 'sont' : 'est'} pas dans l'écart.` : ''}
-        L'écart par projet exclut les lancements groupés. Un projet à plusieurs thèmes compte dans chacun.</p>`;
+        L'écart par projet exclut les lancements groupés. Un projet à plusieurs thèmes compte dans chacun. Cliquez sur une ligne d'un tableau pour voir les impressions concernées.</p>`;
+    box.querySelectorAll('tr.drill').forEach(tr => {
+      const go = () => openDrill(tr.dataset.drill, tr.dataset.id, tr.dataset.label, statsUnits);
+      tr.addEventListener('click', go);
+      tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    });
   }
   function showTab() {
     el.querySelector('#tab-prints').hidden = tab !== 'prints';
