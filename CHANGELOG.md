@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.38.1 — 01/11/2026
+
+- **Statistiques : « Par imprimante » affiche la part des heures au lieu de l'occupation.** L'occupation sur 24 h dépendait surtout des habitudes d'usage et n'apprenait rien. La colonne « Part des heures » donne, avec une barre, la part de chaque imprimante dans le total des heures d'impression de la période (le total fait 100 %). Les colonnes Impr., Heures et Écart ne changent pas. Les chiffres du tableau ne passent plus à la ligne. Affichage seulement
+
 ## v1.38.0 — 01/11/2026
 
 - **Nouvel onglet « Statistiques » dans Production.** À côté de « Impressions », il montre, sur 30 jours, 90 jours, 12 mois ou depuis le début : le nombre d'impressions (dont ratées et groupées), les pièces produites, les heures d'impression avec la moyenne par impression, l'écart prévu / réel, puis quatre tableaux : par imprimante (impressions, heures, taux d'occupation, écart), pièces par semaine, pièces par thème et par projet. **Un lancement groupé compte pour une seule impression** (durée réelle du plateau, temps prévu de toutes ses pièces) ; les pièces ne comptent que les impressions réussies ; l'écart ne porte que sur les impressions réussies ayant un temps prévu et une durée, le nombre de celles qui en manquent est indiqué. Affichage seulement, aucune donnée modifiée. L'onglet choisi et la période sont mémorisés

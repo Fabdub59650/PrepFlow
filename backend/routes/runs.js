@@ -290,7 +290,9 @@ router.get('/runs/stats', async (req, res) => {
     const span = days || Math.max(1, Math.ceil((Date.now() - new Date(String(rows[0]?.ended_at || new Date()).replace(' ', 'T'))) / 86400000));
     const finish = m => [...m.values()].map(g => ({ ...g, prints: Math.round(g.prints * 100) / 100, failed: Math.round(g.failed * 100) / 100,
       seconds: Math.round(g.seconds), plan_s: Math.round(g.plan_s), real_s: Math.round(g.real_s) }));
-    const printers = finish(byPrinter).map(g => ({ ...g, load_pct: Math.round(1000 * g.seconds / (span * 86400)) / 10 }))
+    const printersAll = finish(byPrinter);
+    const secTotal = printersAll.reduce((n, g) => n + g.seconds, 0);
+    const printers = printersAll.map(g => ({ ...g, share_pct: secTotal ? Math.round(1000 * g.seconds / secTotal) / 10 : 0 }))
       .sort((a, b) => b.seconds - a.seconds);
     res.json({
       days, span_days: span,

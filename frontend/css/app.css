@@ -950,6 +950,7 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 
 /* Production : onglets et statistiques */
 .prod-tabs { margin: 4px 0 14px; }
-.mini-table .bar-cell { width: 45%; padding-right: 8px; }
+.mini-table .bar-cell { width: 30%; padding-right: 8px; }
+.mini-table td.num { white-space: nowrap; }
 .mini-table .bar { display: block; height: 8px; border-radius: 4px; background: var(--accent); min-width: 2px; }
 .mini-table + .hint, .waste-grid + .hint { margin-top: 12px; }

@@ -143,9 +143,9 @@ export async function renderProduction(el) {
       return rows.map(g => `<tr><td>${escapeHtml(g.label)}</td><td class="bar-cell"><span class="bar" style="width:${Math.round(100 * val(g) / max)}%"></span></td><td class="num">${fmt(g)}</td></tr>`).join('');
     };
     const block = (title, body) => `<div class="waste-block"><h3 class="waste-title">${title}</h3>${body}</div>`;
-    const printersTbl = `<table class="mini-table"><thead><tr><th>Imprimante</th><th class="num">Impr.</th><th class="num">Heures</th><th class="num">Occupation</th><th class="num">Écart</th></tr></thead><tbody>
+    const printersTbl = `<table class="mini-table"><thead><tr><th>Imprimante</th><th class="num">Impr.</th><th class="num">Heures</th><th colspan="2">Part des heures</th><th class="num">Écart</th></tr></thead><tbody>
       ${st.by_printer.map(g => `<tr><td>${escapeHtml(g.label)}</td><td class="num">${g.prints}</td><td class="num"><strong>${formatDuration(g.seconds) || '—'}</strong></td>
-        <td class="num">${pct(g.load_pct)}</td><td class="num">${gapText(g.plan_s, g.real_s)}</td></tr>`).join('')}</tbody></table>`;
+        <td class="bar-cell"><span class="bar" style="width:${Math.round(g.share_pct)}%"></span></td><td class="num">${pct(g.share_pct)}</td><td class="num">${gapText(g.plan_s, g.real_s)}</td></tr>`).join('')}</tbody></table>`;
     const weeks = st.by_week.slice(0, 12);
     const weeksTbl = `<table class="mini-table"><thead><tr><th>Semaine</th><th></th><th class="num">Pièces</th></tr></thead><tbody>
       ${bars(weeks.map(g => ({ ...g, label: weekLabel(g.key) })), g => g.pieces, g => `${g.pieces}`)}</tbody></table>`;
@@ -172,7 +172,7 @@ export async function renderProduction(el) {
         ${block('Pièces par thème', themesTbl)}
         ${block('Par projet', projTbl)}
       </div>
-      <p class="hint">Occupation = heures d'impression / durée de la période${st.days ? '' : ' (depuis la première impression)'}. Écart : positif = plus long que prévu.
+      <p class="hint">Part des heures = heures de l'imprimante / heures de toutes les imprimantes. Écart : positif = plus long que prévu.
         ${t.untimed ? `${t.untimed} impression${t.untimed > 1 ? 's' : ''} réussie${t.untimed > 1 ? 's' : ''} sans temps prévu ou sans durée ne ${t.untimed > 1 ? 'sont' : 'est'} pas dans l'écart.` : ''}
         L'écart par projet exclut les lancements groupés. Un projet à plusieurs thèmes compte dans chacun.</p>`;
   }
