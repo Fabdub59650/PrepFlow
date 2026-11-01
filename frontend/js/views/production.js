@@ -138,66 +138,12 @@ export async function renderProduction(el) {
     const z = n => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
   };
-  const nextWeek = key => {
-    const d = new Date(key + 'T12:00:00'); d.setDate(d.getDate() + 7);
-    const z = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+  // Durée en heures seules (« 147 h 21 ») : plus simple à comparer qu'en jours + heures
+  const hm = sec => {
+    sec = Math.round(sec || 0);
+    if (sec < 3600) return formatDuration(sec) || '0 min';
+    return `${Math.floor(sec / 3600)} h ${String(Math.floor(sec % 3600 / 60)).padStart(2, '0')}`;
   };
-  // Série hebdomadaire continue (semaines sans impression comprises), 26 semaines au plus
-  function weeklySeries(units) {
-    if (!units.length) return [];
-    const map = new Map();
-    for (const u of units) {
-      const k = mondayOf(u.ended_at);
-      if (!map.has(k)) map.set(k, { key: k, prints: 0, failed: 0, seconds: 0, plan_s: 0, real_s: 0, timed: 0 });
-      const w = map.get(k);
-      w.prints++; if (u.failed) w.failed++;
-      w.seconds += u.real_s || 0;
-      if (!u.failed && u.real_s !== null && u.plan_s !== null && u.plan_s > 0) { w.plan_s += u.plan_s; w.real_s += u.real_s; w.timed++; }
-    }
-    const keys = [...map.keys()].sort();
-    const out = [];
-    for (let k = keys[0]; k <= keys[keys.length - 1]; k = nextWeek(k)) out.push(map.get(k) || { key: k, prints: 0, failed: 0, seconds: 0, plan_s: 0, real_s: 0, timed: 0 });
-    return out.slice(-26);
-  }
-  // Barres SVG ; vals[i] = nombre ou null (pas de barre) ; les valeurs négatives descendent sous la ligne zéro
-  function barSvg(vals, tips, cls) {
-    const W = 300, H = 96, n = vals.length;
-    const real = vals.filter(v => v !== null);
-    const lo = Math.min(0, ...real), hi = Math.max(0, ...real, lo === 0 ? 0.0001 : 0);
-    const y = v => H * (hi - v) / (hi - lo);
-    const step = W / n, bw = Math.max(2, Math.min(28, step * 0.7));
-    const bars = vals.map((v, i) => {
-      const x = i * step + (step - bw) / 2;
-      if (v === null) return `<rect x="${x.toFixed(1)}" y="${(H - 1).toFixed(1)}" width="${bw.toFixed(1)}" height="1" class="evo-none"><title>${escapeHtml(tips[i])}</title></rect>`;
-      const y0 = y(0), y1 = y(v), top = Math.min(y0, y1), h = Math.max(1, Math.abs(y1 - y0));
-      return `<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" class="${v < 0 ? 'evo-neg' : cls}"><title>${escapeHtml(tips[i])}</title></rect>`;
-    }).join('');
-    const zero = lo < 0 ? `<line x1="0" x2="${W}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" class="evo-zero"/>` : '';
-    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="evo-svg" role="img">${zero}${bars}</svg>`;
-  }
-  function evolutionHtml(units) {
-    const weeks = weeklySeries(units);
-    if (!weeks.length) return '';
-    const lab = w => weekLabel(w.key);
-    const hours = weeks.map(w => w.seconds ? Math.round(w.seconds / 36) / 100 : 0);
-    const gaps = weeks.map(w => w.timed && w.plan_s ? Math.round(1000 * (w.real_s - w.plan_s) / w.plan_s) / 10 : null);
-    const fails = weeks.map(w => w.prints ? Math.round(1000 * w.failed / w.prints) / 10 : 0);
-    const fr = v => String(v).replace('.', ',');
-    const card = (title, svg, sub) => `<div class="evo-card"><div class="evo-title">${title}</div>${svg}
-      <div class="evo-axis"><span>${escapeHtml(lab(weeks[0]))}</span><span>${weeks.length > 1 ? escapeHtml(lab(weeks[weeks.length - 1])) : ''}</span></div>
-      <div class="evo-sub">${sub}</div></div>`;
-    const maxH = Math.max(...hours);
-    const realGaps = gaps.filter(v => v !== null);
-    return `<div class="evo-grid">
-      ${card('Heures d\'impression', barSvg(hours, weeks.map((w, i) => `${lab(w)} : ${fr(hours[i])} h · ${w.prints} impression${w.prints > 1 ? 's' : ''}`), 'evo-bar'),
-        `pic : ${fr(maxH)} h par semaine`)}
-      ${card('Écart prévu / réel (%)', barSvg(gaps, weeks.map((w, i) => `${lab(w)} : ${gaps[i] === null ? 'pas de comparaison' : (gaps[i] > 0 ? '+' : '') + fr(gaps[i]) + ' %'}`), 'evo-bar'),
-        realGaps.length ? `dernière semaine comparable : ${(realGaps[realGaps.length - 1] > 0 ? '+' : '') + fr(realGaps[realGaps.length - 1])} %` : 'aucune semaine comparable')}
-      ${card('Impressions ratées (%)', barSvg(fails, weeks.map((w, i) => `${lab(w)} : ${w.failed} ratée${w.failed > 1 ? 's' : ''} sur ${w.prints} (${fr(fails[i])} %)`), 'evo-fail'),
-        `pic : ${fr(Math.max(...fails))} % · total ${weeks.reduce((n, w) => n + w.failed, 0)} sur ${weeks.reduce((n, w) => n + w.prints, 0)}`)}
-    </div>`;
-  }
   // Détail d'une ligne de tableau : liste des impressions qui la composent
   function openDrill(kind, id, label, units) {
     const match = {
@@ -214,7 +160,7 @@ export async function renderProduction(el) {
     const dlg = openDialog({
       title: label, wide: true,
       build(body) {
-        body.innerHTML = `<p class="muted">${rows.length} impression${rows.length > 1 ? 's' : ''} · ${formatDuration(secs) || '0 min'} · écart ${gap}${rows.length > MAX ? ` · les ${MAX} plus récentes sont affichées` : ''}</p>
+        body.innerHTML = `<p class="muted">${rows.length} impression${rows.length > 1 ? 's' : ''} · ${hm(secs)} · écart ${gap}${rows.length > MAX ? ` · les ${MAX} plus récentes sont affichées` : ''}</p>
           <div class="drill-scroll"><table class="mini-table drill-table"><thead><tr><th>Date</th><th>Pièces</th><th>Imprimante</th><th class="num">Prévu</th><th class="num">Réel</th><th class="num">Écart</th><th>Résultat</th></tr></thead><tbody>
           ${rows.slice(0, MAX).map(u => `<tr>
             <td>${escapeHtml(formatDate(u.ended_at))}</td>
@@ -245,16 +191,21 @@ export async function renderProduction(el) {
     };
     const block = (title, body) => `<div class="waste-block"><h3 class="waste-title">${title}</h3>${body}</div>`;
     const printersTbl = `<table class="mini-table"><thead><tr><th>Imprimante</th><th class="num">Impr.</th><th class="num">Heures</th><th colspan="2">Part des heures</th><th class="num">Écart</th></tr></thead><tbody>
-      ${st.by_printer.map(g => `<tr class="drill" tabindex="0" data-drill="printer" data-id="${g.key}" data-label="${escapeHtml(g.label)}"><td>${escapeHtml(g.label)}</td><td class="num">${g.prints}</td><td class="num"><strong>${formatDuration(g.seconds) || '—'}</strong></td>
+      ${st.by_printer.map(g => `<tr class="drill" tabindex="0" data-drill="printer" data-id="${g.key}" data-label="${escapeHtml(g.label)}"><td>${escapeHtml(g.label)}</td><td class="num">${g.prints}</td><td class="num"><strong>${hm(g.seconds)}</strong></td>
         <td class="bar-cell"><span class="bar" style="width:${Math.round(g.share_pct)}%"></span></td><td class="num">${pct(g.share_pct)}</td><td class="num">${gapText(g.plan_s, g.real_s)}</td></tr>`).join('')}</tbody></table>`;
-    const weeks = st.by_week.slice(0, 12);
-    const weeksTbl = `<table class="mini-table"><thead><tr><th>Semaine</th><th></th><th class="num">Pièces</th></tr></thead><tbody>
-      ${bars('week', weeks.map(g => ({ ...g, label: weekLabel(g.key) })), g => g.pieces, g => `${g.pieces}`)}</tbody></table>`;
+    const gapCls = (plan, real) => plan > 0 && Math.abs(100 * (real - plan) / plan) > 10 ? ' gap-hi' : '';
+    const maxSec = Math.max(1, ...st.by_week.map(g => g.seconds));
+    const weeksTbl = `<table class="mini-table week-table"><thead><tr><th>Semaine</th><th class="num">Impr.</th><th class="num">Pièces</th><th class="num">Heures</th><th></th><th class="num">Écart</th><th class="num">Ratées</th></tr></thead><tbody>
+      ${st.by_week.slice(0, 26).map(g => `<tr class="drill" tabindex="0" data-drill="week" data-id="${g.key}" data-label="${escapeHtml('Semaine ' + weekLabel(g.key))}"><td>${escapeHtml(weekLabel(g.key))}</td>
+        <td class="num">${g.prints}</td><td class="num">${g.pieces}</td><td class="num"><strong>${hm(g.seconds)}</strong></td>
+        <td class="bar-cell"><span class="bar" style="width:${Math.round(100 * g.seconds / maxSec)}%"></span></td>
+        <td class="num${gapCls(g.plan_s, g.real_s)}">${gapText(g.plan_s, g.real_s)}</td>
+        <td class="num">${g.failed ? `<strong>${g.failed}</strong>` : '0'}</td></tr>`).join('')}</tbody></table>`;
     const themesTbl = st.by_theme.length ? `<table class="mini-table"><thead><tr><th>Thème</th><th></th><th class="num">Pièces</th></tr></thead><tbody>
       ${bars('theme', st.by_theme.slice(0, 8), g => g.pieces, g => `${g.pieces}`)}</tbody></table>` : '<p class="muted">Aucun thème sur les projets de la période.</p>';
     const projTbl = `<table class="mini-table"><thead><tr><th>Projet</th><th class="num">Pièces</th><th class="num">Heures</th><th class="num">Écart</th></tr></thead><tbody>
       ${st.by_project.slice(0, 8).map(g => `<tr class="drill" tabindex="0" data-drill="project" data-id="${g.key}" data-label="${escapeHtml(g.label)}"><td>${escapeHtml(g.label)}</td><td class="num"><strong>${g.pieces}</strong></td>
-        <td class="num">${formatDuration(g.seconds) || '—'}</td><td class="num">${gapText(g.plan_s, g.real_s)}</td></tr>`).join('')}</tbody></table>`;
+        <td class="num">${hm(g.seconds)}</td><td class="num">${gapText(g.plan_s, g.real_s)}</td></tr>`).join('')}</tbody></table>`;
     const avg = t.prints ? Math.round(t.seconds / t.prints) : 0;
     box.innerHTML = `
       <div class="figures">
@@ -262,17 +213,16 @@ export async function renderProduction(el) {
           <span class="figure-sub">${t.failed} ratée${t.failed > 1 ? 's' : ''}${t.group_prints ? ` · ${t.group_prints} groupée${t.group_prints > 1 ? 's' : ''}` : ''}</span></div>
         <div class="figure"><span class="figure-label">Pièces produites</span><span class="figure-value">${t.pieces}</span>
           <span class="figure-sub">impressions réussies</span></div>
-        <div class="figure"><span class="figure-label">Heures d'impression</span><span class="figure-value">${formatDuration(t.seconds) || '0 min'}</span>
-          <span class="figure-sub">${avg ? 'moyenne ' + formatDuration(avg) + ' par impression' : ''}</span></div>
+        <div class="figure"><span class="figure-label">Heures d'impression</span><span class="figure-value">${hm(t.seconds)}</span>
+          <span class="figure-sub">${avg ? 'moyenne ' + hm(avg) + ' par impression' : ''}</span></div>
         <div class="figure"><span class="figure-label">Écart prévu / réel</span><span class="figure-value">${gapText(t.plan_s, t.real_s)}</span>
           <span class="figure-sub">${t.timed ? `sur ${t.timed} impression${t.timed > 1 ? 's' : ''} réussie${t.timed > 1 ? 's' : ''}` : 'aucune comparable'}</span></div>
       </div>
-      <div class="waste-block evo-wrap"><h3 class="waste-title">Évolution par semaine</h3>${evolutionHtml(statsUnits)}</div>
+      <div class="waste-block evo-wrap"><h3 class="waste-title">Par semaine</h3>${weeksTbl}</div>
       <div class="waste-grid">
         ${block('Par imprimante', printersTbl)}
-        ${block('Pièces par semaine', weeksTbl)}
-        ${block('Pièces par thème', themesTbl)}
         ${block('Par projet', projTbl)}
+        ${block('Pièces par thème', themesTbl)}
       </div>
       <p class="hint">Part des heures = heures de l'imprimante / heures de toutes les imprimantes. Écart : positif = plus long que prévu.
         ${t.untimed ? `${t.untimed} impression${t.untimed > 1 ? 's' : ''} réussie${t.untimed > 1 ? 's' : ''} sans temps prévu ou sans durée ne ${t.untimed > 1 ? 'sont' : 'est'} pas dans l'écart.` : ''}

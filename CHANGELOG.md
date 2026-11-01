@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.39.1 — 01/11/2026
+
+- **Statistiques : un tableau « Par semaine » à la place des graphiques.** Avec quelques semaines de données, les trois graphiques en barres étaient peu lisibles (pas de valeurs, peu de barres). Ils sont remplacés, avec l'ancien tableau « Pièces par semaine », par un seul tableau « Par semaine » : impressions, pièces, heures (avec une barre), écart prévu / réel (en couleur au-delà de ±10 %) et nombre d'impressions ratées. Un clic sur une ligne ouvre toujours le détail de la semaine. Les durées des statistiques s'affichent en heures seules (« 147 h 21 » au lieu de « 6 j 3 h 21 »). Affichage seulement
+
 ## v1.39.0 — 01/11/2026
 
 - **Statistiques : évolution par semaine et détail au clic.** Trois petits graphiques en barres, une barre par semaine (les semaines sans impression comptent), montrent l'évolution des **heures d'impression**, de l'**écart prévu / réel** (les semaines plus courtes que prévu descendent sous la ligne) et du **taux d'impressions ratées**, sur 26 semaines au plus ; le survol d'une barre donne le détail. **Cliquer sur une ligne** des tableaux (imprimante, semaine, thème, projet) ouvre la liste des impressions qui composent le chiffre : date, pièces (lien vers le projet), imprimante, prévu, réel, écart, résultat, avec le nombre d'impressions, les heures et l'écart de la sélection. Affichage seulement, aucune donnée modifiée

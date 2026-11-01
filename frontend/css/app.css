@@ -956,17 +956,6 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .mini-table + .hint, .waste-grid + .hint { margin-top: 12px; }
 
 /* Statistiques : évolution et détail */
-.evo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 4px; }
-.evo-card { min-width: 0; }
-.evo-title { font-size: 12.5px; color: var(--text2); margin-bottom: 4px; }
-.evo-svg { width: 100%; height: 96px; display: block; border-bottom: 0.5px solid var(--border); }
-.evo-bar { fill: var(--accent); }
-.evo-neg { fill: var(--text3); }
-.evo-fail { fill: var(--danger); }
-.evo-none { fill: var(--border2); }
-.evo-zero { stroke: var(--border2); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.evo-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-top: 3px; }
-.evo-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
 .mini-table tr.drill { cursor: pointer; }
 .mini-table tr.drill:hover td, .mini-table tr.drill:focus-visible td { background: var(--bg3, rgba(127,127,127,.12)); }
 .mini-table tr.drill:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -974,3 +963,5 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .drill-table td { vertical-align: top; }
 .drill-fail { color: var(--danger); font-weight: 500; }
 .evo-wrap { margin-bottom: 22px; }
+.week-table .bar-cell { width: 28%; }
+.week-table .gap-hi { color: var(--warning); font-weight: 600; }
