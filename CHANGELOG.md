@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.39.2 — 01/11/2026
+
+- **Statistiques : fenêtre de détail plus lisible.** Dans la liste des impressions ouverte d'un clic sur un tableau, les **en-têtes de colonnes restent visibles** quand on fait défiler, les lignes sont plus aérées, la fenêtre est plus large et « lancement groupé » devient une pastille. Affichage seulement
+
 ## v1.39.1 — 01/11/2026
 
 - **Statistiques : un tableau « Par semaine » à la place des graphiques.** Avec quelques semaines de données, les trois graphiques en barres étaient peu lisibles (pas de valeurs, peu de barres). Ils sont remplacés, avec l'ancien tableau « Pièces par semaine », par un seul tableau « Par semaine » : impressions, pièces, heures (avec une barre), écart prévu / réel (en couleur au-delà de ±10 %) et nombre d'impressions ratées. Un clic sur une ligne ouvre toujours le détail de la semaine. Les durées des statistiques s'affichent en heures seules (« 147 h 21 » au lieu de « 6 j 3 h 21 »). Affichage seulement

@@ -965,3 +965,13 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .evo-wrap { margin-bottom: 22px; }
 .week-table .bar-cell { width: 28%; }
 .week-table .gap-hi { color: var(--warning); font-weight: 600; }
+/* Détail des statistiques : en-têtes fixes, plus d'air, fenêtre plus large */
+.dialog.drill-dialog { width: min(980px, calc(100vw - 32px)); }
+.drill-scroll { max-height: calc(100vh - 280px); margin-top: 10px; }
+.drill-table { border-collapse: separate; border-spacing: 0; }
+.drill-table thead th { position: sticky; top: 0; z-index: 1; background: var(--bg2); border-bottom: 0.5px solid var(--border2); padding: 8px 12px; }
+.drill-table td { padding: 12px; line-height: 1.45; }
+.drill-table td:nth-child(2) > div + div { margin-top: 4px; }
+.drill-table .cell-code { font-weight: 600; margin-right: 4px; }
+.drill-table tbody tr:hover td { background: rgba(127, 127, 127, 0.08); }
+.drill-chip { display: inline-block; margin-top: 4px; padding: 1px 8px; font-size: 11px; color: var(--text2); border: 0.5px solid var(--border2); border-radius: 10px; }

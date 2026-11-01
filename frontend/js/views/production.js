@@ -164,7 +164,7 @@ export async function renderProduction(el) {
           <div class="drill-scroll"><table class="mini-table drill-table"><thead><tr><th>Date</th><th>Pièces</th><th>Imprimante</th><th class="num">Prévu</th><th class="num">Réel</th><th class="num">Écart</th><th>Résultat</th></tr></thead><tbody>
           ${rows.slice(0, MAX).map(u => `<tr>
             <td>${escapeHtml(formatDate(u.ended_at))}</td>
-            <td>${u.parts.map(q => `<div><a href="#/projet/${q.project_id}" class="cell-code" data-close>${escapeHtml(q.project.split(' · ')[0])}</a> ${escapeHtml(q.part || 'Sans nom')} × ${q.quantity}</div>`).join('')}${u.batch ? '<span class="muted">lancement groupé</span>' : ''}</td>
+            <td>${u.parts.map(q => `<div><a href="#/projet/${q.project_id}" class="cell-code" data-close>${escapeHtml(q.project.split(' · ')[0])}</a> ${escapeHtml(q.part || 'Sans nom')} × ${q.quantity}</div>`).join('')}${u.batch ? '<span class="drill-chip">lancement groupé</span>' : ''}</td>
             <td>${escapeHtml(u.printer_name)}</td>
             <td class="num">${u.plan_s !== null ? formatDuration(u.plan_s) : '—'}</td>
             <td class="num">${u.real_s !== null ? formatDuration(u.real_s) : '—'}</td>
@@ -173,6 +173,7 @@ export async function renderProduction(el) {
         body.addEventListener('click', e => { if (e.target.closest('[data-close]')) dlg.querySelector('[data-cancel]').click(); });
       },
     });
+    dlg.classList.add('drill-dialog');
     dlg.querySelector('[type=submit]').style.display = 'none';
     dlg.querySelector('[data-cancel]').textContent = 'Fermer';
   }
