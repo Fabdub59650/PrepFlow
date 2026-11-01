@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.40.0 — 01/11/2026
+
+- **Heure de fin prévue sur les impressions en cours.** Chaque carte « En cours » de la page Production affiche maintenant « fin prévue 16:40 · reste 1 h 10 » (heure de départ + temps prévu ; pour un lancement groupé, le temps prévu de tout le plateau, avec sa barre de progression). « demain 02:10 » ou « 05.11 02:10 » si la fin tombe un autre jour ; « dépassée de 12 min » en rouge quand le temps prévu est écoulé. À l'Atelier, la carte « En cours » ajoute l'heure de fin à côté du temps restant (« reste 45 min · fin 23:13 ») et une imprimante occupée indique « occupée · reste 45 min (fin 23:13) ». Estimation calculée avec les temps prévus du slicer, à l'écran seulement, aucune donnée modifiée
+
 ## v1.39.2 — 01/11/2026
 
 - **Statistiques : fenêtre de détail plus lisible.** Dans la liste des impressions ouverte d'un clic sur un tableau, les **en-têtes de colonnes restent visibles** quand on fait défiler, les lignes sont plus aérées, la fenêtre est plus large et « lancement groupé » devient une pastille. Affichage seulement

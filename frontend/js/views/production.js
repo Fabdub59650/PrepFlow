@@ -2,7 +2,7 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
 import { toast, confirmDialog, openDialog } from '../ui.js';
-import { RUN_RESULT, formatDuration, formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolsToWeigh, weighAge } from '../format.js';
+import { RUN_RESULT, formatDuration, endTimeLabel, formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolsToWeigh, weighAge } from '../format.js';
 import { openFinishDialog, openCorrectDialog, updateRunsBadge } from '../runs.js';
 
 const sum = (list, k) => list.reduce((s, x) => s + (Number(x[k]) || 0), 0);
@@ -305,6 +305,12 @@ export async function renderProduction(el) {
   /* ── En cours ─────────────────────────────────────────────────── */
   const elapsedOf = r => (r.elapsed_s || 0) + (Date.now() - loadedAt) / 1000;
 
+  // « fin prévue 16:40 · reste 1 h 10 » ou « dépassée de 12 min »
+  const endText = (r, planned) => {
+    const left = planned - elapsedOf(r);
+    return left > 0 ? `<strong>fin prévue ${endTimeLabel(left)}</strong> · reste ${formatDuration(left) || '0 min'}`
+      : `<strong class="is-late">dépassée de ${formatDuration(-left) || '0 min'}</strong>`;
+  };
   function drawRunning() {
     const box = el.querySelector('#running');
     el.querySelector('#running-count').textContent = active.length || '';
@@ -323,7 +329,7 @@ export async function renderProduction(el) {
     box.innerHTML = `<div class="run-cards">${[...groups.values()].map(runs => {
       const first = runs[0];
       const solo = runs.length === 1;
-      const planned = solo ? first.planned_time_s : null;
+      const planned = Number(solo ? first.planned_time_s : first.batch_planned_time_s) || null;
       return `<article class="run-card" data-ids="${runs.map(r => r.id).join(',')}">
         <header class="run-card-head">
           <strong>${escapeHtml(first.printer_name || 'Sans imprimante')}</strong>
@@ -332,7 +338,7 @@ export async function renderProduction(el) {
             <span class="muted"> depuis ${formatDate(first.started_at, { withTime: true })}</span></span>
         </header>
         ${planned ? `<div class="progress-line"><div class="progress-bar" data-bar="${first.id}" style="width:${Math.min(100, 100 * elapsedOf(first) / planned)}%"></div></div>
-          <p class="run-card-plan muted">Durée prévue ${formatDuration(planned)}</p>` : ''}
+          <p class="run-card-plan muted">Durée prévue ${formatDuration(planned)} · <span class="run-end" data-end="${first.id}">${endText(first, planned)}</span></p>` : ''}
         <ul class="run-lines">${runs.map(r => `
           <li>
             <span class="run-line-name"><a href="#/projet/${r.project_id}" class="cell-code">${escapeHtml(r.project_code || '')}</a>
@@ -369,7 +375,10 @@ export async function renderProduction(el) {
       if (!r) return;
       span.textContent = formatDuration(elapsedOf(r)) || '0 min';
       const bar = el.querySelector(`[data-bar="${r.id}"]`);
-      if (bar && r.planned_time_s) bar.style.width = Math.min(100, 100 * elapsedOf(r) / r.planned_time_s) + '%';
+      const planned = Number(r.batch_id ? r.batch_planned_time_s : r.planned_time_s) || null;
+      if (bar && planned) bar.style.width = Math.min(100, 100 * elapsedOf(r) / planned) + '%';
+      const end = el.querySelector(`[data-end="${r.id}"]`);
+      if (end && planned) end.innerHTML = endText(r, planned);
     });
   }, 20000);
 

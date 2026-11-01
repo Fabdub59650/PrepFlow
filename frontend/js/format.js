@@ -61,6 +61,18 @@ export function parseDuration(input) {
 }
 
 /** 5400 → « 1 h 30 » ; 1500 → « 25 min » ; 45 → « 45 s » */
+// Heure de fin estimée à partir du temps restant (secondes) : « 16:40 », « demain 02:10 » ou « 05.11 02:10 »
+export function endTimeLabel(leftSeconds, now = new Date()) {
+  const end = new Date(now.getTime() + Math.max(0, leftSeconds) * 1000);
+  const z = n => String(n).padStart(2, '0');
+  const hm = `${z(end.getHours())}:${z(end.getMinutes())}`;
+  const day = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((day(end) - day(now)) / 86400000);
+  if (diff <= 0) return hm;
+  if (diff === 1) return `demain ${hm}`;
+  return `${z(end.getDate())}.${z(end.getMonth() + 1)} ${hm}`;
+}
+
 export function formatDuration(seconds, { empty = '' } = {}) {
   if (seconds === null || seconds === undefined || Number.isNaN(seconds)) return empty;
   const total = Math.round(seconds);

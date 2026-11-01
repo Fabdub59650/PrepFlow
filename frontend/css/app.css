@@ -975,3 +975,4 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .drill-table .cell-code { font-weight: 600; margin-right: 4px; }
 .drill-table tbody tr:hover td { background: rgba(127, 127, 127, 0.08); }
 .drill-chip { display: inline-block; margin-top: 4px; padding: 1px 8px; font-size: 11px; color: var(--text2); border: 0.5px solid var(--border2); border-radius: 10px; }
+.run-end .is-late { color: var(--danger); }

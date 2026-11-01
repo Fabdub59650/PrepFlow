@@ -7,7 +7,7 @@ import { initTheme } from './theme.js';
 import { photoThumb } from './photo.js';
 import { overdueWarning, dueText } from './maintenance.js';
 import { partColors } from './views/checklist.js';
-import { formatDuration, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK, spoolsToWeigh, weighAge } from './format.js';
+import { formatDuration, endTimeLabel, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK, spoolsToWeigh, weighAge } from './format.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const round2 = n => Math.round(n * 100) / 100;
@@ -140,7 +140,7 @@ function busyPrinter(printerId) {
   if (!runs.length) return null;
   const batches = groupRuns(runs)[0], planned = plannedOf(batches);
   const left = planned ? planned - elapsedOf(batches[0]) : null;
-  return left !== null && left > 0 ? `occupée · reste ${formatDuration(left) || '0 min'}` : 'occupée';
+  return left !== null && left > 0 ? `occupée · reste ${formatDuration(left) || '0 min'} (fin ${endTimeLabel(left)})` : 'occupée';
 }
 
 const plannedOf = runs => Number(runs.length > 1 ? runs[0].batch_planned_time_s : runs[0].planned_time_s) || null;
@@ -927,7 +927,7 @@ function tickElapsed() {
     c.elapsedEl.textContent = formatDuration(el) || '0 min';
     if (!c.planned) continue;
     const left = c.planned - el;
-    c.leftEl.textContent = left >= 0 ? `reste ${formatDuration(left) || '0 min'}` : `dépassé de ${formatDuration(-left) || '0 min'}`;
+    c.leftEl.textContent = left >= 0 ? `reste ${formatDuration(left) || '0 min'} · fin ${endTimeLabel(left)}` : `dépassé de ${formatDuration(-left) || '0 min'}`;
     c.leftEl.classList.toggle('is-late', left < 0);
     c.barWrap.classList.toggle('is-late', left < 0);
     c.bar.style.width = `${Math.min(100, 100 * el / c.planned)}%`;
