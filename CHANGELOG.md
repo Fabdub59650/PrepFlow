@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.41.0 — 04/11/2026
+
+- **Plateau multi-projets.** Nouveau bouton « ＋ Plateau multi-projets » en haut de la page Production : il liste les pièces au statut « Prêt » de tous les projets non archivés (regroupées par projet, avec recherche et case « tout cocher » par projet). On coche les pièces voulues, puis le dialogue de lancement habituel s'ouvre (imprimante, quantités, bobines, besoins vs stock) avec le code projet devant chaque pièce. Le lancement crée un seul plateau groupé (même imprimante, même heure), compté comme une seule impression dans les statistiques. Les pièces sans bobine renseignée sont grisées (« bobines à choisir »). Maximum 50 pièces. L'imprimante choisie n'est pas écrite sur la fiche des pièces. Se termine à l'Atelier comme tout lancement groupé
+
 ## v1.40.0 — 01/11/2026
 
 - **Heure de fin prévue sur les impressions en cours.** Chaque carte « En cours » de la page Production affiche maintenant « fin prévue 16:40 · reste 1 h 10 » (heure de départ + temps prévu ; pour un lancement groupé, le temps prévu de tout le plateau, avec sa barre de progression). « demain 02:10 » ou « 05.11 02:10 » si la fin tombe un autre jour ; « dépassée de 12 min » en rouge quand le temps prévu est écoulé. À l'Atelier, la carte « En cours » ajoute l'heure de fin à côté du temps restant (« reste 45 min · fin 23:13 ») et une imprimante occupée indique « occupée · reste 45 min (fin 23:13) ». Estimation calculée avec les temps prévus du slicer, à l'écran seulement, aucune donnée modifiée

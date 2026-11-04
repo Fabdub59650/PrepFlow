@@ -4,6 +4,7 @@ import { store } from '../store.js';
 import { toast, confirmDialog, openDialog } from '../ui.js';
 import { RUN_RESULT, formatDuration, endTimeLabel, formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolsToWeigh, weighAge } from '../format.js';
 import { openFinishDialog, openCorrectDialog, updateRunsBadge } from '../runs.js';
+import { openPlateauPicker } from '../plateau.js';
 
 const sum = (list, k) => list.reduce((s, x) => s + (Number(x[k]) || 0), 0);
 
@@ -51,7 +52,10 @@ export async function renderProduction(el) {
     <div id="tab-prints">
     <div id="weigh-box"></div>
     <section class="prod-section">
-      <h2 class="panel-title">En cours <span class="count-chip" id="running-count"></span></h2>
+      <div class="prod-head">
+        <h2 class="panel-title">En cours <span class="count-chip" id="running-count"></span></h2>
+        <button type="button" class="btn btn-sm" id="plateau-btn" title="Lancer ensemble des pièces « Prêt » de plusieurs projets">＋ Plateau multi-projets</button>
+      </div>
       <div id="running"></div>
     </section>
     <section class="prod-section" id="waste-section">
@@ -527,6 +531,8 @@ export async function renderProduction(el) {
   el.querySelectorAll('.seg-btn[data-view]').forEach(b => b.addEventListener('click', () => {
     filter.view = b.dataset.view; store_.set('view', filter.view); drawHistory();
   }));
+
+  el.querySelector('#plateau-btn').addEventListener('click', () => openPlateauPicker({ onDone: reloadAll }));
 
   async function reloadAll() {
     await load();

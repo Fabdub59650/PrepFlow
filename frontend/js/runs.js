@@ -69,6 +69,7 @@ export function openStartDialog({ parts, runIdx = new Map(), onDone }) {
   const initialPrinter = shared.size === 1 && ok[0].printer_id ? ok[0].printer_id : '';
   const doneOf = p => runIdx.get(p.id)?.done || 0;
   const group = ok.length > 1;
+  const multiProject = new Set(ok.map(p => p.project_id)).size > 1;   // plateau multi-projets : on précise le projet
 
   return openDialog({
     title: group ? `Lancer ${ok.length} pièces ensemble` : 'Lancer une impression',
@@ -90,7 +91,7 @@ export function openStartDialog({ parts, runIdx = new Map(), onDone }) {
             const done = doneOf(p);
             const reprint = p.status === 'imprime' || done >= p.quantity;
             return `<div class="start-item" data-id="${p.id}">
-              <span class="start-name">${escapeHtml(p.name || 'Sans nom')}</span>
+              <span class="start-name">${multiProject && p.project_code ? `<span class="start-proj">${escapeHtml(p.project_code)}</span> ` : ''}${escapeHtml(p.name || 'Sans nom')}</span>
               <span class="start-meta">${done ? `déjà ${done}/${p.quantity}` : `${p.quantity} à imprimer`}${reprint ? ' · <strong>réimpression</strong>' : ''}</span>
               <label class="qty-input">Qté <input type="number" min="1" step="1" data-qty value="${Math.max(1, p.quantity - done)}"></label>
             </div>`;

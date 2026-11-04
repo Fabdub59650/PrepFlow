@@ -279,4 +279,33 @@ router.delete('/parts/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Pièces au statut « Prêt » de tous les projets non archivés (sélecteur du plateau multi-projets).
+// launchable : au moins une bobine choisie et aucun poids resté sans bobine (même règle que le lancement).
+router.get('/parts/ready', async (req, res) => {
+  try {
+    const [parts] = await db.query(
+      `SELECT pt.*, pj.code AS project_code, pj.name AS project_name, pj.status AS project_status
+       FROM parts pt JOIN projects pj ON pj.id = pt.project_id
+       WHERE pt.status = 'pret' AND pj.status <> 'archive'
+       ORDER BY pj.updated_at DESC, pj.id, pt.sort_order, pt.id LIMIT 600`);
+    if (!parts.length) return res.json([]);
+    const ids = parts.map(p => p.id);
+    const [fils] = await db.query(
+      `SELECT part_id, filament_id, material, color_name, weight_g FROM part_filaments
+       WHERE part_id IN (?) ORDER BY sort_order, id`, [ids]);
+    const [agg] = await db.query(
+      `SELECT part_id, COALESCE(SUM(CASE WHEN state='termine' AND result='ok' THEN quantity ELSE 0 END), 0) AS ok_qty
+       FROM print_runs WHERE part_id IN (?) GROUP BY part_id`, [ids]);
+    const okBy = new Map(agg.map(r => [r.part_id, Number(r.ok_qty)]));
+    for (const p of parts) {
+      p.filaments = fils.filter(f => f.part_id === p.id)
+        .map(f => ({ filament_id: f.filament_id, material: f.material, color_name: f.color_name, weight_g: f.weight_g }));
+      p.done_qty = Math.min(p.quantity, okBy.get(p.id) || 0);
+      p.remaining = Math.max(1, p.quantity - p.done_qty);
+      p.launchable = p.filaments.some(f => f.filament_id) && !p.filaments.some(f => !f.filament_id && Number(f.weight_g) > 0);
+    }
+    res.json(parts);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = { router, loadParts };

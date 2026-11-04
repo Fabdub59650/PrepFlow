@@ -976,3 +976,17 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .drill-table tbody tr:hover td { background: rgba(127, 127, 127, 0.08); }
 .drill-chip { display: inline-block; margin-top: 4px; padding: 1px 8px; font-size: 11px; color: var(--text2); border: 0.5px solid var(--border2); border-radius: 10px; }
 .run-end .is-late { color: var(--danger); }
+
+/* Plateau multi-projets */
+.plateau-search { width: 100%; margin-top: 10px; }
+.plateau-list { max-height: 52vh; overflow: auto; margin-top: 10px; border: 0.5px solid var(--border); border-radius: var(--radius); }
+.plateau-project { border-bottom: 0.5px solid var(--border); }
+.plateau-project:last-child { border-bottom: 0; }
+.plateau-head { display: flex; align-items: baseline; gap: 8px; padding: 9px 12px; position: sticky; top: 0; background: var(--bg2); border-bottom: 0.5px solid var(--border); cursor: pointer; z-index: 1; }
+.plateau-head .muted { margin-left: auto; font-size: 12px; }
+.plateau-part { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 8px 12px 8px 28px; cursor: pointer; font-size: 13px; }
+.plateau-part:hover { background: rgba(127, 127, 127, 0.08); }
+.plateau-part.is-off { opacity: 0.55; cursor: default; }
+.plateau-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plateau-count { margin-top: 10px; font-size: 13px; color: var(--text2); }
+.start-proj { font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-right: 4px; }
