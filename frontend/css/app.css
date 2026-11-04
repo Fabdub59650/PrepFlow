@@ -990,3 +990,8 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .plateau-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plateau-count { margin-top: 10px; font-size: 13px; color: var(--text2); }
 .start-proj { font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-right: 4px; }
+
+.plateau-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.plateau-spools { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 12px; color: var(--muted, #6b7780); }
+.plateau-spool { display: inline-flex; align-items: center; gap: 5px; }
+.plateau-part[hidden], .plateau-project[hidden] { display: none; }

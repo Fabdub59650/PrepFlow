@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.41.1 — 04/11/2026
+
+- **Plateau multi-projets : bobines visibles dans la liste.** Chaque pièce affiche ses bobines (pastille de couleur + nom et n° de bobine, toutes les bobines d'une pièce multicolore). La recherche trouve aussi par matière, couleur ou n° de bobine (« noir », « PLA gris », « 12 »). Correctif : la recherche de la fenêtre ne masquait pas les pièces non correspondantes
+
 ## v1.41.0 — 04/11/2026
 
 - **Plateau multi-projets.** Nouveau bouton « ＋ Plateau multi-projets » en haut de la page Production : il liste les pièces au statut « Prêt » de tous les projets non archivés (regroupées par projet, avec recherche et case « tout cocher » par projet). On coche les pièces voulues, puis le dialogue de lancement habituel s'ouvre (imprimante, quantités, bobines, besoins vs stock) avec le code projet devant chaque pièce. Le lancement crée un seul plateau groupé (même imprimante, même heure), compté comme une seule impression dans les statistiques. Les pièces sans bobine renseignée sont grisées (« bobines à choisir »). Maximum 50 pièces. L'imprimante choisie n'est pas écrite sur la fiche des pièces. Se termine à l'Atelier comme tout lancement groupé

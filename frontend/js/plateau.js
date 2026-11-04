@@ -4,7 +4,7 @@ import { api } from './api.js';
 import { store } from './store.js';
 import { toast, openDialog } from './ui.js';
 import { openStartDialog } from './runs.js';
-import { escapeHtml, formatDuration } from './format.js';
+import { escapeHtml, formatDuration, filamentLabel, swatch } from './format.js';
 
 const MAX_GROUP = 50;   // même limite que le serveur
 const norm = s => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -23,6 +23,11 @@ export async function openPlateauPicker({ onDone }) {
     projects.get(p.project_id).parts.push(p);
   }
   const byId = new Map(parts.map(p => [p.id, p]));
+  // Bobines de la pièce : pastille + nom (n° de bobine), texte brut pour la recherche
+  const spoolInfo = p => (p.filaments || []).filter(f => f.filament_id).map(f => {
+    const fil = store.filamentsById.get(f.filament_id);
+    return { fil, label: fil ? filamentLabel(fil) : [f.material, f.color_name].filter(Boolean).join(' ') };
+  });
   let picked = null;
 
   return openDialog({
@@ -41,9 +46,9 @@ export async function openPlateauPicker({ onDone }) {
                 <strong>${escapeHtml(pr.code || '')}</strong> <span>${escapeHtml(pr.name || '')}</span>
                 <span class="muted">${pr.parts.length} pièce${pr.parts.length > 1 ? 's' : ''} prête${pr.parts.length > 1 ? 's' : ''}</span></label>
               ${pr.parts.map(p => `
-                <label class="plateau-part ${p.launchable ? '' : 'is-off'}" data-part="${p.id}" data-text="${escapeHtml(norm([pr.code, pr.name, p.name, p.file_name].join(' ')))}">
+                <label class="plateau-part ${p.launchable ? '' : 'is-off'}" data-part="${p.id}" data-text="${escapeHtml(norm([pr.code, pr.name, p.name, p.file_name, ...spoolInfo(p).map(x => x.label), ...(p.filaments || []).flatMap(f => [f.material, f.color_name])].join(' ')))}">
                   <input type="checkbox" data-pick="${p.id}" ${p.launchable ? '' : 'disabled'}>
-                  <span class="plateau-name">${escapeHtml(p.name || 'Sans nom')}</span>
+                  <span class="plateau-name">${escapeHtml(p.name || 'Sans nom')}${spoolInfo(p).length ? `<span class="plateau-spools">${spoolInfo(p).map(x => `<span class="plateau-spool">${swatch(x.fil?.color_hex)}${escapeHtml(x.label)}</span>`).join('')}</span>` : ''}</span>
                   <span class="muted">${p.done_qty ? `déjà ${p.done_qty}/${p.quantity}` : `${p.quantity} à imprimer`}${p.print_time_s ? ` · ${escapeHtml(formatDuration(p.print_time_s))} pièce` : ''}${p.launchable ? '' : ' · bobines à choisir'}</span>
                 </label>`).join('')}
             </section>`).join('')}
