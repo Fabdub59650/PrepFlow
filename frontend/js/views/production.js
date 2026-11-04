@@ -42,6 +42,7 @@ export async function renderProduction(el) {
   el.innerHTML = `
     <div class="page-head">
       <h1 class="page-title">Production</h1>
+      <button type="button" class="btn" id="prod-refresh" title="Relire le stock dans FilaFlow (après une pesée, par exemple)">Actualiser le stock</button>
     </div>
     <p class="page-sub">Impressions lancées depuis les projets : en cours, puis historique avec le prévu et le réel.
       Le reste estimé des bobines se déduit de ces impressions depuis la dernière pesée.</p>
@@ -531,6 +532,16 @@ export async function renderProduction(el) {
   el.querySelectorAll('.seg-btn[data-view]').forEach(b => b.addEventListener('click', () => {
     filter.view = b.dataset.view; store_.set('view', filter.view); drawHistory();
   }));
+
+  el.querySelector('#prod-refresh').addEventListener('click', async e => {
+    const btn = e.currentTarget; btn.disabled = true;
+    try {
+      const data = await store.loadFilaments({ refresh: true });
+      await reloadAll();
+      toast(data.online ? 'Stock relu depuis FilaFlow' : 'FilaFlow ne répond pas : dernière copie utilisée', data.online ? 'info' : 'error');
+    } catch (err) { toast(err.message, 'error'); }
+    finally { btn.disabled = false; }
+  });
 
   el.querySelector('#plateau-btn').addEventListener('click', () => openPlateauPicker({ onDone: reloadAll }));
 

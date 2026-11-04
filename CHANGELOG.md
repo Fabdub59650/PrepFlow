@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.41.2 — 04/11/2026
+
+- **Bouton « Actualiser le stock » sur la page Production.** En haut à droite, comme dans Besoins : relit le stock dans FilaFlow puis met à jour le bandeau « Bobines à peser », les cartes En cours et les restes estimés, sans changer de page après une pesée. Affichage seulement
+
 ## v1.41.1 — 04/11/2026
 
 - **Plateau multi-projets : bobines visibles dans la liste.** Chaque pièce affiche ses bobines (pastille de couleur + nom et n° de bobine, toutes les bobines d'une pièce multicolore). La recherche trouve aussi par matière, couleur ou n° de bobine (« noir », « PLA gris », « 12 »). Correctif : la recherche de la fenêtre ne masquait pas les pièces non correspondantes
