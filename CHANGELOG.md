@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.44.0 — 13/11/2026
+
+- **Liste des projets : filtre « À compléter ».** Un bouton à droite des statuts (avec son compteur) ne garde que les projets en préparation ou en cours dont des pièces (hors « À trancher ») n'ont pas de bobine, de poids, de temps ou d'imprimante ; l'imprimante n'est pas exigée d'une pièce déjà imprimée. Chaque projet concerné affiche un badge « N à compléter » dont l'infobulle détaille (« 1 sans bobine · 4 sans imprimante »). Se combine avec les filtres de statut et de thèmes ; non mémorisé. Les projets « Idée », terminés et archivés ne sont pas comptés. Affichage seulement
+
 ## v1.43.0 — 13/11/2026
 
 - **Atelier : bandeau d'état des imprimantes.** Une ligne sous l'en-tête avec une pastille par imprimante active : « libre », « fin 16:40 » (occupée, heure de fin prévue) ou « à terminer » (heure prévue atteinte). Lecture seule

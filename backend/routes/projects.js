@@ -32,7 +32,12 @@ router.get('/', async (req, res) => {
          COALESCE(SUM(pt.quantity * COALESCE(w.unit_weight, 0)), 0)   AS total_weight_g,
          COALESCE(MAX(sp.spools_count), 0)                    AS spools_count,
          MAX(sp.spools_names)                                 AS spools_names,
-         (SELECT version FROM project_photos WHERE project_id = p.id) AS photo_v
+         (SELECT version FROM project_photos WHERE project_id = p.id) AS photo_v,
+         COALESCE(MAX(inc.incomplete_parts), 0) AS incomplete_parts,
+         COALESCE(MAX(inc.miss_spool), 0)   AS miss_spool,
+         COALESCE(MAX(inc.miss_weight), 0)  AS miss_weight,
+         COALESCE(MAX(inc.miss_time), 0)    AS miss_time,
+         COALESCE(MAX(inc.miss_printer), 0) AS miss_printer
        FROM projects p
        LEFT JOIN parts pt ON pt.project_id = p.id
        LEFT JOIN (SELECT part_id, COUNT(*) AS n_runs,
@@ -52,6 +57,20 @@ router.get('/', async (req, res) => {
                   LEFT JOIN filament_cache fc ON fc.id = pf.filament_id
                   WHERE pf.filament_id IS NOT NULL
                   GROUP BY p2.project_id) sp ON sp.project_id = p.id
+       -- Pièces à compléter (hors « À trancher ») : sans bobine, sans poids, sans temps ou sans imprimante
+       -- (l'imprimante n'est pas exigée d'une pièce déjà imprimée)
+       LEFT JOIN (SELECT x.project_id,
+                         SUM(x.m_spool) AS miss_spool, SUM(x.m_weight) AS miss_weight,
+                         SUM(x.m_time) AS miss_time, SUM(x.m_printer) AS miss_printer,
+                         SUM(x.m_spool OR x.m_weight OR x.m_time OR x.m_printer) AS incomplete_parts
+                  FROM (SELECT pt.project_id,
+                          (NOT EXISTS (SELECT 1 FROM part_filaments f WHERE f.part_id = pt.id)
+                            OR EXISTS (SELECT 1 FROM part_filaments f WHERE f.part_id = pt.id AND f.filament_id IS NULL)) AS m_spool,
+                          NOT EXISTS (SELECT 1 FROM part_filaments f WHERE f.part_id = pt.id AND f.weight_g IS NOT NULL) AS m_weight,
+                          (pt.print_time_s IS NULL) AS m_time,
+                          (pt.printer_id IS NULL AND pt.status <> 'imprime') AS m_printer
+                        FROM parts pt WHERE pt.status <> 'a_trancher') x
+                  GROUP BY x.project_id) inc ON inc.project_id = p.id
        ${withArchived ? '' : "WHERE p.status <> 'archive'"}
        GROUP BY p.id
        ORDER BY FIELD(p.status,'en_cours','preparation','idee','termine','archive'), p.updated_at DESC`

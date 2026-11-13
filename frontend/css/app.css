@@ -996,3 +996,10 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .plateau-spool { display: inline-flex; align-items: center; gap: 5px; }
 .plateau-part[hidden], .plateau-project[hidden] { display: none; }
 .page-head #prod-refresh { margin-left: auto; }
+
+/* v1.44.0 : pièces à compléter (liste des projets) */
+.chip-todo { margin-left: 8px; }
+.todo-badge {
+  display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 2px; font-size: 11px; font-family: var(--font-mono);
+  letter-spacing: 0.04em; text-transform: uppercase; background: var(--warning-bg); color: var(--warning); white-space: nowrap;
+}

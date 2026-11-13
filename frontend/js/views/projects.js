@@ -67,6 +67,16 @@ function writeStatusFilter(v) {
   try { v ? localStorage.setItem(STATUS_KEY, v) : localStorage.removeItem(STATUS_KEY); } catch (_) {}
 }
 
+// Détail des pièces à compléter d'un projet (infobulle)
+function todoText(p) {
+  const parts = [];
+  if (+p.miss_spool) parts.push(`${p.miss_spool} sans bobine`);
+  if (+p.miss_weight) parts.push(`${p.miss_weight} sans poids`);
+  if (+p.miss_time) parts.push(`${p.miss_time} sans temps`);
+  if (+p.miss_printer) parts.push(`${p.miss_printer} sans imprimante`);
+  return parts.join(' · ');
+}
+
 function sortProjects(list, sort) {
   if (!sort) return list;
   const col = COLUMNS.find(c => c.key === sort.key);
@@ -109,6 +119,7 @@ export async function renderProjects(el) {
   const selected = new Set(readThemeFilter().filter(id => themeMap.has(id)));
   let mode = readThemeMode();
   let statusFilter = readStatusFilter();
+  let onlyIncomplete = false;                       // filtre « À compléter » : pas mémorisé (aide-mémoire du moment)
 
   const drawTable = () => {
     // « Tous » : le projet porte tous les thèmes sélectionnés ; « Un des » : au moins un
@@ -116,12 +127,16 @@ export async function renderProjects(el) {
     const themeVisible = projects.filter(p => !selected.size
       || (mode === 'or' ? [...selected].some(id => has(p, id)) : [...selected].every(id => has(p, id))));
     // Les compteurs de statut tiennent compte du filtre de thèmes
+    // « À compléter » : projets en préparation ou en cours dont des pièces n'ont pas de bobine, poids, temps ou imprimante
+    const incOf = p => (p.status === 'preparation' || p.status === 'en_cours') ? Number(p.incomplete_parts) || 0 : 0;
+    const incompleteCount = themeVisible.filter(p => incOf(p) > 0).length;
     const statusCount = {};
     for (const p of themeVisible) statusCount[p.status] = (statusCount[p.status] || 0) + 1;
     // Un statut sans projet (ou archivé non affiché) est ignoré, sans effacer le choix mémorisé
     const statusKeys = Object.keys(PROJECT_STATUS).filter(k => k !== 'archive' || showArchived);
     const activeStatus = statusKeys.includes(statusFilter) ? statusFilter : '';
-    const visible = activeStatus ? themeVisible.filter(p => p.status === activeStatus) : themeVisible;
+    const visible = (activeStatus ? themeVisible.filter(p => p.status === activeStatus) : themeVisible)
+      .filter(p => !onlyIncomplete || incOf(p) > 0);
     const rows = sortProjects(visible, sort);
     const th = c => {
       if (c.sortable === false) return `<th>${c.label}</th>`;
@@ -137,8 +152,9 @@ export async function renderProjects(el) {
         <span class="theme-label">Statut</span>
         <button type="button" class="theme-chip is-btn ${!activeStatus ? 'is-active' : ''}" data-status="" aria-pressed="${!activeStatus}">Tous<span class="theme-count">${themeVisible.length}</span></button>
         ${statusKeys.map(k => `<button type="button" class="theme-chip is-btn ${activeStatus === k ? 'is-active' : ''}" data-status="${k}" aria-pressed="${activeStatus === k}">${PROJECT_STATUS[k]}<span class="theme-count">${statusCount[k] || 0}</span></button>`).join('')}
+        <button type="button" class="theme-chip is-btn chip-todo ${onlyIncomplete ? 'is-active' : ''}" data-incomplete aria-pressed="${onlyIncomplete}" title="Projets en préparation ou en cours dont des pièces n'ont pas de bobine, de poids, de temps ou d'imprimante">À compléter<span class="theme-count">${incompleteCount}</span></button>
       </div>`;
-    const filtering = selected.size || activeStatus;
+    const filtering = selected.size || activeStatus || onlyIncomplete;
     const filterBar = statusBar + (themeList.length ? `
       <div class="theme-filter" role="group" aria-label="Filtrer par thème">
         <span class="theme-label">Thèmes</span>
@@ -156,7 +172,7 @@ export async function renderProjects(el) {
         · ${formatWeight(visible.reduce((a, p) => a + p.total_weight_g, 0)) || '0 g'}</p>` : '');
     body.innerHTML = filterBar + (!rows.length ? `
       <div class="empty-state">
-        <p>${activeStatus ? `Aucun projet « ${PROJECT_STATUS[activeStatus]} »${selected.size ? ' avec ' + (selected.size > 1 && mode === 'and' ? 'ces thèmes' : 'ce thème') : ''}.`
+        <p>${onlyIncomplete && !activeStatus && !selected.size ? 'Rien à compléter : toutes les pièces ont leur bobine, leur poids, leur temps et leur imprimante.' : activeStatus ? `Aucun projet « ${PROJECT_STATUS[activeStatus]} »${selected.size ? ' avec ' + (selected.size > 1 && mode === 'and' ? 'ces thèmes' : 'ce thème') : ''}.`
           : `Aucun projet ne porte ${selected.size > 1 && mode === 'and' ? 'tous ces thèmes' : 'ce thème'}.`}</p>
       </div>` : `
       <div class="table-wrap">
@@ -167,7 +183,7 @@ export async function renderProjects(el) {
           const pct = p.pieces_count ? Math.round(100 * p.pieces_done / p.pieces_count) : 0;
           return `<tr data-id="${p.id}">
             <td class="cell-code">${escapeHtml(p.code || '—')}</td>
-            <td>${photoThumb(p)}<a href="#/projet/${p.id}" class="row-link">${escapeHtml(p.name)}</a>${(l => l ? ` <a class="row-ext" href="${escapeHtml(l.href)}" target="_blank" rel="noopener noreferrer" title="Ouvrir ${escapeHtml(l.host)}" aria-label="Ouvrir le lien source (${escapeHtml(l.host)})">↗</a>` : '')(sourceLink(p.source_url))}</td>
+            <td>${photoThumb(p)}<a href="#/projet/${p.id}" class="row-link">${escapeHtml(p.name)}</a>${(n => n ? ` <span class="todo-badge" title="${escapeHtml(todoText(p))}">${n} à compléter</span>` : '')(incOf(p))}${(l => l ? ` <a class="row-ext" href="${escapeHtml(l.href)}" target="_blank" rel="noopener noreferrer" title="Ouvrir ${escapeHtml(l.host)}" aria-label="Ouvrir le lien source (${escapeHtml(l.host)})">↗</a>` : '')(sourceLink(p.source_url))}</td>
             <td class="cell-themes">${themeChipsHtml(p.themes || [], selected)}</td>
             <td><span class="pill pill-${p.status}">${PROJECT_STATUS[p.status]}</span></td>
             <td class="num" title="${escapeHtml(formatDate(p.created_at, { withTime: true }))}">${formatDate(p.created_at) || '—'}</td>
@@ -207,6 +223,7 @@ export async function renderProjects(el) {
       writeSort(sort);
       drawTable();
     }));
+    body.querySelector('[data-incomplete]')?.addEventListener('click', () => { onlyIncomplete = !onlyIncomplete; drawTable(); });
     body.querySelectorAll('[data-status]').forEach(btn => btn.addEventListener('click', () => {
       statusFilter = btn.dataset.status; writeStatusFilter(statusFilter); drawTable();
     }));
