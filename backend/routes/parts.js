@@ -274,20 +274,22 @@ router.put('/parts/:id', async (req, res) => {
 
 // Dupliquer une pièce pour l'imprimer dans une autre couleur (v1.42.0) : nom, fichier, quantité, temps, notes et
 // poids sont repris ; la copie se place juste sous l'originale, au statut « Prêt », sans imprimante, sans
-// historique, et sans bobine ni couleur (à choisir ensuite).
+// historique, et sans bobine ni couleur (à choisir ensuite). Le statut de l'originale est conservé (« À trancher »
+// ou « Prêt »), sauf « Imprimé » et « En cours » qui deviennent « Prêt » : la copie n'a encore aucune impression.
 router.post('/parts/:id/duplicate', async (req, res) => {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
     const [[src]] = await conn.query('SELECT * FROM parts WHERE id=? FOR UPDATE', [req.params.id]);
     if (!src) { await conn.rollback(); return res.status(404).json({ error: 'Pièce introuvable' }); }
+    const status = src.status === 'a_trancher' ? 'a_trancher' : 'pret';
     await conn.query('UPDATE parts SET sort_order = sort_order + 1 WHERE project_id=? AND sort_order > ?',
       [src.project_id, src.sort_order]);
     const [r] = await conn.query(
       `INSERT INTO parts (project_id, sort_order, name, file_name, quantity, printer_id, material, color_name,
                           print_time_s, status, notes)
-       VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, ?, 'pret', ?)`,
-      [src.project_id, src.sort_order + 1, src.name, src.file_name, src.quantity, src.print_time_s, src.notes]);
+       VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, ?, ?, ?)`,
+      [src.project_id, src.sort_order + 1, src.name, src.file_name, src.quantity, src.print_time_s, status, src.notes]);
     const [lines] = await conn.query(
       'SELECT weight_g FROM part_filaments WHERE part_id=? ORDER BY sort_order, id', [src.id]);
     if (lines.length) {

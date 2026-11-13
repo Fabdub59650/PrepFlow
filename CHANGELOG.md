@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.42.1 — 13/11/2026
+
+- **Dupliquer en autre couleur : le statut de la pièce d'origine est conservé** (« À trancher » ou « Prêt »). Seuls « Imprimé » et « En cours » deviennent « Prêt » sur la copie, qui n'a encore aucune impression
+
 ## v1.42.0 — 13/11/2026
 
 - **Dupliquer une pièce en autre couleur.** Nouveau bouton (deux carrés) dans les actions de chaque ligne de pièce : il crée une copie juste sous la pièce (nom, fichier, quantité, temps, poids et notes repris), au statut « Prêt », sans imprimante, historique, bobine ni couleur, et ouvre aussitôt le choix de la bobine pour la copie. Permet d'imprimer la même pièce en bleu, en rouge… sans tout ressaisir ; chaque copie est une ligne indépendante (fiche de contrôle, coût et besoins inchangés). Une pièce multicolore ouvre la fenêtre des filaments
