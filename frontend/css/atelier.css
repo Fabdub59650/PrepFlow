@@ -364,3 +364,22 @@ body.atelier {
 .at-thumb-lg { width: 56px; height: 56px; flex: none; margin: 6px 0 6px 12px; }
 .atc-top { flex: none; display: flex; align-items: center; background: var(--bg2); border-bottom: 0.5px solid var(--border); }
 .atc-top .atc-bar { flex: 1; border-bottom: 0; }
+
+/* v1.43.0 : bandeau d'état des imprimantes + impression à terminer */
+.at-pbar { flex: none; display: flex; gap: 8px; margin: 8px 12px 0; overflow: hidden; }
+.at-pbar[hidden] { display: none; }
+.at-pchip {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-lg);
+  font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.at-pchip b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.at-pchip span { margin-left: auto; color: var(--text2); }
+.at-pchip i { flex: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--text2); box-sizing: border-box; }
+.at-pchip.is-busy i { background: var(--warning); border-color: var(--warning); }
+.at-pchip.is-due { background: var(--success-bg); border-color: var(--success); }
+.at-pchip.is-due i { background: var(--success); border-color: var(--success); }
+.at-pchip.is-due span { color: var(--success); font-weight: 600; }
+.at-run.is-due { border-left-color: var(--success); background: var(--success-bg); }
+.at-run.is-due .at-bar i, .at-run.is-due .at-bar.is-late i { background: var(--success); }
+.at-run.is-due .at-btn { min-height: 64px; font-size: 22px; }

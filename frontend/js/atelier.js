@@ -53,6 +53,7 @@ async function refresh({ quiet = false } = {}) {
   drawMaint();
   drawWeigh();
   drawRunning();
+  drawPrinters();
   drawReady();
 }
 
@@ -141,6 +142,29 @@ function busyPrinter(printerId) {
   const batches = groupRuns(runs)[0], planned = plannedOf(batches);
   const left = planned ? planned - elapsedOf(batches[0]) : null;
   return left !== null && left > 0 ? `occupée · reste ${formatDuration(left) || '0 min'} (fin ${endTimeLabel(left)})` : 'occupée';
+}
+
+// État de chaque imprimante active pour le bandeau : libre, occupée (heure de fin prévue) ou « à terminer »
+function printerState(printerId) {
+  const runs = S.running.filter(r => r.printer_id === printerId);
+  if (!runs.length) return { kind: 'free', text: 'libre' };
+  const batch = groupRuns(runs)[0], planned = plannedOf(batch);
+  if (!planned) return { kind: 'busy', text: 'occupée' };
+  const left = planned - elapsedOf(batch[0]);
+  return left > 0 ? { kind: 'busy', text: `fin ${endTimeLabel(left)}` } : { kind: 'due', text: 'à terminer' };
+}
+
+let pbarSig = null;
+function drawPrinters() {
+  const box = $('#at-pbar');
+  if (!box) return;
+  const list = store.printers.filter(p => p.active);
+  const items = list.map(p => ({ name: p.name, ...printerState(p.id) }));
+  const sig = JSON.stringify(items);
+  if (sig === pbarSig) return;
+  pbarSig = sig;
+  box.hidden = !items.length;
+  box.innerHTML = items.map(i => `<span class="at-pchip is-${i.kind}"><i aria-hidden="true"></i><b>${escapeHtml(i.name)}</b><span>${escapeHtml(i.text)}</span></span>`).join('');
 }
 
 const plannedOf = runs => Number(runs.length > 1 ? runs[0].batch_planned_time_s : runs[0].planned_time_s) || null;
@@ -894,7 +918,7 @@ function drawRunning() {
     </article>`);
     $('.at-btn', el).addEventListener('click', () => openFinish(runs));
     box.appendChild(el);
-    cards.push({ runs, planned, el, elapsedEl: $('.at-elapsed', el), leftEl: $('.at-left', el), barWrap: $('.at-bar', el), bar: $('.at-bar i', el) });
+    cards.push({ runs, planned, el, btn: $('.at-btn', el), elapsedEl: $('.at-elapsed', el), leftEl: $('.at-left', el), barWrap: $('.at-bar', el), bar: $('.at-bar i', el) });
   }
   tickElapsed();
 }
@@ -930,9 +954,16 @@ function tickElapsed() {
     c.leftEl.textContent = left >= 0 ? `reste ${formatDuration(left) || '0 min'} · fin ${endTimeLabel(left)}` : `dépassé de ${formatDuration(-left) || '0 min'}`;
     c.leftEl.classList.toggle('is-late', left < 0);
     c.barWrap.classList.toggle('is-late', left < 0);
+    const due = left <= 0;                           // heure prévue atteinte : la carte se remarque, à terminer
+    if (due !== c.el.classList.contains('is-due')) {
+      c.el.classList.toggle('is-due', due);
+      c.btn.textContent = due ? '✔ Terminer l\'impression' : '■ Terminer';
+      c.btn.classList.toggle('at-btn-ok', due); c.btn.classList.toggle('at-btn-primary', !due);
+    }
     c.bar.style.width = `${Math.min(100, 100 * el / c.planned)}%`;
   }
   $('#at-clock').textContent = hhmm(new Date());
+  drawPrinters();
   if (!veille.hidden) drawVeille();
 }
 

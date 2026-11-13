@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.43.0 — 13/11/2026
+
+- **Atelier : bandeau d'état des imprimantes.** Une ligne sous l'en-tête avec une pastille par imprimante active : « libre », « fin 16:40 » (occupée, heure de fin prévue) ou « à terminer » (heure prévue atteinte). Lecture seule
+- **Atelier : impression à terminer mise en évidence.** Quand l'heure de fin prévue est atteinte, la carte « En cours » passe en vert avec un grand bouton « ✔ Terminer l'impression » (pas de son, pas d'animation)
+
 ## v1.42.1 — 13/11/2026
 
 - **Dupliquer en autre couleur : le statut de la pièce d'origine est conservé** (« À trancher » ou « Prêt »). Seuls « Imprimé » et « En cours » deviennent « Prêt » sur la copie, qui n'a encore aucune impression
