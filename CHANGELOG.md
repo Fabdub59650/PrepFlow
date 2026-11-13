@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.42.0 — 13/11/2026
+
+- **Dupliquer une pièce en autre couleur.** Nouveau bouton (deux carrés) dans les actions de chaque ligne de pièce : il crée une copie juste sous la pièce (nom, fichier, quantité, temps, poids et notes repris), au statut « Prêt », sans imprimante, historique, bobine ni couleur, et ouvre aussitôt le choix de la bobine pour la copie. Permet d'imprimer la même pièce en bleu, en rouge… sans tout ressaisir ; chaque copie est une ligne indépendante (fiche de contrôle, coût et besoins inchangés). Une pièce multicolore ouvre la fenêtre des filaments
+
 ## v1.41.2 — 04/11/2026
 
 - **Bouton « Actualiser le stock » sur la page Production.** En haut à droite, comme dans Besoins : relit le stock dans FilaFlow puis met à jour le bandeau « Bobines à peser », les cartes En cours et les restes estimés, sans changer de page après une pesée. Affichage seulement

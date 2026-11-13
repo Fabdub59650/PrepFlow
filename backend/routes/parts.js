@@ -4,6 +4,7 @@
  *   POST   /api/projects/:id/parts          ajouter une pièce
  *   POST   /api/projects/:id/parts/reorder  réordonner ({ ids: [...] })
  *   PUT    /api/parts/:id                   mise à jour partielle (+ filaments)
+ *   POST   /api/parts/:id/duplicate         copie en autre couleur (sous la pièce, « Prêt », sans bobine)
  *   DELETE /api/parts/:id
  */
 const router = require('express').Router();
@@ -268,6 +269,39 @@ router.put('/parts/:id', async (req, res) => {
     await conn.rollback().catch(() => {});
     const isInput = /invalide|Statut|quantité|liste/.test(e.message);
     res.status(isInput ? 400 : 500).json({ error: e.message });
+  } finally { conn.release(); }
+});
+
+// Dupliquer une pièce pour l'imprimer dans une autre couleur (v1.42.0) : nom, fichier, quantité, temps, notes et
+// poids sont repris ; la copie se place juste sous l'originale, au statut « Prêt », sans imprimante, sans
+// historique, et sans bobine ni couleur (à choisir ensuite).
+router.post('/parts/:id/duplicate', async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [[src]] = await conn.query('SELECT * FROM parts WHERE id=? FOR UPDATE', [req.params.id]);
+    if (!src) { await conn.rollback(); return res.status(404).json({ error: 'Pièce introuvable' }); }
+    await conn.query('UPDATE parts SET sort_order = sort_order + 1 WHERE project_id=? AND sort_order > ?',
+      [src.project_id, src.sort_order]);
+    const [r] = await conn.query(
+      `INSERT INTO parts (project_id, sort_order, name, file_name, quantity, printer_id, material, color_name,
+                          print_time_s, status, notes)
+       VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL, ?, 'pret', ?)`,
+      [src.project_id, src.sort_order + 1, src.name, src.file_name, src.quantity, src.print_time_s, src.notes]);
+    const [lines] = await conn.query(
+      'SELECT weight_g FROM part_filaments WHERE part_id=? ORDER BY sort_order, id', [src.id]);
+    if (lines.length) {
+      await conn.query(
+        'INSERT INTO part_filaments (part_id, filament_id, material, color_name, weight_g, sort_order) VALUES ?',
+        [lines.map((l, i) => [r.insertId, null, null, null, l.weight_g, i])]);
+    }
+    await conn.query('UPDATE projects SET updated_at=CURRENT_TIMESTAMP WHERE id=?', [src.project_id]);
+    await conn.commit();
+    const [part] = await loadParts({ partId: r.insertId });
+    res.status(201).json(part);
+  } catch (e) {
+    await conn.rollback().catch(() => {});
+    res.status(500).json({ error: e.message });
   } finally { conn.release(); }
 });
 

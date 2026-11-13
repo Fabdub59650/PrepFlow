@@ -634,10 +634,12 @@ export async function renderProject(el, id) {
           if (btn.dataset.run === 'start') startRuns([data]);
           else openFinishDialog({ runs: runsToFinish(data.id, runIdx), onDone: refreshAfterRun });
         } },
-      { title: '', field: '_actions', width: 70, minWidth: 70, resizable: false, hozAlign: 'right', cssClass: 'col-actions', frozen: true,
+      { title: '', field: '_actions', width: 100, minWidth: 100, resizable: false, hozAlign: 'right', cssClass: 'col-actions', frozen: true,
         formatter: () => `
           <button class="icon-btn" data-action="filaments" title="Plusieurs filaments (multicolore)" aria-label="Gérer les filaments">
             <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="10" r="4.5"/><circle cx="13" cy="10" r="4.5"/></svg></button>
+          <button class="icon-btn" data-action="dup-color" title="Dupliquer en autre couleur (copie sous cette pièce, bobine à choisir)" aria-label="Dupliquer la pièce en autre couleur">
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="9.5" height="9.5" rx="1.5"/><rect x="7.5" y="7.5" width="9.5" height="9.5" rx="1.5"/></svg></button>
           <button class="icon-btn icon-btn-danger" data-action="delete" title="Supprimer la pièce" aria-label="Supprimer la pièce">
             <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/></svg></button>`,
         cellClick: async (e, c) => {
@@ -645,6 +647,7 @@ export async function renderProject(el, id) {
           if (!btn) return;
           const row = c.getRow();
           if (btn.dataset.action === 'filaments') openFilamentsDialog(row);
+          if (btn.dataset.action === 'dup-color') duplicateInColor(row);
           if (btn.dataset.action === 'delete') {
             const name = row.getData().name || 'Sans nom';
             if (!await confirmDialog('Supprimer la pièce', `La pièce « ${name} » sera supprimée du projet.`)) return;
@@ -748,6 +751,24 @@ export async function renderProject(el, id) {
       row.getCell('name').edit(true);
     } catch (e) { toast(e.message, 'error'); }
   });
+
+  // Copie d'une pièce pour une autre couleur : placée sous l'originale, puis choix de la bobine
+  async function duplicateInColor(row) {
+    try {
+      const part = await api.post(`parts/${row.getData().id}/duplicate`, {});
+      if (spoolFilter || (statusFilter && statusFilter !== part.status)) {
+        spoolFilter = ''; statusFilter = ''; writeStatusFilter('');
+        applyFilters(); toast('Filtre retiré pour afficher la copie');
+      }
+      const copy = await table.addRow(toRow(part), false, row);
+      table.getRows().forEach((r, i) => { r.getData().sort_order = i + 1; });
+      table.recalc();
+      refreshSummary();
+      await table.scrollToRow(copy, 'center', false).catch(() => {});
+      if ((part.filaments || []).length > 1) openFilamentsDialog(copy);
+      else copy.getCell('filament_id').edit(true);
+    } catch (e) { toast(e.message, 'error'); }
+  }
 
   /* ── Production : lancer / terminer ───────────────────────────── */
   function startRuns(rows) {
