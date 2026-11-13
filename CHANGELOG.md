@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.44.1 — 13/11/2026
+
+- **Besoins : avertissement « pièces sans poids ».** Une pièce à imprimer dont aucun poids n'est renseigné (« À trancher » par exemple) n'ajoute rien au besoin en filament, qui était donc sous-estimé sans le dire. Un message au-dessus du tableau indique maintenant le nombre de pièces concernées et les projets (lien vers le projet, infobulle avec les noms des pièces). Le calcul lui-même ne change pas
+
 ## v1.44.0 — 13/11/2026
 
 - **Liste des projets : filtre « À compléter ».** Un bouton à droite des statuts (avec son compteur) ne garde que les projets en préparation ou en cours dont des pièces (hors « À trancher ») n'ont pas de bobine, de poids, de temps ou d'imprimante ; l'imprimante n'est pas exigée d'une pièce déjà imprimée. Chaque projet concerné affiche un badge « N à compléter » dont l'infobulle détaille (« 1 sans bobine · 4 sans imprimante »). Se combine avec les filtres de statut et de thèmes ; non mémorisé. Les projets « Idée », terminés et archivés ne sont pas comptés. Affichage seulement

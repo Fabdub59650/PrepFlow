@@ -43,6 +43,8 @@ function compute(projects, mode, marginPct) {
   const groups = new Map();
   const intents = new Map();
   const unassigned = { need: 0, projects: new Map() };
+  // Pièces à imprimer sans aucun poids renseigné : leurs grammes ne sont pas comptés (besoin sous-estimé)
+  const noWeight = { count: 0, projects: new Map() };
 
   const addProject = (g, p, grams) => {
     const k = p.code || p.name;
@@ -63,6 +65,12 @@ function compute(projects, mode, marginPct) {
       const qty = (part.quantity || 0) - doneQty(part);   // pièces restant à imprimer
       if (qty <= 0) continue;
       const fils = part.filaments || [];
+      if (!fils.some(f => Number(f.weight_g) > 0)) {
+        noWeight.count++;
+        const nw = noWeight.projects.get(p.id) || { id: p.id, code: p.code || p.name, name: p.name, parts: [] };
+        nw.parts.push(part.name || 'Sans nom');
+        noWeight.projects.set(p.id, nw);
+      }
       for (const f of fils) {
         const w = Number(f.weight_g) || 0;
         if (!(w > 0) || !qty) continue;
@@ -130,6 +138,7 @@ function compute(projects, mode, marginPct) {
     rows: [...groups.values()].sort(byDeficit),
     intents: [...intents.values()].sort(byDeficit),
     unassigned,
+    noWeight,
   };
 }
 
@@ -257,6 +266,8 @@ export async function renderNeeds(el) {
           : '<strong>Le stock suffit</strong> pour les projets cochés'}
         <span class="muted"> · ${nProjects} projet${nProjects > 1 ? 's' : ''} · besoin total ${formatWeight(totalNeed) || '0 g'}</span>
       </div>
+      ${r.noWeight.count ? `<p class="version-warn">⚠ ${r.noWeight.count} pièce${r.noWeight.count > 1 ? 's' : ''} à imprimer sans poids : non comptée${r.noWeight.count > 1 ? 's' : ''},
+        le besoin est sous-estimé (${[...r.noWeight.projects.values()].map(v => `<a href="#/projet/${v.id}" title="${escapeHtml(v.parts.join(', '))}">${escapeHtml(v.code)}</a> (${v.parts.length})`).join(', ')}).</p>` : ''}
       ${r.rows.length ? `<div class="table-wrap"><table class="list-table needs-table">${head}
         <tbody>${r.rows.map(rowHtml).join('')}</tbody>
         <tfoot><tr><td>Total</td><td class="num">${formatWeight(r.rows.reduce((s, g) => s + g.need, 0))}</td><td></td><td></td>
