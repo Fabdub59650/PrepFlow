@@ -1003,3 +1003,19 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
   display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 2px; font-size: 11px; font-family: var(--font-mono);
   letter-spacing: 0.04em; text-transform: uppercase; background: var(--warning-bg); color: var(--warning); white-space: nowrap;
 }
+
+/* v1.46.0 : lien vers un modèle ModelFlow */
+.project-model { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 12px; flex-wrap: wrap; }
+.project-model-img { width: 34px; height: 34px; object-fit: cover; border-radius: 3px; border: 0.5px solid var(--border2); }
+.project-model .tag, .model-tag { font-family: var(--font-mono); }
+.model-tag { margin-left: 8px; color: var(--accent, var(--text2)); }
+.mpick-list { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; max-height: 50vh; overflow: auto; }
+.mpick-row { display: flex; align-items: center; gap: 10px; text-align: left; padding: 6px 8px; border: 0.5px solid var(--border2); border-radius: 4px;
+  background: var(--bg2, transparent); color: var(--text); cursor: pointer; font: inherit; }
+.mpick-row:hover, .mpick-row.is-current { border-color: var(--accent, var(--text2)); }
+.mpick-row img, .mpick-ph { width: 40px; height: 40px; flex: none; object-fit: cover; border-radius: 3px; background: var(--bg3, #232528); }
+.mpick-code { font-family: var(--font-mono); font-size: 12px; color: var(--text2); flex: none; }
+.mpick-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mpick-st { font-size: 11px; color: var(--text3); flex: none; }
+.lb-model { font-weight: 400; font-size: .8em; }
+#project-model-view { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }

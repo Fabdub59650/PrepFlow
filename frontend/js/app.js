@@ -5,6 +5,7 @@ import { renderProject } from './views/project.js';
 import { renderChecklist, renderChecklistPaper } from './views/checklist.js';
 import { renderLabel } from './views/label.js';
 import { renderPrinters } from './views/printers.js';
+import { renderFromModel } from './views/from-model.js';
 import { renderSettings } from './views/settings.js';
 import { renderNeeds } from './views/needs.js';
 import { renderProduction } from './views/production.js';
@@ -21,6 +22,7 @@ const routes = [
   { re: /^#\/projet\/(\d+)\/controle$/, view: renderChecklist, nav: 'projects' },
   { re: /^#\/projet\/(\d+)\/controle\/papier$/, view: renderChecklistPaper, nav: 'projects' },
   { re: /^#\/projet\/(\d+)\/etiquette$/, view: renderLabel, nav: 'projects' },
+  { re: /^#\/depuis-modele\/(\d+)$/, view: renderFromModel, nav: 'projects' },
   { re: /^#\/production$/,       view: renderProduction, nav: 'production' },
   { re: /^#\/besoins$/,          view: renderNeeds,    nav: 'needs' },
   { re: /^#\/imprimantes$/,      view: renderPrinters, nav: 'printers' },

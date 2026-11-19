@@ -59,7 +59,7 @@ export async function renderLabel(el, id) {
         <h1 class="lb-name">${escapeHtml(project.name)}</h1>
         ${(project.themes || []).length ? `<p class="lb-themes">${project.themes.map(t => `<span class="lb-theme">${escapeHtml(t.name)}</span>`).join('')}</p>` : ''}
         ${(seen.size || mats.length) ? `<p class="lb-colors">${mats.length ? `<span class="lb-mat">${escapeHtml(mats.join(' · '))}</span>` : ''}${[...seen.values()].map(c => `<span class="lb-color">${swatch(c.hex)}${escapeHtml(c.name)}</span>`).join('')}</p>` : ''}
-        <p class="lb-count"><strong>${total}</strong> pièce${total > 1 ? 's' : ''}</p>
+        <p class="lb-count"><strong>${total}</strong> pièce${total > 1 ? 's' : ''}${project.model_code ? ` <span class="lb-model">· modèle ${escapeHtml(project.model_code)}</span>` : ''}</p>
       </div>
       <div class="lb-side">
         ${photoThumb(project, 'lb-photo')}

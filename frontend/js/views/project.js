@@ -9,6 +9,7 @@ import { derivePart, summarize } from '../summary.js';
 import { mountThemeEditor } from '../themes.js';
 import { openDuplicateDialog } from '../duplicate.js';
 import { photoUrl, openPhotoDialog } from '../photo.js';
+import { pickModel, getModel, modelflowHref, modelPhotoUrl, modelFolderPath, copyText } from '../modelflow.js';
 import { indexRuns, runsToFinish, openStartDialog, openFinishDialog, updateRunsBadge } from '../runs.js';
 
 /* ── Données d'une ligne ───────────────────────────────────────── */
@@ -291,6 +292,10 @@ export async function renderProject(el, id) {
         <input class="project-link-input" id="project-link" type="url" inputmode="url" maxlength="500"
           placeholder="https://makerworld.com/…" aria-label="Lien du projet" value="${escapeHtml(project.source_url || '')}">
       </div>
+      <div class="project-model" id="project-model-row">
+        <span class="project-link-label">Modèle</span>
+        <span id="project-model-view"></span>
+      </div>
       <details class="project-notes" ${project.notes ? 'open' : ''}>
         <summary>Notes du projet</summary>
         <textarea id="project-notes" rows="3" placeholder="Contexte, contraintes, idées…">${escapeHtml(project.notes || '')}</textarea>
@@ -440,6 +445,48 @@ export async function renderProject(el, id) {
   const syncEdit = () => { editBtn.hidden = !sourceLink(linkIn.value) || !linkIn.hidden; };
   new MutationObserver(syncEdit).observe(linkIn, { attributes: true, attributeFilter: ['hidden'] });
   showLink(); syncEdit();
+  // Modèle ModelFlow lié (lecture seule : seuls le code et le nom sont copiés dans le projet)
+  const modelView = el.querySelector('#project-model-view');
+  let modelLive = null;                     // fiche lue en direct dans ModelFlow (nom, image, dossier) si elle répond
+  const linkModel = async model => {
+    try {
+      const saved = await api.put(`projects/${id}`, { model_id: model ? model.id : null });
+      Object.assign(project, { model_id: saved.model_id, model_code: saved.model_code, model_name: saved.model_name });
+      modelLive = model || null;
+      const filled = saved.filled || [];
+      if (filled.length) toast(`Repris du modèle : ${filled.join(' et ')}`);
+      if (filled.includes('image')) { location.reload(); return; }     // l'image du projet vient d'être ajoutée
+      if (filled.includes('lien')) { project.source_url = saved.source_url; linkIn.value = saved.source_url; showLink(); syncEdit(); }
+      drawModel();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+  const chooseModel = async () => { const m = await pickModel(project.model_id); if (m) linkModel(m); };
+  const drawModel = () => {
+    if (!project.model_id) {
+      modelView.innerHTML = '<button type="button" class="btn btn-sm" id="model-pick" title="Lier ce projet à un modèle de ModelFlow">Choisir un modèle</button>';
+    } else {
+      const m = modelLive || {};
+      const img = modelPhotoUrl(m);
+      modelView.innerHTML = `${img ? `<img class="project-model-img" src="${img}" alt="">` : ''}
+        <span class="tag">${escapeHtml(m.code || project.model_code || '')}</span>
+        <a class="project-link-a" href="${modelflowHref(project.model_id)}" target="_blank" rel="noopener noreferrer" title="Ouvrir la fiche dans ModelFlow">${escapeHtml(m.name || project.model_name || '')} ↗</a>
+        ${m.folder ? '<button type="button" class="link-btn" id="model-path" title="Copier le chemin complet du dossier du modèle">Copier le dossier</button>' : ''}
+        <button type="button" class="link-btn" id="model-change">Changer</button>
+        <button type="button" class="link-btn" id="model-unlink">Retirer</button>`;
+    }
+    modelView.querySelector('#model-pick')?.addEventListener('click', chooseModel);
+    modelView.querySelector('#model-change')?.addEventListener('click', chooseModel);
+    modelView.querySelector('#model-unlink')?.addEventListener('click', () => linkModel(null));
+    modelView.querySelector('#model-path')?.addEventListener('click', async () => {
+      try {
+        const p = await modelFolderPath(modelLive);
+        const ok = p && await copyText(p);
+        toast(ok ? `Chemin copié : ${p}` : 'Copie impossible', ok ? 'info' : 'error');
+      } catch (e) { toast(e.message, 'error'); }
+    });
+  };
+  drawModel();
+  if (project.model_id) getModel(project.model_id).then(m => { if (el.isConnected) { modelLive = m; drawModel(); } }).catch(() => {});
   el.querySelector('#project-notes').addEventListener('change', e => saveProject({ notes: e.target.value }));
   el.querySelector('#delete-project').addEventListener('click', async () => {
     const ok = await confirmDialog('Supprimer le projet',

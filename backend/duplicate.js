@@ -33,9 +33,9 @@ async function duplicateProject(srcId, wantedName) {
       if (!src) { const e = new Error('Projet introuvable'); e.status = 404; throw e; }
       const name = (clean(wantedName) || `${src.name} (copie)`).slice(0, 150);
       const [r] = await conn.query(
-        `INSERT INTO projects (name, notes, source_url, margin_pct, min_piece_price, status)
-         VALUES (?, ?, ?, ?, ?, 'preparation')`,
-        [name, src.notes, src.source_url, src.margin_pct, src.min_piece_price]);
+        `INSERT INTO projects (name, notes, source_url, margin_pct, min_piece_price, status, model_id, model_code, model_name)
+         VALUES (?, ?, ?, ?, ?, 'preparation', ?, ?, ?)`,
+        [name, src.notes, src.source_url, src.margin_pct, src.min_piece_price, src.model_id, src.model_code, src.model_name]);
       const newId = r.insertId;
       await assignCode(newId, conn);
       await conn.query(

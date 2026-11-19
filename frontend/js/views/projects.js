@@ -183,7 +183,7 @@ export async function renderProjects(el) {
           const pct = p.pieces_count ? Math.round(100 * p.pieces_done / p.pieces_count) : 0;
           return `<tr data-id="${p.id}">
             <td class="cell-code">${escapeHtml(p.code || '—')}</td>
-            <td>${photoThumb(p)}<a href="#/projet/${p.id}" class="row-link">${escapeHtml(p.name)}</a>${(n => n ? ` <span class="todo-badge" title="${escapeHtml(todoText(p))}">${n} à compléter</span>` : '')(incOf(p))}${(l => l ? ` <a class="row-ext" href="${escapeHtml(l.href)}" target="_blank" rel="noopener noreferrer" title="Ouvrir ${escapeHtml(l.host)}" aria-label="Ouvrir le lien source (${escapeHtml(l.host)})">↗</a>` : '')(sourceLink(p.source_url))}</td>
+            <td>${photoThumb(p)}<a href="#/projet/${p.id}" class="row-link">${escapeHtml(p.name)}</a>${p.model_code ? ` <span class="tag model-tag" title="Modèle ModelFlow : ${escapeHtml(p.model_name || '')}">${escapeHtml(p.model_code)}</span>` : ''}${(n => n ? ` <span class="todo-badge" title="${escapeHtml(todoText(p))}">${n} à compléter</span>` : '')(incOf(p))}${(l => l ? ` <a class="row-ext" href="${escapeHtml(l.href)}" target="_blank" rel="noopener noreferrer" title="Ouvrir ${escapeHtml(l.host)}" aria-label="Ouvrir le lien source (${escapeHtml(l.host)})">↗</a>` : '')(sourceLink(p.source_url))}</td>
             <td class="cell-themes">${themeChipsHtml(p.themes || [], selected)}</td>
             <td><span class="pill pill-${p.status}">${PROJECT_STATUS[p.status]}</span></td>
             <td class="num" title="${escapeHtml(formatDate(p.created_at, { withTime: true }))}">${formatDate(p.created_at) || '—'}</td>

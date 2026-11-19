@@ -252,3 +252,10 @@ INSERT IGNORE INTO `settings` (key_name, value) VALUES ('filaflow_url', 'http://
 INSERT INTO `printers` (name, sort_order)
   SELECT d.n, d.s FROM (SELECT 'Neptune 4 Plus' AS n, 1 AS s UNION ALL SELECT 'Centauri Carbon 2', 2) d
   WHERE NOT EXISTS (SELECT 1 FROM `printers`);
+
+-- v1.46.0 : lien vers un modèle de ModelFlow (lecture seule). model_code / model_name = copie
+-- gardée pour continuer à afficher le lien si ModelFlow ne répond pas.
+ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `model_id`   int(11)      DEFAULT NULL;
+ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `model_code` varchar(12)  DEFAULT NULL;
+ALTER TABLE `projects` ADD COLUMN IF NOT EXISTS `model_name` varchar(150) DEFAULT NULL;
+CREATE INDEX IF NOT EXISTS `idx_project_model` ON `projects` (`model_id`);

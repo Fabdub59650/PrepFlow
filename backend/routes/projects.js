@@ -4,6 +4,7 @@ const { loadParts } = require('./parts');
 const { assignCode, withRetry } = require('../codes');
 const { parseThemeNames, themesByProject, setProjectThemes } = require('./themes');
 const { duplicateProject, unassignedGroups, assignSpools } = require('../duplicate');
+const { fetchModel, fetchModelPhoto } = require('../modelflow');
 
 // Lien source : http(s) uniquement (jamais javascript:, data:…), 500 caractères max
 function cleanSourceUrl(v) {
@@ -14,6 +15,26 @@ function cleanSourceUrl(v) {
   try { const x = new URL(u); ok = x.protocol === 'http:' || x.protocol === 'https:'; } catch { ok = false; }
   if (!ok) return { error: 'Le lien doit commencer par http:// ou https://' };
   return { value: u };
+}
+
+// Reprend du modèle ce qui manque au projet : lien source et image (jamais d'écrasement).
+// Renvoie la liste de ce qui a été repris : ['lien', 'image']
+async function fillFromModel(projectId, model) {
+  const filled = [];
+  const [[p]] = await db.query('SELECT source_url FROM projects WHERE id=?', [projectId]);
+  if (p && !p.source_url && cleanSourceUrl(model.source_url).value) {
+    await db.query('UPDATE projects SET source_url=? WHERE id=?', [model.source_url, projectId]);
+    filled.push('lien');
+  }
+  const [[ph]] = await db.query('SELECT 1 AS x FROM project_photos WHERE project_id=?', [projectId]);
+  if (!ph && model.photo_v) {
+    const buf = await fetchModelPhoto(model.id);
+    if (buf) {
+      await db.query("INSERT INTO project_photos (project_id, mime, data) VALUES (?, 'image/jpeg', ?)", [projectId, buf]);
+      filled.push('image');
+    }
+  }
+  return filled;
 }
 
 const STATUSES = ['idee', 'preparation', 'en_cours', 'termine', 'archive'];
@@ -108,6 +129,36 @@ router.post('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Créer un projet à partir d'un modèle de ModelFlow : nom, lien source, image et thèmes repris, lien posé
+router.post('/from-model', async (req, res) => {
+  try {
+    const model = await fetchModel(req.body && req.body.model_id);
+    const name = String(model.name || '').trim().slice(0, 150) || model.code;
+    const srcUrl = cleanSourceUrl(model.source_url).value;
+    const id = await withRetry(async () => {
+      const conn = await db.getConnection();
+      try {
+        await conn.beginTransaction();
+        const [r] = await conn.query(
+          "INSERT INTO projects (name, source_url, status, model_id, model_code, model_name) VALUES (?, ?, 'idee', ?, ?, ?)",
+          [name, srcUrl, model.id, model.code, name]);
+        await assignCode(r.insertId, conn);
+        await conn.commit();
+        return r.insertId;
+      } catch (e) {
+        await conn.rollback().catch(() => {});
+        throw e;
+      } finally { conn.release(); }
+    });
+    const themeNames = (model.themes || []).map(t => t.name).filter(Boolean);
+    if (themeNames.length) { try { await setProjectThemes(id, parseThemeNames(themeNames)); } catch (_) {} }
+    await fillFromModel(id, model);
+    const [[row]] = await db.query('SELECT * FROM projects WHERE id=?', [id]);
+    row.themes = (await themesByProject([id])).get(id) || [];
+    res.status(201).json(row);
+  } catch (e) { res.status(e.status || 500).json({ error: e.message }); }
+});
+
 // Dupliquer un projet : mêmes pièces, sans historique, imprimante ni bobines choisies (matière et couleur gardées)
 router.post('/:id/duplicate', async (req, res) => {
   try {
@@ -163,6 +214,16 @@ router.put('/:id', async (req, res) => {
       if (r.error) return res.status(400).json({ error: r.error });
       sets.push('source_url=?'); vals.push(r.value);
     }
+    let model = null;
+    if ('model_id' in req.body) {
+      if (req.body.model_id === null || req.body.model_id === '') {
+        sets.push('model_id=NULL', 'model_code=NULL', 'model_name=NULL');
+      } else {
+        try { model = await fetchModel(req.body.model_id); }
+        catch (e) { return res.status(e.status || 500).json({ error: e.message }); }
+        sets.push('model_id=?', 'model_code=?', 'model_name=?'); vals.push(model.id, model.code, String(model.name).slice(0, 150));
+      }
+    }
     for (const [k, max] of [['margin_pct', 1000], ['min_piece_price', 10000]]) {
       if (!(k in req.body)) continue;
       const v = req.body[k];
@@ -181,8 +242,13 @@ router.put('/:id', async (req, res) => {
     const [[row]] = await db.query('SELECT * FROM projects WHERE id=?', [req.params.id]);
     if (!row) return res.status(404).json({ error: 'Projet introuvable' });
     if (themeNames) await setProjectThemes(row.id, themeNames);
+    let filled = [];
+    if (model) {
+      filled = await fillFromModel(row.id, model);
+      if (filled.includes('lien')) row.source_url = model.source_url;
+    }
     row.themes = (await themesByProject([row.id])).get(row.id) || [];
-    res.json(row);
+    res.json({ ...row, filled });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

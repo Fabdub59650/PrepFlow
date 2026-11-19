@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.46.0 — 19/11/2026
+
+- **Lien avec ModelFlow** : un projet peut être lié à **un modèle** du catalogue ModelFlow (un modèle peut avoir plusieurs projets). Rangée « Modèle » sur la page du projet : « Choisir un modèle » (recherche par code `M0012` ou par nom), vignette, code, nom (lien vers la fiche ModelFlow), « Copier le dossier » (chemin complet), « Changer », « Retirer ».
+- Au moment du lien, le **lien source** et l'**image** du modèle sont repris si le projet n'en a pas (rien n'est écrasé).
+- Le code du modèle apparaît dans la **liste des projets** et sur l'**étiquette de boîte**. Dupliquer un projet garde le lien.
+- Nouvelle adresse `#/depuis-modele/12` (bouton « Créer un projet PrepFlow » de ModelFlow) : crée un projet à partir du modèle (nom, lien source, image, thèmes) et l'ouvre.
+- PrepFlow ne modifie jamais ModelFlow ; il garde dans le projet une copie du code et du nom, affichés même si ModelFlow ne répond pas. Nécessite ModelFlow 1.1.0 ou plus.
+- Base de données : trois colonnes ajoutées à `projects` (`model_id`, `model_code`, `model_name`), appliquées automatiquement par `patch.sh`.
+
 ## v1.45.0 — 19/11/2026
 
 - **Barre d'applis** dans l'en-tête : FilaFlow · PrepFlow · ModelFlow (l'appli courante est mise en avant). Elle remplace le bouton « Ouvrir FilaFlow ». Fichier `frontend/js/apps-nav.js`, identique dans les trois applis
