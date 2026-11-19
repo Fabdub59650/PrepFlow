@@ -89,4 +89,4 @@ l'affiche dans l'interface et la persiste en base (`settings._version`).
 
 ## Sauvegarde
 
-⚠ La base `prepflow` n'est pas encore incluse dans la sauvegarde NAS de FilaFlow.
+La base `prepflow` est sauvegardée avec celle de FilaFlow (`prepflow.sql.gz`, sauvegarde NAS).

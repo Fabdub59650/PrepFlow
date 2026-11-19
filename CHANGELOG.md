@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.45.0 — 19/11/2026
+
+- **Barre d'applis** dans l'en-tête : FilaFlow · PrepFlow · ModelFlow (l'appli courante est mise en avant). Elle remplace le bouton « Ouvrir FilaFlow ». Fichier `frontend/js/apps-nav.js`, identique dans les trois applis
+- Aucun changement de base de données
+
 ## v1.44.1 — 13/11/2026
 
 - **Besoins : avertissement « pièces sans poids ».** Une pièce à imprimer dont aucun poids n'est renseigné (« À trancher » par exemple) n'ajoute rien au besoin en filament, qui était donc sous-estimé sans le dire. Un message au-dessus du tableau indique maintenant le nombre de pièces concernées et les projets (lien vers le projet, infobulle avec les noms des pièces). Le calcul lui-même ne change pas
