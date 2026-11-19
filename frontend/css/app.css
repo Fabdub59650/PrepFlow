@@ -1019,3 +1019,7 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .mpick-st { font-size: 11px; color: var(--text3); flex: none; }
 .lb-model { font-weight: 400; font-size: .8em; }
 #project-model-view { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.dialog-wide .dialog-form { grid-template-columns: minmax(0, 1fr); }
+.mpick-list { min-width: 0; }
+.mpick-row { width: 100%; min-width: 0; }

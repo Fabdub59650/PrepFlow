@@ -48,7 +48,7 @@ export function pickModel(currentId) {
     let done = false, models = [];
     const dlg = openDialog({
       title: 'Choisir un modèle',
-      confirmLabel: 'Fermer',
+      wide: true,
       build: body => {
         body.innerHTML = `
           <input type="search" class="search" name="q" placeholder="Code (M0012) ou nom du modèle…" aria-label="Rechercher un modèle" autocomplete="off">
@@ -83,8 +83,8 @@ export function pickModel(currentId) {
       },
       onConfirm: () => {},
     });
-    // « Fermer » n'enregistre rien : seul un clic sur un modèle le choisit
-    dlg.querySelector('[data-cancel]').hidden = true;
+    // Rien à enregistrer : seul un clic sur un modèle le choisit, « Annuler » ferme
+    dlg.querySelector('[type=submit]').remove();
     dlg.addEventListener('close', () => { if (!done) resolve(null); });
   });
 }

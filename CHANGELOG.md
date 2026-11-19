@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.46.1 — 19/11/2026
+
+- **Choisir un modèle** : la fenêtre ne dépasse plus de l'écran (bouton tronqué) ; elle est plus large, et le bouton inutile « Fermer » est retiré (seul « Annuler » reste).
+
 ## v1.46.0 — 19/11/2026
 
 - **Lien avec ModelFlow** : un projet peut être lié à **un modèle** du catalogue ModelFlow (un modèle peut avoir plusieurs projets). Rangée « Modèle » sur la page du projet : « Choisir un modèle » (recherche par code `M0012` ou par nom), vignette, code, nom (lien vers la fiche ModelFlow), « Copier le dossier » (chemin complet), « Changer », « Retirer ».
