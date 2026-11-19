@@ -421,7 +421,7 @@ export async function renderProject(el, id) {
     saveProject({ name: v });
   });
   nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') nameInput.blur(); });
-  mountThemeEditor(el.querySelector('#project-themes'), project);
+  const themeEditor = mountThemeEditor(el.querySelector('#project-themes'), project);
   el.querySelector('#project-status').addEventListener('change', e => saveProject({ status: e.target.value }));
   const linkIn = el.querySelector('#project-link');
   const linkA = el.querySelector('#project-link-a');
@@ -471,12 +471,19 @@ export async function renderProject(el, id) {
         <span class="tag">${escapeHtml(m.code || project.model_code || '')}</span>
         <a class="project-link-a" href="${modelflowHref(project.model_id)}" target="_blank" rel="noopener noreferrer" title="Ouvrir la fiche dans ModelFlow">${escapeHtml(m.name || project.model_name || '')} ↗</a>
         ${m.folder ? '<button type="button" class="link-btn" id="model-path" title="Copier le chemin complet du dossier du modèle">Copier le dossier</button>' : ''}
+        ${(m.themes || []).length ? '<button type="button" class="link-btn" id="model-themes" title="Ajouter à ce projet les thèmes du modèle (rien n\'est retiré)">Reprendre les thèmes</button>' : ''}
         <button type="button" class="link-btn" id="model-change">Changer</button>
         <button type="button" class="link-btn" id="model-unlink">Retirer</button>`;
     }
     modelView.querySelector('#model-pick')?.addEventListener('click', chooseModel);
     modelView.querySelector('#model-change')?.addEventListener('click', chooseModel);
     modelView.querySelector('#model-unlink')?.addEventListener('click', () => linkModel(null));
+    modelView.querySelector('#model-themes')?.addEventListener('click', async () => {
+      try {
+        const n = await themeEditor.addNames(modelLive.themes.map(t => t.name));
+        toast(n ? `${n} thème${n > 1 ? 's' : ''} repris du modèle` : 'Le projet a déjà tous les thèmes du modèle');
+      } catch (e) { toast(e.message, 'error'); }
+    });
     modelView.querySelector('#model-path')?.addEventListener('click', async () => {
       try {
         const p = await modelFolderPath(modelLive);

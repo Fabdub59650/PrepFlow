@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.47.0 — 19/11/2026
+
+- **Thèmes et ModelFlow** : le champ « Ajouter un thème » propose aussi les thèmes de ModelFlow (lecture seule ; rien n'est écrit dans ModelFlow).
+- Projet lié à un modèle : bouton **Reprendre les thèmes** (à la demande) qui ajoute au projet les thèmes du modèle, sans rien retirer.
+- **Même nom, même couleur** : un thème PrepFlow sans couleur adopte celle du thème ModelFlow de même nom (casse et accents ignorés). Une couleur déjà choisie n'est jamais modifiée.
+- Aucun changement de base de données.
+
 ## v1.46.1 — 19/11/2026
 
 - **Choisir un modèle** : la fenêtre ne dépasse plus de l'écran (bouton tronqué) ; elle est plus large, et le bouton inutile « Fermer » est retiré (seul « Annuler » reste).

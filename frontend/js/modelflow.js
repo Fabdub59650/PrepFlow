@@ -15,6 +15,7 @@ const api = async path => {
 export const modelflowHref = id => `${BASE}#/modele/${Number(id)}`;
 export const modelPhotoUrl = m => (m && m.photo_v ? `${BASE}api/models/${m.id}/photo?v=${m.photo_v}` : null);
 export const listModels = () => api('models');
+export const listModelThemes = () => api('themes');
 export const getModel = id => api(`models/${Number(id)}`);
 
 /** Chemin complet du dossier d'un modèle : racine de stockage de ModelFlow + sous-dossier */
