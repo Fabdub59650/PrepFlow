@@ -917,9 +917,6 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .cs-head .ck-photo { width: 56px; height: 56px; }
 .project-head.is-stuck .proj-photo { width: 32px; height: 32px; }
 
-/* v1.36.0 : statut Idée */
-.pill-idee { background: var(--bg3); color: var(--text2); }
-.needs-ideas { display: flex; font-size: 12px; margin: 0 0 8px; }
 
 /* ── v1.37.0 : étiquette de boîte (128 × 105 mm par défaut, réglable) ── */
 .lb-card {

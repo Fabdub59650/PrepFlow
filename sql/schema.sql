@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS `projects` (
   `id`         int(11)      NOT NULL AUTO_INCREMENT,
   `name`       varchar(150) NOT NULL,
   `notes`      text         DEFAULT NULL,
-  `status`     enum('idee','preparation','en_cours','termine','archive') NOT NULL DEFAULT 'idee',
+  `status`     enum('preparation','en_cours','termine','archive') NOT NULL DEFAULT 'preparation',
   `created_at` timestamp    NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp    NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -207,8 +207,10 @@ CREATE TABLE IF NOT EXISTS `project_photos` (
   CONSTRAINT `fk_pp_project` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- v1.36.0 : statut « Idée » avant « En préparation » (statut par défaut d'un nouveau projet) ; les projets existants gardent leur statut
-ALTER TABLE `projects` MODIFY `status` enum('idee','preparation','en_cours','termine','archive') NOT NULL DEFAULT 'idee';
+-- v1.48.0 : le statut « Idée » disparaît (les idées vivent dans ModelFlow) ; ses projets passent « En préparation », qui redevient le statut par défaut
+-- (sans effet si déjà fait ; sur une base d'avant v1.36.0 l'enum n'a pas 'idee' et l'UPDATE ne touche rien)
+UPDATE `projects` SET `status`='preparation' WHERE `status`='idee';
+ALTER TABLE `projects` MODIFY `status` enum('preparation','en_cours','termine','archive') NOT NULL DEFAULT 'preparation';
 
 -- v1.17.1 : couleur d'un thème (clé de la palette de l'interface : rouge, bleu…), NULL = neutre
 ALTER TABLE `themes` ADD COLUMN IF NOT EXISTS `color` varchar(20) DEFAULT NULL;

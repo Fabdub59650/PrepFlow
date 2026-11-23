@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.48.0 — 23/11/2026
+
+- **Le statut « Idée » disparaît.** Il faisait doublon avec ModelFlow (statuts Catalogué / À imprimer / Imprimé) : une idée se garde désormais dans ModelFlow, et un projet PrepFlow n'existe que lorsque l'impression est décidée.
+- Un nouveau projet démarre **« En préparation »** (y compris celui créé depuis une fiche ModelFlow). Les projets qui étaient en « Idée » passent « En préparation », rien n'est perdu.
+- Besoins : l'interrupteur « Afficher les idées » est retiré.
+- Mise à jour de la base : le statut « Idée » est retiré de la liste des statuts (appliquée automatiquement par `patch.sh`).
+
 ## v1.47.0 — 19/11/2026
 
 - **Thèmes et ModelFlow** : le champ « Ajouter un thème » propose aussi les thèmes de ModelFlow (lecture seule ; rien n'est écrit dans ModelFlow).

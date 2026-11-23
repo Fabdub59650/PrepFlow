@@ -15,7 +15,6 @@ export const RUN_RESULT = {
 };
 
 export const PROJECT_STATUS = {
-  idee:        'Idée',
   preparation: 'En préparation',
   en_cours:    'En cours',
   termine:     'Terminé',
