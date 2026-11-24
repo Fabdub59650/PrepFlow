@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
-import { toast, confirmDialog, openDialog } from '../ui.js';
+import { toast, confirmDialog, openDialog, notifyModelPrinted } from '../ui.js';
 import {
   PART_STATUS, PROJECT_STATUS, parseDuration, formatDuration, durationToInput,
   formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolStock, sourceLink,
@@ -409,7 +409,7 @@ export async function renderProject(el, id) {
 
   /* En-tête du projet */
   const saveProject = async body => {
-    try { await api.put(`projects/${id}`, body); }
+    try { notifyModelPrinted(await api.put(`projects/${id}`, body)); }
     catch (e) { toast(e.message, 'error'); }
   };
   const nameInput = el.querySelector('#project-name');

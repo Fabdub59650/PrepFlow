@@ -2,7 +2,7 @@
 // Mêmes routes que la page Production (runs/start, runs/:id/finish, batches/:id/finish) : seul l'écran change.
 import { api } from './api.js';
 import { store } from './store.js';
-import { toast } from './ui.js';
+import { toast, notifyModelPrinted } from './ui.js';
 import { initTheme } from './theme.js';
 import { photoThumb } from './photo.js';
 import { overdueWarning, dueText } from './maintenance.js';
@@ -366,8 +366,9 @@ async function openCheck(id) {
     try {
       await chain;
       await api.post(`projects/${id}/check/finish`);
-      if (withProject) await api.put(`projects/${id}`, { status: 'termine' });
+      const saved = withProject ? await api.put(`projects/${id}`, { status: 'termine' }) : null;
       toast(withProject ? 'Contrôle et projet terminés' : 'Contrôle terminé', 'success');
+      notifyModelPrinted(saved);
       sh.close();
     } catch (e) { toast(e.message, 'error'); }
   };

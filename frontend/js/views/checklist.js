@@ -1,7 +1,7 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
 import { escapeHtml, swatch, formatDate } from '../format.js';
-import { toast, confirmDialog } from '../ui.js';
+import { toast, confirmDialog, notifyModelPrinted } from '../ui.js';
 import { photoThumb } from '../photo.js';
 
 // Contrôle des pièces d'un projet en fin de projet. Deux vues :
@@ -294,9 +294,10 @@ export async function renderChecklist(el, id) {
 
     el.querySelector('#cs-project-done')?.addEventListener('click', async () => {
       try {
-        await api.put(`projects/${id}`, { status: 'termine' });
+        const saved = await api.put(`projects/${id}`, { status: 'termine' });
         project.status = 'termine';
         toast('Projet marqué terminé', 'success');
+        notifyModelPrinted(saved);
         render();
       } catch (e) { toast(e.message, 'error'); }
     });

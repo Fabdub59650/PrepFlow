@@ -4,7 +4,7 @@ const { loadParts } = require('./parts');
 const { assignCode, withRetry } = require('../codes');
 const { parseThemeNames, themesByProject, setProjectThemes } = require('./themes');
 const { duplicateProject, unassignedGroups, assignSpools } = require('../duplicate');
-const { fetchModel, fetchModelPhoto } = require('../modelflow');
+const { fetchModel, fetchModelPhoto, markModelPrinted } = require('../modelflow');
 
 // Lien source : http(s) uniquement (jamais javascript:, data:…), 500 caractères max
 function cleanSourceUrl(v) {
@@ -236,11 +236,17 @@ router.put('/:id', async (req, res) => {
       if (!STATUSES.includes(req.body.status)) return res.status(400).json({ error: 'Statut inconnu' });
       sets.push('status=?'); vals.push(req.body.status);
     }
+    // Statut avant la modification : le modèle ne passe « Imprimé » qu'au moment où le projet devient « Terminé »
+    const [[before]] = await db.query('SELECT status, model_id FROM projects WHERE id=?', [req.params.id]);
     if (sets.length) {
       await db.query(`UPDATE projects SET ${sets.join(', ')} WHERE id=?`, [...vals, req.params.id]);
     }
     const [[row]] = await db.query('SELECT * FROM projects WHERE id=?', [req.params.id]);
     if (!row) return res.status(404).json({ error: 'Projet introuvable' });
+    let modelPrinted = null;
+    if (before && before.model_id && before.status !== 'termine' && req.body.status === 'termine') {
+      modelPrinted = await markModelPrinted(before.model_id);
+    }
     if (themeNames) await setProjectThemes(row.id, themeNames);
     let filled = [];
     if (model) {
@@ -248,7 +254,11 @@ router.put('/:id', async (req, res) => {
       if (filled.includes('lien')) row.source_url = model.source_url;
     }
     row.themes = (await themesByProject([row.id])).get(row.id) || [];
-    res.json({ ...row, filled });
+    res.json({
+      ...row, filled,
+      ...(modelPrinted && !modelPrinted.failed ? { model_printed: modelPrinted } : {}),
+      ...(modelPrinted && modelPrinted.failed ? { model_warning: true } : {}),
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -43,4 +43,25 @@ async function fetchModelPhoto(id) {
   } catch (_) { return null; }
 }
 
-module.exports = { fetchModel, fetchModelPhoto };
+// Un projet relié vient d'être terminé : le modèle passe « Imprimé » dans ModelFlow (jamais l'inverse).
+// Ne lève jamais d'erreur : { code, name } si le modèle a changé, { failed: true } si ModelFlow n'a pas pu être mis à jour,
+// null s'il n'y avait rien à faire (modèle déjà « Imprimé » ou introuvable).
+async function markModelPrinted(id) {
+  const n = parseInt(id, 10);
+  if (!Number.isInteger(n) || n < 1) return null;
+  try {
+    const url = `${await baseUrl()}/api/models/${n}`;
+    const cur = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (cur.status === 404) return null;
+    if (!cur.ok) return { failed: true };
+    const m = await cur.json();
+    if (m.status === 'imprime') return null;
+    const put = await fetch(url, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'imprime' }), signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    return put.ok ? { code: m.code, name: m.name } : { failed: true };
+  } catch (_) { return { failed: true }; }
+}
+
+module.exports = { fetchModel, fetchModelPhoto, markModelPrinted };

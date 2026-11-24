@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.49.0 — 24/11/2026
+
+- **Un projet terminé fait passer son modèle « Imprimé » dans ModelFlow.** Dès qu'un projet relié à un modèle passe en « Terminé » (contrôle, clôture depuis l'Atelier ou changement de statut à la main), le modèle passe en « Imprimé » ; un message le confirme (« Modèle M0012 passé en Imprimé dans ModelFlow »).
+- On ne fait que monter vers « Imprimé » : un modèle déjà imprimé ne change pas, et rouvrir ou archiver le projet ne le remet pas en arrière. Le changement n'a lieu qu'au moment où le projet devient « Terminé ».
+- Si ModelFlow ne répond pas, le projet passe quand même « Terminé » et un avertissement indique que le modèle n'a pas été mis à jour.
+
 ## v1.48.0 — 23/11/2026
 
 - **Le statut « Idée » disparaît.** Il faisait doublon avec ModelFlow (statuts Catalogué / À imprimer / Imprimé) : une idée se garde désormais dans ModelFlow, et un projet PrepFlow n'existe que lorsque l'impression est décidée.

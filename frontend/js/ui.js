@@ -1,6 +1,12 @@
 // Petits composants d'interface partagés : notifications, fenêtres de dialogue
 import { escapeHtml } from './format.js';
 
+// Réponse d'un projet passé « Terminé » : informe si son modèle ModelFlow est passé « Imprimé » (ou n'a pas pu l'être)
+export function notifyModelPrinted(project) {
+  if (project && project.model_printed) toast(`Modèle ${project.model_printed.code} passé en « Imprimé » dans ModelFlow`, 'success');
+  else if (project && project.model_warning) toast('ModelFlow ne répond pas : le modèle n\'a pas été passé en « Imprimé ».', 'error');
+}
+
 export function toast(message, kind = 'info') {
   let box = document.getElementById('toasts');
   if (!box) {
