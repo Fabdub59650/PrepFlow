@@ -7,7 +7,8 @@ import { dueText, updateMaintBadge } from '../maintenance.js';
 import { updateRunsBadge } from '../runs.js';
 import { photoThumb } from '../photo.js';
 
-const FILAFLOW = '/';   // FilaFlow est à la racine du même serveur
+// FilaFlow est à la racine du même serveur ; « #filament/ID » y ouvre directement la fiche
+const spoolUrl = id => `/#filament/${Number(id)}`;
 const plural = (n, one, many = one + 's') => `${n} ${n > 1 ? many : one}`;
 const empty = text => `<p class="home-empty muted">${escapeHtml(text)}</p>`;
 const failed = what => `<p class="home-empty home-warn">${escapeHtml(what)}</p>`;
@@ -91,7 +92,7 @@ function projectRow(p) {
 
 /* ── Bobines ───────────────────────────────────────────────────── */
 
-const spoolRow = (hex, label, value, sub, tag = '') => `<li><a class="home-spool" href="${FILAFLOW}" title="Ouvrir FilaFlow">
+const spoolRow = (id, hex, label, value, sub, tag = '') => `<li><a class="home-spool" href="${spoolUrl(id)}" title="Ouvrir la fiche dans FilaFlow">
   ${swatch(hex)}<span class="home-spool-name">${escapeHtml(label)} ${tag}</span>
   <span class="home-spool-val"><strong>${escapeHtml(value)}</strong><small class="muted">${escapeHtml(sub)}</small></span></a></li>`;
 
@@ -152,7 +153,7 @@ export async function renderHome(el) {
     else {
       const note = stock.online ? '' : failed('FilaFlow ne répond pas : liste établie sur la dernière copie connue du stock.');
       put('weigh', note + (weigh.length ? `<ul class="home-spools">${weigh.map(({ filament: f, used }) =>
-        spoolRow(f.color_hex, filamentLabel(f), `${formatWeight(Math.round(used))} consommés`, weighAge(f.last_weighed_at))).join('')}</ul>`
+        spoolRow(f.id, f.color_hex, filamentLabel(f), `${formatWeight(Math.round(used))} consommés`, weighAge(f.last_weighed_at))).join('')}</ul>`
         : empty('Aucune bobine à peser.')), weigh.length || '');
     }
 
@@ -160,7 +161,7 @@ export async function renderHome(el) {
     else if (!low.threshold) put('low', empty('L’alerte « stock bas » est désactivée dans FilaFlow.'));
     else {
       const toWeigh = new Set(weigh.map(w => w.filament.id));
-      put('low', low.items.length ? `<ul class="home-spools">${low.items.map(i => spoolRow(i.color_hex,
+      put('low', low.items.length ? `<ul class="home-spools">${low.items.map(i => spoolRow(i.id, i.color_hex,
         filamentLabel(store.filamentsById.get(i.id) || i), formatWeight(Math.round(i.weight_remaining)), `${i.pct} % restant`,
         toWeigh.has(i.id) ? '<span class="tag home-tag">À peser</span>' : '')).join('')}</ul>`
         : empty(`Aucune bobine sous ${low.threshold} %.`), low.items.length || '');

@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.50.1 — 26/11/2026
+
+- **Accueil** : un clic sur une bobine (« à peser » ou « stock faible ») ouvre directement sa fiche dans FilaFlow, et non plus la page générale. Aucune modification de FilaFlow.
+
 ## v1.50.0 — 26/11/2026
 
 - **Nouvelle page Accueil**, ouverte au démarrage de PrepFlow (et par un clic sur le logo). La liste des projets est dans le menu « Projets ».
