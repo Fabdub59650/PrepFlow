@@ -8,4 +8,9 @@ router.get('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/filaments/low-stock : bobines sous le seuil « stock bas » de FilaFlow
+router.get('/low-stock', async (req, res) => {
+  res.json(await filaflow.lowStock());
+});
+
 module.exports = router;

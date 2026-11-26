@@ -51,6 +51,11 @@ router.get('/', async (req, res) => {
                            ELSE LEAST(pt.quantity, ra.ok_qty) END), 0) AS pieces_done,
          COALESCE(SUM(pt.quantity * COALESCE(pt.print_time_s, 0)), 0) AS total_time_s,
          COALESCE(SUM(pt.quantity * COALESCE(w.unit_weight, 0)), 0)   AS total_weight_g,
+         -- Reste à imprimer (page Accueil) : temps des pièces pas encore réussies, et pièces sans temps saisi
+         COALESCE(SUM(GREATEST(0, pt.quantity - CASE WHEN ra.n_runs IS NULL THEN (CASE WHEN pt.status='imprime' THEN pt.quantity ELSE 0 END)
+                           ELSE LEAST(pt.quantity, ra.ok_qty) END) * COALESCE(pt.print_time_s, 0)), 0) AS remaining_time_s,
+         COALESCE(SUM(pt.print_time_s IS NULL AND CASE WHEN ra.n_runs IS NULL THEN pt.status <> 'imprime'
+                           ELSE ra.ok_qty < pt.quantity END), 0) AS remaining_untimed,
          COALESCE(MAX(sp.spools_count), 0)                    AS spools_count,
          MAX(sp.spools_names)                                 AS spools_names,
          (SELECT version FROM project_photos WHERE project_id = p.id) AS photo_v,

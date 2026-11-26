@@ -261,7 +261,7 @@ export async function renderProject(el, id) {
   el.innerHTML = `
     <div class="sticky-sentinel" aria-hidden="true"></div>
     <div class="project-head">
-      <a href="#/" class="back-link">Projets</a>
+      <a href="#/projets" class="back-link">Projets</a>
       <div class="project-title-row">
         <button type="button" class="proj-photo" id="project-photo" aria-label="Image du projet"></button>
         ${project.code ? `<span class="project-code" title="Code du projet, à utiliser comme nom de dossier">
@@ -499,7 +499,7 @@ export async function renderProject(el, id) {
     const ok = await confirmDialog('Supprimer le projet',
       `« ${project.name} » et ses ${project.parts.length} pièces seront supprimés définitivement.`);
     if (!ok) return;
-    try { await api.del(`projects/${id}`); location.hash = '#/'; toast('Projet supprimé'); }
+    try { await api.del(`projects/${id}`); location.hash = '#/projets'; toast('Projet supprimé'); }
     catch (e) { toast(e.message, 'error'); }
   });
   el.querySelector('#refresh-stock').addEventListener('click', async e => {

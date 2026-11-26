@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.50.0 — 26/11/2026
+
+- **Nouvelle page Accueil**, ouverte au démarrage de PrepFlow (et par un clic sur le logo). La liste des projets est dans le menu « Projets ».
+- **Imprimantes** : une carte par imprimante (libre, en cours avec heure de fin prévue, à terminer), avec les tâches de maintenance dépassées.
+- **Projets en cours** : pièces imprimées sur le total et temps restant (pièces pas encore imprimées ; les pièces sans temps sont signalées).
+- **Bobines à peser** : même règle et mêmes seuils que la page Production.
+- **Stock faible** : liste et seuil fournis par FilaFlow (aucune modification de FilaFlow) ; la page indique si l'alerte y est désactivée ou si FilaFlow ne répond pas.
+- Lecture seule, actualisation à l'ouverture et par le bouton « Actualiser ». Aucun changement de base de données.
+
 ## v1.49.0 — 24/11/2026
 
 - **Un projet terminé fait passer son modèle « Imprimé » dans ModelFlow.** Dès qu'un projet relié à un modèle passe en « Terminé » (contrôle, clôture depuis l'Atelier ou changement de statut à la main), le modèle passe en « Imprimé » ; un message le confirme (« Modèle M0012 passé en Imprimé dans ModelFlow »).

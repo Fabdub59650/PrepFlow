@@ -1,5 +1,6 @@
 import { api } from './api.js';
 import { toast } from './ui.js';
+import { renderHome } from './views/home.js';
 import { renderProjects } from './views/projects.js';
 import { renderProject } from './views/project.js';
 import { renderChecklist, renderChecklistPaper } from './views/checklist.js';
@@ -15,9 +16,10 @@ import { store } from './store.js';
 import { initTheme } from './theme.js';
 import { initUpdateBadge } from './updates.js';
 
-// Routes : #/  #/projet/12  #/projet/12/controle  #/projet/12/controle/papier  #/projet/12/etiquette  #/production  #/besoins  #/imprimantes
+// Routes : #/ (accueil)  #/projets  #/projet/12  #/projet/12/controle  #/projet/12/controle/papier  #/projet/12/etiquette  #/production  #/besoins  #/imprimantes
 const routes = [
-  { re: /^#?\/?$/,               view: renderProjects, nav: 'projects' },
+  { re: /^#?\/?$/,               view: renderHome,     nav: 'home' },
+  { re: /^#\/projets$/,          view: renderProjects, nav: 'projects' },
   { re: /^#\/projet\/(\d+)$/,    view: renderProject,  nav: 'projects' },
   { re: /^#\/projet\/(\d+)\/controle$/, view: renderChecklist, nav: 'projects' },
   { re: /^#\/projet\/(\d+)\/controle\/papier$/, view: renderChecklistPaper, nav: 'projects' },

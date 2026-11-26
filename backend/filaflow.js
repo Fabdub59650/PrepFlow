@@ -154,8 +154,27 @@ async function listFilaments({ force = false } = {}) {
   };
 }
 
+/**
+ * Bobines en stock bas, telles que FilaFlow les calcule (GET /api/stats → low_stock) :
+ * le seuil et la règle restent définis à un seul endroit. Pas de copie locale : en cas de panne,
+ * la page Accueil le dit. threshold null = alerte désactivée dans FilaFlow.
+ */
+async function lowStock() {
+  try {
+    const url = `${await baseUrl()}/api/stats`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (!res.ok) throw new Error(`FilaFlow a répondu ${res.status} sur ${url}`);
+    const low = (await res.json()).low_stock;
+    if (!low || !Array.isArray(low.items)) throw new Error('Réponse FilaFlow inattendue (stock bas absent)');
+    return { available: true, threshold: low.threshold || null, items: low.items };
+  } catch (e) {
+    const down = e.name === 'TimeoutError' || e.message === 'fetch failed';
+    return { available: false, error: down ? 'FilaFlow ne répond pas' : e.message, threshold: null, items: [] };
+  }
+}
+
 function status() {
   return { online: lastOnline, error: lastError, last_sync: lastSyncAt || null };
 }
 
-module.exports = { sync, listFilaments, status, baseUrl };
+module.exports = { sync, listFilaments, lowStock, status, baseUrl };
