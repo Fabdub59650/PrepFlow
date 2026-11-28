@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.51.0 — 28/11/2026
+
+- **Impression libre** (page Production, « ＋ Impression libre ») : calibration, test de filament, test de slicer ou autre, sans projet ni pièce. Une seule bobine, poids prévu obligatoire, durée facultative.
+- Elle occupe l'imprimante et se termine comme une autre impression (PC ou Atelier). Elle compte pour la maintenance, le reste estimé des bobines et les bobines à peser ; elle apparaît « Libre » à la place du code projet.
+- **Statistiques** : comptée dans les impressions, les heures et les ratées, sans pièce produite ni projet ou thème. **Gâchis** : les ratées sont sous « Impressions libres ».
+- **Test slicer** : exclu de l'écart de durée ; l'intervalle entre les deux pesées concernées est écarté de la calibration par bobine, et la calibration n'est pas appliquée à son poids.
+- Base : `print_runs.part_id` devient facultatif, avec trois colonnes ajoutées (mise à jour par `patch.sh`).
+
 ## v1.50.1 — 26/11/2026
 
 - **Accueil** : un clic sur une bobine (« à peser » ou « stock faible ») ouvre directement sa fiche dans FilaFlow, et non plus la page générale. Aucune modification de FilaFlow.

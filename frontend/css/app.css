@@ -1074,3 +1074,12 @@ section.home-panel + .home-columns { margin-top: 14px; }
   .ff-status .status-label { display: none; }
   .topbar-end { gap: 10px; flex: none; }
 }
+
+/* ── v1.51.0 : impression libre ── */
+.prod-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.free-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; align-items: start; }
+.free-grid .end-dur { margin-top: 0; }
+@media (max-width: 600px) { .free-grid { grid-template-columns: 1fr; } }
+.free-form { display: grid; gap: 12px; }
+.free-form .dialog-help, .free-form .start-skip, .free-form .start-needs { margin: 0; }
+.run-line-name.is-free { white-space: normal; grid-column: 1 / -1; }

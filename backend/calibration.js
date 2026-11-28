@@ -24,7 +24,7 @@ const ts = s => new Date(String(s).replace(' ', 'T')).getTime();
 
 /**
  * weighings : [{ filament_id, net_weight, created_at }]
- * runs      : [{ filament_id, relay, started_at, ended_at, state, result, basis_g }] (une ligne par run et bobine)
+ * runs      : [{ filament_id, relay, free_kind, started_at, ended_at, state, result, basis_g }] (une ligne par run et bobine)
  *               basis_g = poids du slicer × % réalisé (indépendant d'une éventuelle correction manuelle du poids)
  * Renvoie { intervals: [...] } avec les intervalles analysés (valides ou écartés, avec la raison).
  */
@@ -57,6 +57,8 @@ function buildIntervals(weighings, runs) {
       else if (row.measured_g < -2) row.reason = 'poids en hausse (nouvelle bobine ou correction)';
       // relais de bobine : la part de chaque bobine est estimée, pas mesurée, donc l'intervalle n'est pas fiable
       else if (done.some(r => Number(r.relay) === 1)) row.reason = 'relais de bobine';
+      // impression libre « Test slicer » : son poids prévu ne vient pas d'Elegoo Slicer, et sa consommation est dans la pesée
+      else if (done.some(r => r.free_kind === 'slicer')) row.reason = 'test d’un autre slicer';
       else if (row.planned_g < MIN_INTERVAL_G) row.reason = row.planned_g === 0 ? 'aucune impression PrepFlow' : 'poids trop faible';
       else {
         const ratio = row.measured_g / row.planned_g;
@@ -141,7 +143,7 @@ async function compute() {
   await filaflow.sync();
   const weighings = await fetchWeighings();
   const [runs] = await db.query(
-    `SELECT rf.filament_id, rf.relay, r.started_at, r.ended_at, r.state, r.result,
+    `SELECT rf.filament_id, rf.relay, r.free_kind, r.started_at, r.ended_at, r.state, r.result,
             CASE WHEN rf.planned_g > 0 THEN rf.planned_g * COALESCE(r.progress_pct, 100) / 100 ELSE rf.weight_g END AS basis_g
        FROM print_run_filaments rf JOIN print_runs r ON r.id = rf.run_id`);
   const [filaments] = await db.query('SELECT id, name, spool_number, material, color_name, color_hex FROM filament_cache');

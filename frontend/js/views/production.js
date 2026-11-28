@@ -2,11 +2,18 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
 import { toast, confirmDialog, openDialog } from '../ui.js';
-import { RUN_RESULT, formatDuration, endTimeLabel, formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolsToWeigh, weighAge } from '../format.js';
+import { RUN_RESULT, formatDuration, endTimeLabel, formatWeight, formatMoney, formatDate, escapeHtml, filamentLabel, swatch, spoolsToWeigh, weighAge, runLabel, FREE_KIND } from '../format.js';
 import { openFinishDialog, openCorrectDialog, updateRunsBadge } from '../runs.js';
 import { openPlateauPicker } from '../plateau.js';
+import { openFreePrintDialog } from '../freeprint.js';
 
 const sum = (list, k) => list.reduce((s, x) => s + (Number(x[k]) || 0), 0);
+
+// Code du projet cliquable, ou « Libre » avec le type en infobulle
+const projectCell = r => r.free_kind
+  ? `<span class="tag" title="Impression libre, hors projet : ${FREE_KIND[r.free_kind]}">Libre</span>`
+  : `<a href="#/projet/${r.project_id}" class="cell-code">${escapeHtml(r.project_code || '')}</a>`;
+const projectKey = r => r.project_id ?? 'libre';
 
 const resultLabel = r => r.result === 'rate'
   ? `Ratée ${r.progress_pct ?? 0} %` : (RUN_RESULT[r.result] || '');
@@ -55,7 +62,10 @@ export async function renderProduction(el) {
     <section class="prod-section">
       <div class="prod-head">
         <h2 class="panel-title">En cours <span class="count-chip" id="running-count"></span></h2>
-        <button type="button" class="btn btn-sm" id="plateau-btn" title="Lancer ensemble des pièces « Prêt » de plusieurs projets">＋ Plateau multi-projets</button>
+        <span class="prod-head-actions">
+          <button type="button" class="btn btn-sm" id="free-btn" title="Calibration ou test, sans projet">＋ Impression libre</button>
+          <button type="button" class="btn btn-sm" id="plateau-btn" title="Lancer ensemble des pièces « Prêt » de plusieurs projets">＋ Plateau multi-projets</button>
+        </span>
       </div>
       <div id="running"></div>
     </section>
@@ -159,7 +169,7 @@ export async function renderProduction(el) {
     }[kind];
     const rows = units.filter(match);
     const secs = rows.reduce((n, u) => n + (u.real_s || 0), 0);
-    const cmp = rows.filter(u => !u.failed && u.real_s !== null && u.plan_s !== null && u.plan_s > 0);
+    const cmp = rows.filter(u => !u.failed && !u.other_slicer && u.real_s !== null && u.plan_s !== null && u.plan_s > 0);
     const gap = cmp.length ? gapText(cmp.reduce((n, u) => n + u.plan_s, 0), cmp.reduce((n, u) => n + u.real_s, 0)) : '—';
     const MAX = 200;
     const dlg = openDialog({
@@ -169,11 +179,11 @@ export async function renderProduction(el) {
           <div class="drill-scroll"><table class="mini-table drill-table"><thead><tr><th>Date</th><th>Pièces</th><th>Imprimante</th><th class="num">Prévu</th><th class="num">Réel</th><th class="num">Écart</th><th>Résultat</th></tr></thead><tbody>
           ${rows.slice(0, MAX).map(u => `<tr>
             <td>${escapeHtml(formatDate(u.ended_at))}</td>
-            <td>${u.parts.map(q => `<div><a href="#/projet/${q.project_id}" class="cell-code" data-close>${escapeHtml(q.project.split(' · ')[0])}</a> ${escapeHtml(q.part || 'Sans nom')} × ${q.quantity}</div>`).join('')}${u.batch ? '<span class="drill-chip">lancement groupé</span>' : ''}</td>
+            <td>${u.parts.map(q => u.free ? `<div><span class="tag">Libre</span> ${escapeHtml(q.part)}</div>` : `<div><a href="#/projet/${q.project_id}" class="cell-code" data-close>${escapeHtml(q.project.split(' · ')[0])}</a> ${escapeHtml(q.part || 'Sans nom')} × ${q.quantity}</div>`).join('')}${u.batch ? '<span class="drill-chip">lancement groupé</span>' : ''}</td>
             <td>${escapeHtml(u.printer_name)}</td>
             <td class="num">${u.plan_s !== null ? formatDuration(u.plan_s) : '—'}</td>
             <td class="num">${u.real_s !== null ? formatDuration(u.real_s) : '—'}</td>
-            <td class="num">${!u.failed && u.plan_s > 0 && u.real_s !== null ? gapText(u.plan_s, u.real_s) : '—'}</td>
+            <td class="num">${!u.failed && !u.other_slicer && u.plan_s > 0 && u.real_s !== null ? gapText(u.plan_s, u.real_s) : '—'}</td>
             <td>${u.failed ? '<span class="drill-fail">Ratée</span>' : 'Réussie'}</td></tr>`).join('')}</tbody></table></div>`;
         body.addEventListener('click', e => { if (e.target.closest('[data-close]')) dlg.querySelector('[data-cancel]').click(); });
       },
@@ -232,6 +242,8 @@ export async function renderProduction(el) {
       </div>
       <p class="hint">Part des heures = heures de l'imprimante / heures de toutes les imprimantes. Écart : positif = plus long que prévu.
         ${t.untimed ? `${t.untimed} impression${t.untimed > 1 ? 's' : ''} réussie${t.untimed > 1 ? 's' : ''} sans temps prévu ou sans durée ne ${t.untimed > 1 ? 'sont' : 'est'} pas dans l'écart.` : ''}
+        ${t.free_prints ? `${t.free_prints} impression${t.free_prints > 1 ? 's' : ''} libre${t.free_prints > 1 ? 's' : ''} : comptée${t.free_prints > 1 ? 's' : ''} dans les impressions et les heures, hors pièces, projets et thèmes.` : ''}
+        ${t.other_slicer ? `${t.other_slicer} test${t.other_slicer > 1 ? 's' : ''} d'un autre slicer hors de l'écart.` : ''}
         L'écart par projet exclut les lancements groupés. Un projet à plusieurs thèmes compte dans chacun. Cliquez sur une ligne d'un tableau pour voir les impressions concernées.</p>`;
     box.querySelectorAll('tr.drill').forEach(tr => {
       const go = () => openDrill(tr.dataset.drill, tr.dataset.id, tr.dataset.label, statsUnits);
@@ -321,7 +333,7 @@ export async function renderProduction(el) {
     el.querySelector('#running-count').textContent = active.length || '';
     if (!active.length) {
       box.innerHTML = `<div class="empty-state"><p class="empty-title">Aucune impression en cours</p>
-        <p>Lancez-en une avec le bouton « ▶ Démarrer » d'une pièce, dans un projet.</p></div>`;
+        <p>Lancez-en une avec le bouton « ▶ Démarrer » d'une pièce, dans un projet, ou avec « ＋ Impression libre ».</p></div>`;
       return;
     }
     // Un lancement groupé = une carte
@@ -346,8 +358,8 @@ export async function renderProduction(el) {
           <p class="run-card-plan muted">Durée prévue ${formatDuration(planned)} · <span class="run-end" data-end="${first.id}">${endText(first, planned)}</span></p>` : ''}
         <ul class="run-lines">${runs.map(r => `
           <li>
-            <span class="run-line-name"><a href="#/projet/${r.project_id}" class="cell-code">${escapeHtml(r.project_code || '')}</a>
-              ${escapeHtml(r.part_name || 'Sans nom')} × ${r.quantity}</span>
+            <span class="run-line-name${r.free_kind ? ' is-free' : ''}">${projectCell(r)}
+              ${escapeHtml(runLabel(r))}${r.free_kind ? ` <span class="muted">· ${FREE_KIND[r.free_kind]}</span>` : ''}</span>
             <span class="run-line-fils">${r.filaments.map(f => `<span class="run-fil">${swatch(store.filamentsById.get(f.filament_id)?.color_hex)}<span>${escapeHtml(f.name ? f.name + (f.spool_number && String(f.spool_number).trim() ? ` (${String(f.spool_number).trim()})` : '') : filamentLabel(store.filamentsById.get(f.filament_id)))}</span><span class="muted">${formatWeight(Number(f.planned_g)) || '0 g'}</span></span>`).join('')}</span>
             <button type="button" class="link-btn" data-correct-run="${r.id}" title="Changer la bobine en cas d'erreur au lancement">Corriger</button>
             ${solo ? '' : `<button type="button" class="link-btn" data-finish-one="${r.id}">Terminer seule</button>`}
@@ -391,8 +403,8 @@ export async function renderProduction(el) {
   function drawFilters() {
     const sel = el.querySelector('#f-project');
     const projects = new Map();
-    for (const r of history) if (!projects.has(r.project_id)) projects.set(r.project_id, `${r.project_code ? r.project_code + ' · ' : ''}${r.project_name}`);
-    if (filter.project && !projects.has(+filter.project)) filter.project = '';
+    for (const r of history) if (!projects.has(projectKey(r))) projects.set(projectKey(r), r.free_kind ? r.project_name : `${r.project_code ? r.project_code + ' · ' : ''}${r.project_name}`);
+    if (filter.project && ![...projects.keys()].some(k => String(k) === String(filter.project))) filter.project = '';
     sel.innerHTML = `<option value="">Tous les projets</option>`
       + [...projects.entries()].sort((a, b) => b[1].localeCompare(a[1], 'fr'))
         .map(([pid, label]) => `<option value="${pid}" ${String(pid) === String(filter.project) ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('');
@@ -402,11 +414,11 @@ export async function renderProduction(el) {
   const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
   function matches(r) {
-    if (filter.project && String(r.project_id) !== String(filter.project)) return false;
+    if (filter.project && String(projectKey(r)) !== String(filter.project)) return false;
     if (filter.result && r.result !== filter.result) return false;
     const q = norm(filter.search).trim();
     if (!q) return true;
-    const hay = norm([r.part_name, r.file_name, r.project_name, r.project_code, r.printer_name, r.notes].join(' '));
+    const hay = norm([r.part_name, r.file_name, r.project_name, r.project_code, r.printer_name, r.notes, FREE_KIND[r.free_kind]].join(' '));
     return q.split(/\s+/).every(w => hay.includes(w));
   }
 
@@ -415,8 +427,8 @@ export async function renderProduction(el) {
     const detail = r.filaments.map(f => `${f.name || filamentLabel(store.filamentsById.get(f.filament_id))} : ${formatWeight(Number(f.weight_g)) || '0 g'} sur ${formatWeight(Number(f.planned_g)) || '0 g'} prévus`).join('\n');
     return `<tr>
       <td class="nowrap">${formatDate(r.ended_at, { withTime: true })}</td>
-      <td><a href="#/projet/${r.project_id}" class="cell-code">${escapeHtml(r.project_code || '')}</a></td>
-      <td>${escapeHtml(r.part_name || 'Sans nom')} × ${r.quantity}${r.batch_id ? ' <span class="tag" title="Lancée avec d’autres pièces sur le même plateau : la durée réelle est celle du plateau">groupé</span>' : ''}${r.filaments.some(f => Number(f.relay)) ? ' <span class="tag" title="Une bobine s’est vidée en cours d’impression : la consommation est répartie entre les deux bobines (part de la première estimée)">relais</span>' : ''}</td>
+      <td>${projectCell(r)}</td>
+      <td>${escapeHtml(runLabel(r))}${r.free_kind ? `<span class="sub-line">${FREE_KIND[r.free_kind]}</span>` : ''}${r.batch_id ? ' <span class="tag" title="Lancée avec d’autres pièces sur le même plateau : la durée réelle est celle du plateau">groupé</span>' : ''}${r.filaments.some(f => Number(f.relay)) ? ' <span class="tag" title="Une bobine s’est vidée en cours d’impression : la consommation est répartie entre les deux bobines (part de la première estimée)">relais</span>' : ''}</td>
       <td>${escapeHtml(r.printer_name || '—')}</td>
       <td><span class="pill pill-run-${r.result}">${escapeHtml(resultLabel(r))}</span></td>
       <td class="num"><strong>${formatDuration(r.duration_s) || '—'}</strong>${r.planned_time_s ? `<span class="sub-line">prévu ${formatDuration(r.planned_time_s)}</span>` : ''}</td>
@@ -444,8 +456,9 @@ export async function renderProduction(el) {
   function projectGroups(rows) {
     const map = new Map();
     for (const r of rows) {   // rows est déjà trié du plus récent au plus ancien
-      if (!map.has(r.project_id)) map.set(r.project_id, { id: r.project_id, code: r.project_code, name: r.project_name, rows: [] });
-      map.get(r.project_id).rows.push(r);
+      const id = r.project_id ?? 0;   // 0 : le bloc des impressions libres
+      if (!map.has(id)) map.set(id, { id, code: r.project_code, name: r.project_name, rows: [] });
+      map.get(id).rows.push(r);
     }
     return [...map.values()];
   }
@@ -512,7 +525,7 @@ export async function renderProduction(el) {
       const r = history.find(x => x.id === +b.dataset.delete);
       if (!r) return;
       if (!await confirmDialog("Supprimer l'impression",
-        `« ${r.part_name || 'Sans nom'} × ${r.quantity} » (${resultLabel(r)}) sera retirée de l'historique, et sa consommation ne sera plus décomptée du reste estimé.`)) return;
+        `« ${runLabel(r)} » (${resultLabel(r)}) sera retirée de l'historique, et sa consommation ne sera plus décomptée du reste estimé.`)) return;
       try { await api.del(`runs/${r.id}`); await reloadAll(); toast('Impression supprimée'); }
       catch (e) { toast(e.message, 'error'); }
     }));
@@ -544,6 +557,7 @@ export async function renderProduction(el) {
   });
 
   el.querySelector('#plateau-btn').addEventListener('click', () => openPlateauPicker({ onDone: reloadAll }));
+  el.querySelector('#free-btn').addEventListener('click', () => openFreePrintDialog({ onDone: reloadAll }));
 
   async function reloadAll() {
     await load();

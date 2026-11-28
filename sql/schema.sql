@@ -164,6 +164,13 @@ CREATE TABLE IF NOT EXISTS `print_run_filaments` (
 -- ces lignes sont donc écartées de la calibration.
 ALTER TABLE `print_run_filaments` ADD COLUMN IF NOT EXISTS `relay` tinyint(1) NOT NULL DEFAULT 0;
 
+-- v1.51.0 : impression libre (calibration, test), sans pièce ni projet : part_id vide, le nom, le type et la durée
+-- prévue sont portés par l'impression. free_kind 'slicer' : poids et durée viennent d'un autre slicer.
+ALTER TABLE `print_runs` MODIFY `part_id` int(11) DEFAULT NULL;
+ALTER TABLE `print_runs` ADD COLUMN IF NOT EXISTS `free_name`   varchar(150) DEFAULT NULL AFTER `part_id`;
+ALTER TABLE `print_runs` ADD COLUMN IF NOT EXISTS `free_kind`   enum('calibration','filament','slicer','autre') DEFAULT NULL AFTER `free_name`;
+ALTER TABLE `print_runs` ADD COLUMN IF NOT EXISTS `free_time_s` int(11)      DEFAULT NULL AFTER `free_kind`;
+
 -- v1.15.0 : coût de revient et prix de vente
 ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `power_w`      int(11)      DEFAULT NULL;
 ALTER TABLE `printers` ADD COLUMN IF NOT EXISTS `wear_eur_h`   decimal(6,2) DEFAULT NULL;

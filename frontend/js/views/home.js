@@ -2,7 +2,7 @@
 import { api } from '../api.js';
 import { store } from '../store.js';
 import { toast } from '../ui.js';
-import { formatDuration, formatWeight, endTimeLabel, escapeHtml, filamentLabel, swatch, spoolsToWeigh, weighAge } from '../format.js';
+import { formatDuration, formatWeight, endTimeLabel, escapeHtml, filamentLabel, swatch, spoolsToWeigh, weighAge, runLabel } from '../format.js';
 import { dueText, updateMaintBadge } from '../maintenance.js';
 import { updateRunsBadge } from '../runs.js';
 import { photoThumb } from '../photo.js';
@@ -21,7 +21,7 @@ function jobOf(runs, loadedAt) {
   const first = runs[0];
   const jobs = new Set(runs.map(r => r.batch_id || `run-${r.id}`)).size;
   const title = runs.length === 1
-    ? `${first.part_name || 'Sans nom'} × ${first.quantity}`
+    ? (first.free_kind ? `Libre · ${runLabel(first)}` : runLabel(first))
     : (jobs === 1 ? `Plateau de ${runs.length} pièces` : `${runs.length} impressions en cours`);
   const planned = jobs === 1 ? Number(runs.length === 1 ? first.planned_time_s : first.batch_planned_time_s) || null : null;
   const elapsed = (first.elapsed_s || 0) + (Date.now() - loadedAt) / 1000;

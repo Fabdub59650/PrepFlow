@@ -3,7 +3,7 @@ import { api } from './api.js';
 import { store } from './store.js';
 import { toast, openDialog } from './ui.js';
 import { overdueWarning } from './maintenance.js';
-import { formatDuration, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK, RUN_RESULT } from './format.js';
+import { formatDuration, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK, runLabel, RUN_RESULT } from './format.js';
 
 const round2 = n => Math.round(n * 100) / 100;
 
@@ -184,7 +184,7 @@ export function openStartDialog({ parts, runIdx = new Map(), onDone }) {
 export function openFinishDialog({ runs, onDone }) {
   const finished = new Set();           // impressions déjà enregistrées (reprise après une erreur partielle)
   const many = runs.length > 1;
-  const nameOf = r => `${r.part_name || 'Sans nom'} × ${r.quantity}`;
+  const nameOf = runLabel;
 
   const card = r => `
     <div class="finish-run" data-id="${r.id}">
@@ -466,7 +466,7 @@ export function openCorrectDialog({ run, onDone }) {
     wide: true,
     build(body) {
       body.innerHTML = `
-        <p class="muted">${escapeHtml(`${run.part_name || 'Sans nom'} × ${run.quantity}`)}${run.project_code ? ' · ' + escapeHtml(run.project_code) : ''}
+        <p class="muted">${escapeHtml(runLabel(run))}${run.project_code ? ' · ' + escapeHtml(run.project_code) : ''}
           · le résultat ne se modifie pas : supprimez l'impression et refaites-la si besoin.</p>
         <div class="corr-fils">${run.filaments.map(f => `
           <div class="corr-line" data-fid="${f.filament_id}">

@@ -207,3 +207,9 @@ export function sourceLink(url) {
     return { href: u.href, host: u.hostname.replace(/^www\./, '') };
   } catch { return null; }
 }
+
+// Impression libre (hors projet) : types proposés, et nom affiché (sans « × 1 », elle n'a pas de quantité)
+export const FREE_KIND = { calibration: 'Calibration', filament: 'Test filament', slicer: 'Test slicer', autre: 'Autre' };
+export function runLabel(r) {
+  return r.free_kind ? r.part_name : `${r.part_name || 'Sans nom'} × ${r.quantity}`;
+}

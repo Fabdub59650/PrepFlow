@@ -7,7 +7,7 @@ import { initTheme } from './theme.js';
 import { photoThumb } from './photo.js';
 import { overdueWarning, dueText } from './maintenance.js';
 import { partColors } from './views/checklist.js';
-import { formatDuration, endTimeLabel, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK, spoolsToWeigh, weighAge } from './format.js';
+import { formatDuration, endTimeLabel, formatWeight, escapeHtml, filamentLabel, swatch, spoolStock, calibK, spoolsToWeigh, weighAge, runLabel } from './format.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const round2 = n => Math.round(n * 100) / 100;
@@ -170,7 +170,7 @@ function drawPrinters() {
 const plannedOf = runs => Number(runs.length > 1 ? runs[0].batch_planned_time_s : runs[0].planned_time_s) || null;
 
 const runTitle = runs => runs.length === 1
-  ? `${runs[0].part_name || 'Sans nom'} ×${runs[0].quantity}`
+  ? (runs[0].free_kind ? runs[0].part_name : `${runs[0].part_name || 'Sans nom'} ×${runs[0].quantity}`)
   : `${runs.slice(0, 2).map(r => `${r.part_name || 'Sans nom'} ×${r.quantity}`).join(', ')}${runs.length > 2 ? ` +${runs.length - 2}` : ''}`;
 
 /* ══ Feuilles plein écran ══════════════════════════════════════════ */
@@ -436,7 +436,7 @@ function openRelay({ run, pct, current }) {
     let out = null;
     const fils = run.filaments;
     const st = { from: current?.from ?? fils[0].filament_id, g: current ? current.g : null, to: current?.to ?? null, toName: current?.toName ?? '' };
-    const sh = openSheet({ title: 'Bobine changée', sub: `${run.part_name || 'Sans nom'} × ${run.quantity}` });
+    const sh = openSheet({ title: 'Bobine changée', sub: runLabel(run) });
     sh.onClose(() => resolve(out));
     const line = () => fils.find(f => f.filament_id === st.from);
     const total = () => round2(Number(line().planned_g) * pct / 100);
@@ -497,7 +497,7 @@ const PCTS = [10, 25, 50, 75, 90];
 
 function runPanel(run, { compact = false } = {}) {
   const st = { result: 'ok', pct: null, relay: null };
-  const label = `${run.part_name || 'Sans nom'} ×${run.quantity}`;
+  const label = runLabel(run);
   const root = h(`<div class="rp${compact ? ' is-compact' : ''}"></div>`);
   const pctNow = () => (st.result === 'ok' ? 100 : st.result === 'rate' ? (st.pct ?? 0) : 0);
 

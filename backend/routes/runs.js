@@ -3,6 +3,7 @@
  * Monté sur /api :
  *   POST   /api/runs/start                  démarrer un lancement (groupé si plusieurs pièces)
  *   POST   /api/parts/:id/runs/start        démarrer une seule pièce
+ *   POST   /api/runs/free                   impression libre, hors projet (v1.51.0) : monocouleur, une bobine
  *   POST   /api/runs/:id/finish             terminer une impression (ok / raté / annulé) ;
  *                                           relay: { from_filament_id, to_filament_id, from_g } si la bobine s'est vidée
  *                                           en cours d'impression et a été remplacée (v1.22.0)
@@ -22,6 +23,7 @@ const db = require('../db');
 
 const RESULTS = ['ok', 'rate', 'annule'];
 const MAX_GROUP = 50;
+const FREE_KINDS = ['calibration', 'filament', 'slicer', 'autre'];
 
 const bad = msg => Object.assign(new Error(msg), { status: 400 });
 const missing = msg => Object.assign(new Error(msg), { status: 404 });
@@ -89,18 +91,21 @@ async function loadRuns({ ids = null, state = null, projectId = null, partId = n
   // Période : impressions terminées (ou démarrées, si en cours) depuis N jours
   if (days)      { where.push('COALESCE(r.ended_at, r.started_at) >= (NOW() - INTERVAL ? DAY)'); params.push(days); }
   const [runs] = await db.query(
-    `SELECT r.*, p.name AS part_name, p.file_name, p.quantity AS part_quantity, p.print_time_s,
-            p.project_id, pj.code AS project_code, pj.name AS project_name,
+    // Impression libre (part_id vide) : son nom et sa durée prévue tiennent lieu de ceux de la pièce, « Libre » du code projet
+    `SELECT r.*, COALESCE(p.name, r.free_name) AS part_name, p.file_name, p.quantity AS part_quantity,
+            COALESCE(p.print_time_s, r.free_time_s) AS print_time_s,
+            p.project_id, IF(r.part_id IS NULL, 'Libre', pj.code) AS project_code,
+            IF(r.part_id IS NULL, 'Impressions libres', pj.name) AS project_name,
             prn.name AS printer_name,
-            CASE WHEN p.print_time_s IS NULL THEN NULL ELSE p.print_time_s * r.quantity END AS planned_time_s,
+            COALESCE(p.print_time_s * r.quantity, r.free_time_s) AS planned_time_s,
             CASE WHEN r.state='en_cours' THEN GREATEST(0, TIMESTAMPDIFF(SECOND, r.started_at, NOW())) ELSE NULL END AS elapsed_s,
             -- Lancement groupé : temps prévu de tout le plateau (null si une pièce n'a pas de temps)
             (SELECT CASE WHEN COUNT(*) = COUNT(p2.print_time_s) THEN SUM(p2.print_time_s * r2.quantity) END
                FROM print_runs r2 JOIN parts p2 ON p2.id = r2.part_id
                WHERE r.batch_id IS NOT NULL AND r2.batch_id = r.batch_id) AS batch_planned_time_s
      FROM print_runs r
-     JOIN parts p     ON p.id = r.part_id
-     JOIN projects pj ON pj.id = p.project_id
+     LEFT JOIN parts p     ON p.id = r.part_id
+     LEFT JOIN projects pj ON pj.id = p.project_id
      LEFT JOIN printers prn ON prn.id = r.printer_id
      ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
      ORDER BY (r.state='en_cours') DESC, COALESCE(r.ended_at, r.started_at) DESC, r.id DESC
@@ -141,8 +146,8 @@ router.get('/runs/waste', async (req, res) => {
       `SELECT r.id, r.result, r.batch_id, r.duration_s, r.ended_at, r.printer_id, p.project_id,
               pj.code AS project_code, pj.name AS project_name, prn.name AS printer_name
        FROM print_runs r
-       JOIN parts p ON p.id = r.part_id
-       JOIN projects pj ON pj.id = p.project_id
+       LEFT JOIN parts p ON p.id = r.part_id
+       LEFT JOIN projects pj ON pj.id = p.project_id
        LEFT JOIN printers prn ON prn.id = r.printer_id
        WHERE r.state='termine' AND r.result IN ('ok','rate')
          ${days ? 'AND r.ended_at >= DATE_SUB(NOW(), INTERVAL ? DAY)' : ''}`, days ? [days] : []);
@@ -182,7 +187,8 @@ router.get('/runs/waste', async (req, res) => {
       }
       const month = String(r.ended_at).slice(0, 7);
       const base = { runs: 1, failed: failed ? 1 : 0, grams_lost: failed ? used : 0, seconds_lost: secs, cost_lost: cost };
-      bump(groups.project, r.project_id, `${r.project_code ? r.project_code + ' · ' : ''}${r.project_name}`, base);
+      bump(groups.project, r.project_id ?? 'libre',
+        r.project_id === null ? 'Impressions libres' : `${r.project_code ? r.project_code + ' · ' : ''}${r.project_name}`, base);
       bump(groups.printer, r.printer_id ?? 0, r.printer_name || 'Sans imprimante', base);
       bump(groups.month, month, month, base);
       if (failed) for (const { f, w, c } of perLine) {
@@ -221,11 +227,12 @@ router.get('/runs/stats', async (req, res) => {
   try {
     const days = Math.max(0, Math.min(parseInt(req.query.days, 10) || 0, 36500));
     const [rows] = await db.query(
-      `SELECT r.id, r.result, r.batch_id, r.quantity, r.duration_s, r.started_at, r.ended_at, r.printer_id,
-              p.project_id, p.name AS part_name, p.print_time_s, pj.code AS project_code, pj.name AS project_name, prn.name AS printer_name
+      `SELECT r.id, r.result, r.batch_id, r.quantity, r.duration_s, r.started_at, r.ended_at, r.printer_id, r.free_kind,
+              p.project_id, COALESCE(p.name, r.free_name) AS part_name, COALESCE(p.print_time_s, r.free_time_s) AS print_time_s,
+              pj.code AS project_code, pj.name AS project_name, prn.name AS printer_name
        FROM print_runs r
-       JOIN parts p ON p.id = r.part_id
-       JOIN projects pj ON pj.id = p.project_id
+       LEFT JOIN parts p ON p.id = r.part_id
+       LEFT JOIN projects pj ON pj.id = p.project_id
        LEFT JOIN printers prn ON prn.id = r.printer_id
        WHERE r.state='termine' AND r.result IN ('ok','rate')
          ${days ? 'AND r.ended_at >= DATE_SUB(NOW(), INTERVAL ? DAY)' : ''}
@@ -250,11 +257,14 @@ router.get('/runs/stats', async (req, res) => {
       const real = first.duration_s === null || first.duration_s === undefined ? null : Number(first.duration_s);
       return { ...u, failed, plan, real, printer_id: first.printer_id, printer_name: first.printer_name,
                ended_at: first.ended_at, started_at: first.started_at,
-               pieces: failed ? 0 : u.rows.reduce((a, r) => a + r.quantity, 0) };
+               free: first.free_kind !== null, other_slicer: first.free_kind === 'slicer',
+               // une impression libre ne produit pas de pièce
+               pieces: failed ? 0 : u.rows.reduce((a, r) => a + (r.free_kind ? 0 : r.quantity), 0) };
     });
 
     const totals = { prints: list.length, failed: list.filter(u => u.failed).length, pieces: 0, seconds: 0,
-                     timed: 0, untimed: 0, plan_s: 0, real_s: 0, group_prints: list.filter(u => u.batch).length };
+                     timed: 0, untimed: 0, plan_s: 0, real_s: 0, group_prints: list.filter(u => u.batch).length,
+                     free_prints: list.filter(u => u.free).length, other_slicer: 0 };
     const byPrinter = new Map(), byWeek = new Map(), byTheme = new Map(), byProject = new Map();
     const bump = (map, key, label, add) => {
       if (!map.has(key)) map.set(key, { key, label, prints: 0, failed: 0, pieces: 0, seconds: 0, plan_s: 0, real_s: 0, timed: 0 });
@@ -263,15 +273,21 @@ router.get('/runs/stats', async (req, res) => {
     };
     for (const u of list) {
       const secs = u.real || 0;
-      const compared = !u.failed && u.real !== null && u.plan !== null && u.plan > 0;
+      // La durée annoncée par un autre slicer ne se compare pas à celle d'Elegoo Slicer
+      const compared = !u.failed && !u.other_slicer && u.real !== null && u.plan !== null && u.plan > 0;
       const add = { prints: 1, failed: u.failed ? 1 : 0, pieces: u.pieces, seconds: secs,
                     plan_s: compared ? u.plan : 0, real_s: compared ? u.real : 0, timed: compared ? 1 : 0 };
       totals.pieces += u.pieces; totals.seconds += secs;
-      if (!u.failed) { if (compared) { totals.timed++; totals.plan_s += u.plan; totals.real_s += u.real; } else totals.untimed++; }
+      if (!u.failed) {
+        if (compared) { totals.timed++; totals.plan_s += u.plan; totals.real_s += u.real; }
+        else if (u.other_slicer) totals.other_slicer++;
+        else totals.untimed++;
+      }
       bump(byPrinter, u.printer_id ?? 0, u.printer_name || 'Sans imprimante', add);
       bump(byWeek, weekStart(u.ended_at), weekStart(u.ended_at), add);
       // Projet(s) et thèmes : un lancement groupé répartit ses pièces entre les projets de ses lignes
       for (const r of u.rows) {
+        if (r.free_kind) continue;                       // hors projet : ni projet ni thème
         const pieces = u.failed ? 0 : r.quantity;
         const share = u.rows.length > 1 ? secs / u.rows.length : secs;
         const lab = `${r.project_code ? r.project_code + ' · ' : ''}${r.project_name}`;
@@ -283,7 +299,7 @@ router.get('/runs/stats', async (req, res) => {
     }
     // Écart par projet : uniquement sur les impressions simples comparables (le plateau groupé mélange les projets)
     for (const u of list) {
-      if (u.batch || u.failed || u.real === null || u.plan === null || !(u.plan > 0)) continue;
+      if (u.free || u.batch || u.failed || u.real === null || u.plan === null || !(u.plan > 0)) continue;
       const g = byProject.get(u.rows[0].project_id);
       if (g) { g.plan_s += u.plan; g.real_s += u.real; g.timed += 1; }
     }
@@ -296,10 +312,11 @@ router.get('/runs/stats', async (req, res) => {
       .sort((a, b) => b.seconds - a.seconds);
     // Détail : une ligne par impression (pour le clic sur un tableau et les courbes d'évolution)
     const detail = list.map(u => ({
-      key: u.key, batch: u.batch, failed: u.failed, ended_at: u.ended_at, started_at: u.started_at,
+      key: u.key, batch: u.batch, failed: u.failed, free: u.free, other_slicer: u.other_slicer, ended_at: u.ended_at, started_at: u.started_at,
       printer_id: u.printer_id ?? 0, printer_name: u.printer_name || 'Sans imprimante',
       plan_s: u.plan, real_s: u.real, pieces: u.pieces,
-      parts: u.rows.map(r => ({ project_id: r.project_id, project: `${r.project_code ? r.project_code + ' · ' : ''}${r.project_name}`,
+      parts: u.rows.map(r => ({ project_id: r.project_id,
+        project: r.free_kind ? 'Libre' : `${r.project_code ? r.project_code + ' · ' : ''}${r.project_name}`,
         part: r.part_name || '', quantity: r.quantity, theme_ids: (themesOf.get(r.project_id) || []).map(t => t.id) })),
     })).sort((a, b) => String(b.ended_at).localeCompare(String(a.ended_at)));
     res.json({
@@ -345,6 +362,59 @@ async function partSpools(conn, part) {
   }));
 }
 
+// Une imprimante n'a qu'un travail à la fois (impression seule, lancement groupé ou impression libre).
+// Le verrou sur sa ligne sérialise deux lancements simultanés (PC et kiosque).
+async function lockFreePrinter(conn, printerId) {
+  const [[printer]] = await conn.query('SELECT id, name, active FROM printers WHERE id=? FOR UPDATE', [printerId]);
+  if (!printer) throw bad('Imprimante inconnue');
+  if (!printer.active) throw bad('Cette imprimante est désactivée');
+  const [busy] = await conn.query(
+    `SELECT r.id, COALESCE(p.name, r.free_name) AS part_name, IF(r.part_id IS NULL, 'Libre', pr.code) AS project_code
+     FROM print_runs r LEFT JOIN parts p ON p.id = r.part_id LEFT JOIN projects pr ON pr.id = p.project_id
+     WHERE r.printer_id = ? AND r.state = 'en_cours' ORDER BY r.id`, [printerId]);
+  if (busy.length) {
+    const b = busy[0];
+    const what = [b.project_code, b.part_name || 'Sans nom'].filter(Boolean).join(' · ')
+      + (busy.length > 1 ? ` (+${busy.length - 1})` : '');
+    throw conflict(`${printer.name} est occupée : impression en cours (${what}). Terminez-la d'abord.`);
+  }
+}
+
+// ── Impression libre ──────────────────────────────────────────
+// Calibration ou test hors projet : un nom, un type, une imprimante, une bobine, un poids ; durée prévue facultative.
+async function startFreeRun(body) {
+  const name = String(body.name ?? '').trim();
+  if (!name) throw bad('Donnez un nom à cette impression');
+  if (name.length > 150) throw bad('Nom trop long (150 caractères au plus)');
+  if (!FREE_KINDS.includes(body.kind)) throw bad('Type inconnu (calibration, filament, slicer ou autre)');
+  const printerId = parseInt(body.printer_id, 10);
+  if (!Number.isFinite(printerId)) throw bad('Choisissez une imprimante');
+  const filamentId = parseInt(body.filament_id, 10);
+  if (!Number.isFinite(filamentId)) throw bad('Choisissez une bobine');
+  const weight = Number(body.weight_g);
+  if (!Number.isFinite(weight) || weight <= 0 || weight > 100000) throw bad('Indiquez le poids prévu, en grammes');
+  const rawTime = body.time_s;
+  const timeS = rawTime === undefined || rawTime === null || rawTime === '' ? null : Number(rawTime);
+  if (timeS !== null && (!Number.isInteger(timeS) || timeS < 60 || timeS > 3600000)) throw bad('Durée prévue invalide');
+  const startedAt = parseDt(body.started_at, 'Heure de début');
+
+  const id = await withTx(async conn => {
+    await lockFreePrinter(conn, printerId);
+    const [[spool]] = await conn.query('SELECT id, material, color_name, archived FROM filament_cache WHERE id=?', [filamentId]);
+    if (!spool) throw bad('Bobine inconnue');
+    if (spool.archived) throw bad('Cette bobine est archivée');
+    const [r] = await conn.query(
+      `INSERT INTO print_runs (part_id, free_name, free_kind, free_time_s, printer_id, quantity, started_at)
+       VALUES (NULL, ?, ?, ?, ?, 1, COALESCE(?, NOW()))`, [name, body.kind, timeS, printerId, startedAt]);
+    const g = round2(weight);
+    await conn.query(
+      'INSERT INTO print_run_filaments (run_id, filament_id, material, color_name, planned_g, weight_g) VALUES (?, ?, ?, ?, ?, ?)',
+      [r.insertId, spool.id, spool.material, spool.color_name, g, g]);
+    return r.insertId;
+  });
+  return (await loadRuns({ ids: [id] }))[0];
+}
+
 /**
  * items : [{ part_id, quantity }] — une seule entrée = impression simple, plusieurs = lancement groupé
  * (un run par pièce, même imprimante, même heure de début, même batch_id).
@@ -380,21 +450,7 @@ async function startRuns(body) {
       if (shared.size === 1 && parts[0].printer_id !== null) printerId = parts[0].printer_id;
       else throw bad('Choisissez une imprimante');
     }
-    // Le verrou sur la ligne de l'imprimante sérialise deux lancements simultanés (PC et kiosque)
-    const [[printer]] = await conn.query('SELECT id, name, active FROM printers WHERE id=? FOR UPDATE', [printerId]);
-    if (!printer) throw bad('Imprimante inconnue');
-    if (!printer.active) throw bad('Cette imprimante est désactivée');
-    // Une imprimante n'a qu'un travail à la fois (impression seule ou lancement groupé)
-    const [busy] = await conn.query(
-      `SELECT r.id, r.batch_id, p.name AS part_name, pr.code AS project_code
-       FROM print_runs r JOIN parts p ON p.id = r.part_id JOIN projects pr ON pr.id = p.project_id
-       WHERE r.printer_id = ? AND r.state = 'en_cours' ORDER BY r.id`, [printerId]);
-    if (busy.length) {
-      const b = busy[0];
-      const what = [b.project_code, b.part_name || 'Sans nom'].filter(Boolean).join(' · ')
-        + (busy.length > 1 ? ` (+${busy.length - 1})` : '');
-      throw conflict(`${printer.name} est occupée : impression en cours (${what}). Terminez-la d'abord.`);
-    }
+    await lockFreePrinter(conn, printerId);
 
     const batchId = parts.length > 1 ? crypto.randomUUID() : null;
     const created = [];
@@ -424,6 +480,11 @@ async function startRuns(body) {
 
 router.post('/runs/start', async (req, res) => {
   try { res.status(201).json(await startRuns(req.body || {})); }
+  catch (e) { fail(res, e); }
+});
+
+router.post('/runs/free', async (req, res) => {
+  try { res.status(201).json(await startFreeRun(req.body || {})); }
   catch (e) { fail(res, e); }
 });
 
